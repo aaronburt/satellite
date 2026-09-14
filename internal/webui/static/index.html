@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>satellite v{{VERSION}}</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  color-scheme: dark;
+  --bg:#09090b;
+  --surface:#121215;
+  --input-bg:#18181b;
+  --border:#27272a;
+  --border-focus:#3b82f6;
+  --text:#f4f4f5;
+  --muted:#a1a1aa;
+  --accent:#2563eb;
+  --accent-hover:#1d4ed8;
+  --green:#22c55e;
+  --yellow:#eab308;
+  --red:#ef4444;
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:13px;
+  line-height:1.5;
+  display:flex;
+  justify-content:center;
+  padding:32px 16px;
+  min-height:100vh;
+}
+.mono{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+}
+.wrap{
+  width:100%;
+  max-width:500px;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.brand svg{
+  width:16px;
+  height:16px;
+  stroke:var(--muted);
+}
+.brand-name{
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+.brand-ver{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:400;
+}
+.status-indicator{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  color:var(--muted);
+}
+.dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--muted);
+}
+.dot.online{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.4)}
+.dot.connecting{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.4)}
+.dot.offline{background:var(--red)}
+
+section{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.section-title{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:500;
+  letter-spacing:0.02em;
+}
+
+/* Telemetry List */
+.metric-list{
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:6px;
+}
+.metric-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);
+}
+.metric-row:last-child{
+  border-bottom:none;
+}
+.metric-row.hidden{
+  display:none;
+}
+.metric-label{
+  color:var(--muted);
+  font-size:12px;
+}
+.metric-value{
+  font-size:12px;
+  font-weight:500;
+  color:var(--text);
+  max-width:280px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-align:right;
+}
+.metric-sub{
+  color:var(--muted);
+  font-size:11px;
+  margin-left:4px;
+}
+
+/* Config Form */
+form{
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:6px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.field-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:500;
+}
+
+input {
+  width:100%;
+  appearance:none;
+  -webkit-appearance:none;
+  background-color:var(--input-bg) !important;
+  color:var(--text) !important;
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:8px 10px;
+  font-size:12px;
+  outline:none;
+  transition:border-color 0.15s, box-shadow 0.15s;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
+  caret-color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+input:focus{
+  border-color:var(--border-focus);
+  box-shadow:0 0 0 1px var(--border-focus);
+}
+
+/* Toggles Grid */
+.toggle-group{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+.toggle-title{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:500;
+}
+.toggle-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.toggle-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+  user-select:none;
+}
+.toggle-item input[type="checkbox"]{
+  width:14px;
+  height:14px;
+  accent-color:var(--accent);
+  cursor:pointer;
+  margin:0;
+  padding:0;
+  appearance:auto;
+  -webkit-appearance:auto;
+  background-color:initial !important;
+  border:initial;
+}
+.toggle-item span{
+  font-size:12px;
+  color:var(--text);
+}
+
+.actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:10px;
+  padding-top:4px;
+}
+button{
+  font-size:12px;
+  font-weight:500;
+  padding:7px 14px;
+  border-radius:4px;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.btn-primary{
+  background:var(--accent);
+  color:#fff;
+  border:1px solid var(--accent);
+}
+.btn-primary:hover{
+  background:var(--accent-hover);
+}
+.btn-secondary{
+  background:transparent;
+  color:var(--muted);
+  border:1px solid var(--border);
+}
+.btn-secondary:hover{
+  color:var(--text);
+  border-color:#3f3f46;
+}
+
+.msg-area{
+  min-height:22px;
+  display:flex;
+  align-items:center;
+  font-size:11px;
+}
+.msg-ok{color:var(--green)}
+.msg-err{color:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/>
+        <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/>
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/>
+        <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
+      </svg>
+      <span class="brand-name mono">satellite</span>
+      <span class="brand-ver mono">v{{VERSION}}</span>
+    </div>
+    <div class="status-indicator">
+      <span id="dot" class="dot"></span>
+      <span id="status-text" class="mono">disconnected</span>
+    </div>
+  </header>
+
+  <section>
+    <span class="section-title">Telemetry</span>
+    <dl class="metric-list" id="telemetry-list">
+      <div class="metric-row" id="row-cpu">
+        <dt class="metric-label">Processor</dt>
+        <dd class="metric-value mono" id="val-cpu">--</dd>
+      </div>
+      <div class="metric-row" id="row-memory">
+        <dt class="metric-label">Memory</dt>
+        <dd class="metric-value mono">
+          <span id="val-mem">--</span>
+          <span class="metric-sub" id="val-mem-sub"></span>
+        </dd>
+      </div>
+      <div id="drives-container"></div>
+      <div class="metric-row" id="row-network">
+        <dt class="metric-label">Network Throughput</dt>
+        <dd class="metric-value mono" id="val-net">--</dd>
+      </div>
+      <div class="metric-row" id="row-local-ip">
+        <dt class="metric-label">Local IP</dt>
+        <dd class="metric-value mono" id="val-ip">--</dd>
+      </div>
+      <div class="metric-row" id="row-uptime">
+        <dt class="metric-label">Uptime</dt>
+        <dd class="metric-value mono" id="val-uptime">--</dd>
+      </div>
+      <div class="metric-row" id="row-presence">
+        <dt class="metric-label">User Presence</dt>
+        <dd class="metric-value mono" id="val-presence">--</dd>
+      </div>
+      <div class="metric-row" id="row-lock">
+        <dt class="metric-label">Workstation Locked</dt>
+        <dd class="metric-value mono" id="val-lock">--</dd>
+      </div>
+      <div class="metric-row" id="row-mic">
+        <dt class="metric-label">Microphone Active</dt>
+        <dd class="metric-value mono" id="val-mic">--</dd>
+      </div>
+      <div class="metric-row" id="row-fullscreen">
+        <dt class="metric-label">Fullscreen / Gaming</dt>
+        <dd class="metric-value mono" id="val-fullscreen">--</dd>
+      </div>
+      <div class="metric-row" id="row-theme">
+        <dt class="metric-label">Windows Theme</dt>
+        <dd class="metric-value mono" id="val-theme">--</dd>
+      </div>
+      <div class="metric-row" id="row-battery">
+        <dt class="metric-label">Battery / Power</dt>
+        <dd class="metric-value mono" id="val-battery">--</dd>
+      </div>
+      <div class="metric-row" id="row-window">
+        <dt class="metric-label">Active Program</dt>
+        <dd class="metric-value mono" id="val-window">--</dd>
+      </div>
+      <div class="metric-row" id="row-title">
+        <dt class="metric-label">Window Title</dt>
+        <dd class="metric-value mono" id="val-title">--</dd>
+      </div>
+      <div class="metric-row" id="row-reboot">
+        <dt class="metric-label">Pending Reboot</dt>
+        <dd class="metric-value mono" id="val-reboot">--</dd>
+      </div>
+      <div class="metric-row" id="row-media">
+        <dt class="metric-label">Now Playing</dt>
+        <dd class="metric-value" id="val-media">--</dd>
+      </div>
+      <div class="metric-row" id="row-webcam">
+        <dt class="metric-label">Webcam Active</dt>
+        <dd class="metric-value mono" id="val-webcam">--</dd>
+      </div>
+      <div class="metric-row" id="row-audio-output">
+        <dt class="metric-label">Audio Output</dt>
+        <dd class="metric-value mono" id="val-audio-output">--</dd>
+      </div>
+      <div class="metric-row" id="row-wifi">
+        <dt class="metric-label">Network / Wi-Fi</dt>
+        <dd class="metric-value mono" id="val-wifi">--</dd>
+      </div>
+      <div class="metric-row" id="row-display">
+        <dt class="metric-label">Display Power</dt>
+        <dd class="metric-value mono" id="val-display">--</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section>
+    <span class="section-title">Configuration</span>
+    <form id="cfg-form">
+      <div class="field">
+        <label for="node_id">Node identifier</label>
+        <input class="mono" id="node_id" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="broker">MQTT broker</label>
+        <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
+      </div>
+      <div class="field">
+        <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Skip TLS certificate verification (Insecure)</span></label>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="user">Username</label>
+          <input class="mono" id="user" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="pass">Password</label>
+          <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="prefix">Topic prefix</label>
+          <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="interval">Publish interval (seconds)</label>
+          <input type="number" class="mono" id="interval" min="1" max="300" required>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <span class="toggle-title">Exposed Entities (Home Assistant)</span>
+        <div class="toggle-grid">
+          <label class="toggle-item"><input type="checkbox" id="exp-cpu"><span>Processor</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-mem"><span>Memory</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-storage"><span>Storage Drives</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-net"><span>Network</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-local-ip"><span>Local IP</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-uptime"><span>Uptime</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-presence"><span>User Presence</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-lock"><span>Workstation Lock</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-mic"><span>Microphone Active</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-fullscreen"><span>Fullscreen / Gaming</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-theme"><span>Windows Theme</span></label>
+          <label class="toggle-item" id="item-battery"><input type="checkbox" id="exp-battery"><span>Battery & Power</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-window"><span>Active Program</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-title"><span>Window Title</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-reboot"><span>Pending Reboot</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-media"><span>Media Player</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-remote-lock"><span>Remote Workstation Lock</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-webcam"><span>Webcam Active</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-audio-output"><span>Audio Output Device</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-wifi"><span>Wi-Fi / Network SSID</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-display"><span>Display Power & Controls</span></label>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" id="btn-test" class="btn-secondary">Test Connection</button>
+        <button type="submit" class="btn-primary">Save & Connect</button>
+      </div>
+      <div class="msg-area" id="msg-area"></div>
+    </form>
+  </section>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const urlParams = new URLSearchParams(window.location.search);
+const apiToken = urlParams.get('token') || '';
+
+async function authFetch(url, options = {}) {
+  options.headers = options.headers || {};
+  if (apiToken) {
+    options.headers['X-API-Token'] = apiToken;
+  }
+  return fetch(url, options);
+}
+
+let activePollTimeout = null;
+let currentIntervalMs = 5000;
+let currentExpose = {};
+
+function setStatusBadge(status) {
+  const dot = $('dot');
+  const txt = $('status-text');
+  dot.className = 'dot';
+  if (status === 'Connected') {
+    dot.classList.add('online');
+    txt.innerText = 'online';
+  } else if (status === 'Connecting') {
+    dot.classList.add('connecting');
+    txt.innerText = 'connecting';
+  } else {
+    dot.classList.add('offline');
+    txt.innerText = 'disconnected';
+  }
+}
+
+function setStaleUI() {
+  const dot = $('dot');
+  const txt = $('status-text');
+  dot.className = 'dot offline';
+  txt.innerText = 'unreachable';
+}
+
+function updateRowVisibility(expose, hasBattery) {
+  $('row-cpu').className = 'metric-row' + (expose.cpu ? '' : ' hidden');
+  $('row-memory').className = 'metric-row' + (expose.memory ? '' : ' hidden');
+  $('row-network').className = 'metric-row' + (expose.network ? '' : ' hidden');
+  $('row-local-ip').className = 'metric-row' + (expose.local_ip ? '' : ' hidden');
+  $('row-uptime').className = 'metric-row' + (expose.uptime ? '' : ' hidden');
+  $('row-presence').className = 'metric-row' + (expose.user_presence ? '' : ' hidden');
+  $('row-lock').className = 'metric-row' + (expose.session_lock ? '' : ' hidden');
+  $('row-mic').className = 'metric-row' + (expose.microphone ? '' : ' hidden');
+  $('row-fullscreen').className = 'metric-row' + (expose.fullscreen ? '' : ' hidden');
+  $('row-theme').className = 'metric-row' + (expose.windows_theme ? '' : ' hidden');
+  $('row-window').className = 'metric-row' + (expose.active_window ? '' : ' hidden');
+  $('row-title').className = 'metric-row' + (expose.window_title ? '' : ' hidden');
+  $('row-reboot').className = 'metric-row' + (expose.update_pending ? '' : ' hidden');
+  $('row-webcam').className = 'metric-row' + (expose.webcam ? '' : ' hidden');
+  $('row-audio-output').className = 'metric-row' + (expose.audio_output ? '' : ' hidden');
+  $('row-wifi').className = 'metric-row' + (expose.wifi ? '' : ' hidden');
+  $('row-display').className = 'metric-row' + (expose.display_state ? '' : ' hidden');
+
+  if (!hasBattery) {
+    $('row-battery').className = 'metric-row hidden';
+    $('item-battery').style.display = 'none';
+  } else {
+    $('row-battery').className = 'metric-row' + (expose.battery ? '' : ' hidden');
+    $('item-battery').style.display = 'flex';
+  }
+}
+
+async function poll() {
+  try {
+    const res = await authFetch('/api/status', { cache: 'no-store' });
+    if (!res.ok) {
+      setStaleUI();
+      scheduleNextPoll();
+      return;
+    }
+    const data = await res.json();
+    setStatusBadge(data.mqtt_status);
+
+    if (data.telemetry) {
+      const t = data.telemetry;
+      updateRowVisibility(currentExpose, t.has_battery);
+
+      if (t.cpu_percent !== undefined) {
+        $('val-cpu').innerText = t.cpu_percent.toFixed(1) + ' %';
+      }
+      if (t.memory_used_gb !== undefined) {
+        $('val-mem').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
+        $('val-mem-sub').innerText = '(' + t.memory_percent.toFixed(1) + ' %)';
+      }
+
+      // Render drives dynamically
+      const drivesDiv = $('drives-container');
+      if (currentExpose.storage && t.drives && t.drives.length > 0) {
+        drivesDiv.innerHTML = t.drives.map(d => `
+          <div class="metric-row">
+            <dt class="metric-label">Storage (${d.mount})</dt>
+            <dd class="metric-value mono">${d.used_gb.toFixed(1)} / ${d.total_gb.toFixed(1)} GB <span class="metric-sub">(${d.used_percent.toFixed(1)} %)</span></dd>
+          </div>
+        `).join('');
+      } else {
+        drivesDiv.innerHTML = '';
+      }
+
+      if (t.network_rx_kbs !== undefined) {
+        $('val-net').innerText = '↓ ' + t.network_rx_kbs.toFixed(1) + '  ↑ ' + t.network_tx_kbs.toFixed(1) + ' kB/s';
+      }
+      if (t.local_ip) {
+        $('val-ip').innerText = t.local_ip;
+      }
+      if (t.uptime_seconds !== undefined) {
+        const hrs = (t.uptime_seconds / 3600).toFixed(1);
+        $('val-uptime').innerText = hrs + ' h';
+      }
+      if (t.user_idle_seconds !== undefined) {
+        const status = t.user_active ? 'Active' : 'Idle';
+        $('val-presence').innerText = status + ' (' + t.user_idle_seconds + 's)';
+      }
+      if (t.session_locked !== undefined) {
+        $('val-lock').innerText = t.session_locked ? 'Locked' : 'Unlocked';
+      }
+      if (t.microphone_in_use !== undefined) {
+        $('val-mic').innerText = t.microphone_in_use ? 'Active' : 'Muted / Inactive';
+      }
+      if (t.fullscreen_active !== undefined) {
+        $('val-fullscreen').innerText = t.fullscreen_active ? 'Yes' : 'No';
+      }
+      if (t.windows_theme) {
+        $('val-theme').innerText = t.windows_theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+      }
+      if (t.has_battery && t.battery_percent !== undefined) {
+        const pwr = t.power_plugged ? 'AC' : 'Batt';
+        $('val-battery').innerText = t.battery_percent + ' % [' + pwr + ']';
+      }
+      if (t.active_process) {
+        $('val-window').innerText = t.active_process;
+      }
+      if (t.active_window_title) {
+        $('val-title').innerText = t.active_window_title;
+        $('val-title').title = t.active_window_title;
+      }
+      if (t.update_pending !== undefined) {
+        $('val-reboot').innerText = t.update_pending ? 'Restart Required' : 'Up to Date';
+      }
+      if (t.media) {
+        if (t.media.status === 'playing' || t.media.status === 'paused') {
+          const badge = t.media.status === 'playing' ? '▶' : '⏸';
+          const appPart = t.media.app_id ? `[${t.media.app_id}] ` : '';
+          const trackPart = t.media.title ? (t.media.artist ? `${t.media.title} - ${t.media.artist}` : t.media.title) : 'Active Media';
+          $('val-media').innerText = `${badge} ${appPart}${trackPart}`;
+          $('val-media').title = `${t.media.status.toUpperCase()}: ${trackPart}`;
+        } else {
+          $('val-media').innerText = 'Idle';
+          $('val-media').title = 'Idle';
+        }
+      } else {
+        $('val-media').innerText = 'Idle';
+      }
+      if (t.webcam_in_use !== undefined) {
+        const appInfo = t.webcam_active_app ? ` (${t.webcam_active_app})` : '';
+        $('val-webcam').innerText = t.webcam_in_use ? `Active${appInfo}` : 'Inactive';
+      }
+      if (t.audio_output_name) {
+        $('val-audio-output').innerText = t.audio_output_name;
+        $('val-audio-output').title = t.audio_output_name;
+      }
+      if (t.wifi_ssid) {
+        const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent} %)` : '';
+        $('val-wifi').innerText = `${t.wifi_ssid}${sig}`;
+      }
+      if (t.display_powered !== undefined) {
+        $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby / Asleep';
+      }
+    }
+  } catch (err) {
+    setStaleUI();
+  } finally {
+    scheduleNextPoll();
+  }
+}
+
+function scheduleNextPoll() {
+  clearTimeout(activePollTimeout);
+  activePollTimeout = setTimeout(poll, currentIntervalMs);
+}
+
+async function loadConfig() {
+  try {
+    const res = await authFetch('/api/config');
+    if (!res.ok) return;
+    const cfg = await res.json();
+
+    $('node_id').value = cfg.node_id || '';
+    $('broker').value = cfg.mqtt.broker || '';
+    $('insecure_tls').checked = cfg.mqtt && cfg.mqtt.insecure_tls === true;
+    $('user').value = cfg.mqtt.username || '';
+    $('prefix').value = cfg.mqtt.topic_prefix || 'satellite';
+    const intervalSec = cfg.interval_sec || 5;
+    $('interval').value = intervalSec;
+    currentIntervalMs = Math.max(1, intervalSec) * 1000;
+
+    currentExpose = cfg.expose || {};
+    $('exp-cpu').checked = currentExpose.cpu !== false;
+    $('exp-mem').checked = currentExpose.memory !== false;
+    $('exp-storage').checked = currentExpose.storage !== false;
+    $('exp-net').checked = currentExpose.network !== false;
+    $('exp-local-ip').checked = currentExpose.local_ip !== false;
+    $('exp-uptime').checked = currentExpose.uptime !== false;
+    $('exp-presence').checked = currentExpose.user_presence !== false;
+    $('exp-lock').checked = currentExpose.session_lock !== false;
+    $('exp-mic').checked = currentExpose.microphone !== false;
+    $('exp-fullscreen').checked = currentExpose.fullscreen !== false;
+    $('exp-theme').checked = currentExpose.windows_theme !== false;
+    $('exp-battery').checked = currentExpose.battery !== false;
+    $('exp-window').checked = currentExpose.active_window !== false;
+    $('exp-title').checked = currentExpose.window_title !== false;
+    $('exp-reboot').checked = currentExpose.update_pending !== false;
+    $('exp-media').checked = currentExpose.media_control !== false;
+    $('exp-remote-lock').checked = currentExpose.remote_lock !== false;
+    $('exp-webcam').checked = currentExpose.webcam !== false;
+    $('exp-audio-output').checked = currentExpose.audio_output !== false;
+    $('exp-wifi').checked = currentExpose.wifi !== false;
+    $('exp-display').checked = currentExpose.display_state !== false;
+  } catch (err) {
+  }
+}
+
+function showMessage(text, isError) {
+  const el = $('msg-area');
+  el.innerText = text;
+  el.className = 'msg-area ' + (isError ? 'msg-err mono' : 'msg-ok mono');
+  setTimeout(() => {
+    el.innerText = '';
+  }, 5000);
+}
+
+$('btn-test').onclick = async () => {
+  showMessage('Testing connection...', false);
+  try {
+    const res = await authFetch('/api/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        broker: $('broker').value,
+        username: $('user').value,
+        password: $('pass').value,
+        insecure_tls: $('insecure_tls').checked,
+      })
+    });
+    const result = await res.json();
+    showMessage(result.success ? 'Connection succeeded' : 'Error: ' + result.error, !result.success);
+  } catch (err) {
+    showMessage('Error: ' + err.message, true);
+  }
+};
+
+$('cfg-form').onsubmit = async (e) => {
+  e.preventDefault();
+  const intervalSec = parseInt($('interval').value, 10) || 5;
+  const newExpose = {
+    cpu: $('exp-cpu').checked,
+    memory: $('exp-mem').checked,
+    storage: $('exp-storage').checked,
+    network: $('exp-net').checked,
+    local_ip: $('exp-local-ip').checked,
+    uptime: $('exp-uptime').checked,
+    user_presence: $('exp-presence').checked,
+    session_lock: $('exp-lock').checked,
+    microphone: $('exp-mic').checked,
+    fullscreen: $('exp-fullscreen').checked,
+    windows_theme: $('exp-theme').checked,
+    battery: $('exp-battery').checked,
+    active_window: $('exp-window').checked,
+    window_title: $('exp-title').checked,
+    update_pending: $('exp-reboot').checked,
+    media_control: $('exp-media').checked,
+    remote_lock: $('exp-remote-lock').checked,
+    webcam: $('exp-webcam').checked,
+    audio_output: $('exp-audio-output').checked,
+    wifi: $('exp-wifi').checked,
+    display_state: $('exp-display').checked,
+  };
+
+  const payload = {
+    node_id: $('node_id').value,
+    mqtt: {
+      broker: $('broker').value,
+      username: $('user').value,
+      password: $('pass').value,
+      topic_prefix: $('prefix').value,
+      insecure_tls: $('insecure_tls').checked,
+    },
+    expose: newExpose,
+    interval_sec: intervalSec,
+  };
+
+  try {
+    const res = await authFetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const result = await res.json();
+    if (result.success) {
+      currentIntervalMs = Math.max(1, intervalSec) * 1000;
+      currentExpose = newExpose;
+      showMessage('Config saved. Reconnecting...', false);
+      clearTimeout(activePollTimeout);
+      poll();
+    } else {
+      showMessage('Error: ' + result.error, true);
+    }
+  } catch (err) {
+    showMessage('Error: ' + err.message, true);
+  }
+};
+
+loadConfig().then(() => {
+  poll();
+});
+</script>
+</body>
+</html>
