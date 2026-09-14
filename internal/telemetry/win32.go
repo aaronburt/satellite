@@ -1,3 +1,5 @@
+//go:build windows
+
 package telemetry
 
 import (
@@ -28,6 +30,8 @@ var (
 	procGetWindowThreadProcessId         = modUser32.NewProc("GetWindowThreadProcessId")
 	procGetWindowRect                    = modUser32.NewProc("GetWindowRect")
 	procGetSystemMetrics                 = modUser32.NewProc("GetSystemMetrics")
+	procMonitorFromWindow                = modUser32.NewProc("MonitorFromWindow")
+	procGetMonitorInfoW                  = modUser32.NewProc("GetMonitorInfoW")
 	procOpenInputDesktop                 = modUser32.NewProc("OpenInputDesktop")
 	procCloseDesktop                     = modUser32.NewProc("CloseDesktop")
 	procSendMessageW                     = modUser32.NewProc("SendMessageW")
@@ -151,13 +155,6 @@ type MIB_IF_TABLE2 struct {
 	NumEntries uint32
 	Padding    [4]byte
 	Table      [1]MIB_IF_ROW2
-}
-
-type DiskInfo struct {
-	Mount       string  `json:"mount"`
-	UsedGB      float64 `json:"used_gb"`
-	TotalGB     float64 `json:"total_gb"`
-	UsedPercent float64 `json:"used_percent"`
 }
 
 const (
@@ -309,6 +306,15 @@ func IsSessionLocked() bool {
 	return false
 }
 
+const monitorDefaultToNearest = 2
+
+type monitorInfo struct {
+	cbSize    uint32
+	rcMonitor rect
+	rcWork    rect
+	dwFlags   uint32
+}
+
 func IsFullscreenActive() bool {
 	hwnd, _, _ := procGetForegroundWindow.Call()
 	if hwnd == 0 {
@@ -321,13 +327,22 @@ func IsFullscreenActive() bool {
 		return false
 	}
 
-	cx, _, _ := procGetSystemMetrics.Call(SM_CXSCREEN)
-	cy, _, _ := procGetSystemMetrics.Call(SM_CYSCREEN)
+	hMonitor, _, _ := procMonitorFromWindow.Call(hwnd, monitorDefaultToNearest)
+	if hMonitor == 0 {
+		return false
+	}
 
-	width := r.Right - r.Left
-	height := r.Bottom - r.Top
+	var mi monitorInfo
+	mi.cbSize = uint32(unsafe.Sizeof(mi))
+	ret, _, _ = procGetMonitorInfoW.Call(hMonitor, uintptr(unsafe.Pointer(&mi)))
+	if ret == 0 {
+		return false
+	}
 
-	return r.Left <= 0 && r.Top <= 0 && width >= int32(cx) && height >= int32(cy)
+	return r.Left <= mi.rcMonitor.Left &&
+		r.Top <= mi.rcMonitor.Top &&
+		r.Right >= mi.rcMonitor.Right &&
+		r.Bottom >= mi.rcMonitor.Bottom
 }
 
 func IsMicrophoneInUse() bool {
@@ -382,6 +397,17 @@ func GetWindowsTheme() string {
 }
 
 func GetLocalIPv4() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err == nil {
+		defer conn.Close()
+		if localAddr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+			ip := localAddr.IP.To4()
+			if ip != nil && !ip.IsLoopback() {
+				return ip.String()
+			}
+		}
+	}
+
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return ""
@@ -396,10 +422,7 @@ func GetLocalIPv4() string {
 				if strings.HasPrefix(ipStr, "169.254.") {
 					continue
 				}
-				if ip[0] == 192 && ip[1] == 168 && ip[2] != 56 {
-					return ipStr
-				}
-				if ip[0] == 10 && ip[1] != 100 {
+				if ip.IsPrivate() {
 					return ipStr
 				}
 				if fallbackIP == "" {
@@ -476,14 +499,6 @@ var (
 	procWindowsGetStringRawBuffer = modCombase.NewProc("WindowsGetStringRawBuffer")
 )
 
-type MediaInfo struct {
-	Status string `json:"status"`
-	Title  string `json:"title"`
-	Artist string `json:"artist"`
-	Album  string `json:"album"`
-	AppID  string `json:"app_id"`
-}
-
 type winGUID struct {
 	Data1 uint32
 	Data2 uint16
@@ -513,6 +528,16 @@ func hstringFromString(s string) (uintptr, error) {
 	return hs, nil
 }
 
+func toUnsafePointer(p uintptr) unsafe.Pointer {
+	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
+}
+
+func getVtableFunc(obj unsafe.Pointer, index int) uintptr {
+	vtblPtr := *(*uintptr)(obj)
+	entryPtr := vtblPtr + uintptr(index)*unsafe.Sizeof(uintptr(0))
+	return *(*uintptr)(toUnsafePointer(entryPtr))
+}
+
 func stringFromHstring(hs uintptr) string {
 	if hs == 0 {
 		return ""
@@ -524,60 +549,57 @@ func stringFromHstring(hs uintptr) string {
 	if ptr == 0 || length == 0 {
 		return ""
 	}
-	buf := unsafe.Slice((*uint16)(unsafe.Pointer(ptr)), length)
+	buf := unsafe.Slice((*uint16)(toUnsafePointer(ptr)), length)
 	return syscall.UTF16ToString(buf)
 }
 
-func comRelease(obj uintptr) {
-	if obj == 0 {
+func comRelease(obj unsafe.Pointer) {
+	if obj == nil {
 		return
 	}
-	vtbl := *(**[3]uintptr)(unsafe.Pointer(obj))
-	syscall.SyscallN(vtbl[2], obj)
+	fn := getVtableFunc(obj, 2)
+	syscall.SyscallN(fn, uintptr(obj))
 }
 
-func comQueryInterface(obj uintptr, riid *winGUID) (uintptr, error) {
-	if obj == 0 {
-		return 0, fmt.Errorf("null com object")
+func comQueryInterface(obj unsafe.Pointer, riid *winGUID) (unsafe.Pointer, error) {
+	if obj == nil {
+		return nil, fmt.Errorf("null com object")
 	}
-	vtbl := *(**[1]uintptr)(unsafe.Pointer(obj))
-	var out uintptr
-	r, _, _ := syscall.SyscallN(vtbl[0], obj, uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&out)))
+	fn := getVtableFunc(obj, 0)
+	var out unsafe.Pointer
+	r, _, _ := syscall.SyscallN(fn, uintptr(obj), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&out)))
 	if int32(r) < 0 {
-		return 0, fmt.Errorf("QueryInterface: 0x%08x", uint32(r))
+		return nil, fmt.Errorf("QueryInterface: 0x%08x", uint32(r))
 	}
 	return out, nil
 }
 
-func awaitAsyncOperation(asyncOp uintptr, resultIfaceIdx int) (uintptr, error) {
+func awaitAsyncOperation(asyncOp unsafe.Pointer, resultIfaceIdx int) (unsafe.Pointer, error) {
 	asyncInfo, err := comQueryInterface(asyncOp, &guidIAsyncInfo)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer comRelease(asyncInfo)
 
-	infoVtbl := *(**[8]uintptr)(unsafe.Pointer(asyncInfo))
-	fnGetStatus := infoVtbl[7]
+	fnGetStatus := getVtableFunc(asyncInfo, 7)
 
 	for i := 0; i < 50; i++ {
 		var status int32
-		syscall.SyscallN(fnGetStatus, asyncInfo, uintptr(unsafe.Pointer(&status)))
+		syscall.SyscallN(fnGetStatus, uintptr(asyncInfo), uintptr(unsafe.Pointer(&status)))
 		if status == 1 {
 			break
 		}
 		if status == 2 || status == 3 {
-			return 0, fmt.Errorf("async operation error: %d", status)
+			return nil, fmt.Errorf("async operation error: %d", status)
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	opVtbl := *(**[9]uintptr)(unsafe.Pointer(asyncOp))
-	fnGetResults := opVtbl[resultIfaceIdx]
-
-	var result uintptr
-	r, _, _ := syscall.SyscallN(fnGetResults, asyncOp, uintptr(unsafe.Pointer(&result)))
+	fnGetResults := getVtableFunc(asyncOp, resultIfaceIdx)
+	var result unsafe.Pointer
+	r, _, _ := syscall.SyscallN(fnGetResults, uintptr(asyncOp), uintptr(unsafe.Pointer(&result)))
 	if int32(r) < 0 {
-		return 0, fmt.Errorf("GetResults: 0x%08x", uint32(r))
+		return nil, fmt.Errorf("GetResults: 0x%08x", uint32(r))
 	}
 	return result, nil
 }
@@ -601,43 +623,42 @@ func GetActiveMediaInfo() MediaInfo {
 	}
 	defer procWindowsDeleteString.Call(classHs)
 
-	var statics uintptr
+	var statics unsafe.Pointer
 	r, _, _ := procRoGetActivationFactory.Call(
 		classHs,
 		uintptr(unsafe.Pointer(&guidGSMTCStatics)),
 		uintptr(unsafe.Pointer(&statics)),
 	)
-	if int32(r) < 0 || statics == 0 {
+	if int32(r) < 0 || statics == nil {
 		return media
 	}
 	defer comRelease(statics)
 
-	staticsVtbl := *(**[7]uintptr)(unsafe.Pointer(statics))
-	var asyncOp uintptr
-	r, _, _ = syscall.SyscallN(staticsVtbl[6], statics, uintptr(unsafe.Pointer(&asyncOp)))
-	if int32(r) < 0 || asyncOp == 0 {
+	fnRequestAsync := getVtableFunc(statics, 6)
+	var asyncOp unsafe.Pointer
+	r, _, _ = syscall.SyscallN(fnRequestAsync, uintptr(statics), uintptr(unsafe.Pointer(&asyncOp)))
+	if int32(r) < 0 || asyncOp == nil {
 		return media
 	}
 	defer comRelease(asyncOp)
 
 	mgr, err := awaitAsyncOperation(asyncOp, 8)
-	if err != nil || mgr == 0 {
+	if err != nil || mgr == nil {
 		return media
 	}
 	defer comRelease(mgr)
 
-	mgrVtbl := *(**[7]uintptr)(unsafe.Pointer(mgr))
-	var session uintptr
-	r, _, _ = syscall.SyscallN(mgrVtbl[6], mgr, uintptr(unsafe.Pointer(&session)))
-	if int32(r) < 0 || session == 0 {
+	fnGetCurrentSession := getVtableFunc(mgr, 6)
+	var session unsafe.Pointer
+	r, _, _ = syscall.SyscallN(fnGetCurrentSession, uintptr(mgr), uintptr(unsafe.Pointer(&session)))
+	if int32(r) < 0 || session == nil {
 		return media
 	}
 	defer comRelease(session)
 
-	sessionVtbl := *(**[10]uintptr)(unsafe.Pointer(session))
-
 	var appHs uintptr
-	syscall.SyscallN(sessionVtbl[6], session, uintptr(unsafe.Pointer(&appHs)))
+	fnGetSourceAppId := getVtableFunc(session, 6)
+	syscall.SyscallN(fnGetSourceAppId, uintptr(session), uintptr(unsafe.Pointer(&appHs)))
 	rawApp := stringFromHstring(appHs)
 	if rawApp != "" {
 		parts := strings.Split(rawApp, "!")
@@ -645,12 +666,13 @@ func GetActiveMediaInfo() MediaInfo {
 		media.AppID = strings.TrimSuffix(appName, ".exe")
 	}
 
-	var playbackInfo uintptr
-	syscall.SyscallN(sessionVtbl[9], session, uintptr(unsafe.Pointer(&playbackInfo)))
-	if playbackInfo != 0 {
-		pbVtbl := *(**[8]uintptr)(unsafe.Pointer(playbackInfo))
+	var playbackInfo unsafe.Pointer
+	fnGetPlaybackInfo := getVtableFunc(session, 9)
+	syscall.SyscallN(fnGetPlaybackInfo, uintptr(session), uintptr(unsafe.Pointer(&playbackInfo)))
+	if playbackInfo != nil {
+		fnGetPlaybackStatus := getVtableFunc(playbackInfo, 7)
 		var pbStatus int32
-		syscall.SyscallN(pbVtbl[7], playbackInfo, uintptr(unsafe.Pointer(&pbStatus)))
+		syscall.SyscallN(fnGetPlaybackStatus, uintptr(playbackInfo), uintptr(unsafe.Pointer(&pbStatus)))
 		comRelease(playbackInfo)
 
 		switch pbStatus {
@@ -665,21 +687,20 @@ func GetActiveMediaInfo() MediaInfo {
 		}
 	}
 
-	var propAsyncOp uintptr
-	syscall.SyscallN(sessionVtbl[7], session, uintptr(unsafe.Pointer(&propAsyncOp)))
-	if propAsyncOp != 0 {
+	var propAsyncOp unsafe.Pointer
+	fnTryGetMediaPropertiesAsync := getVtableFunc(session, 7)
+	r, _, _ = syscall.SyscallN(fnTryGetMediaPropertiesAsync, uintptr(session), uintptr(unsafe.Pointer(&propAsyncOp)))
+	if int32(r) >= 0 && propAsyncOp != nil {
 		defer comRelease(propAsyncOp)
 
 		props, err := awaitAsyncOperation(propAsyncOp, 8)
-		if err == nil && props != 0 {
+		if err == nil && props != nil {
 			defer comRelease(props)
 
-			propsVtbl := *(**[11]uintptr)(unsafe.Pointer(props))
-
 			var titleHs, artistHs, albumHs uintptr
-			syscall.SyscallN(propsVtbl[6], props, uintptr(unsafe.Pointer(&titleHs)))
-			syscall.SyscallN(propsVtbl[9], props, uintptr(unsafe.Pointer(&artistHs)))
-			syscall.SyscallN(propsVtbl[10], props, uintptr(unsafe.Pointer(&albumHs)))
+			syscall.SyscallN(getVtableFunc(props, 6), uintptr(props), uintptr(unsafe.Pointer(&titleHs)))
+			syscall.SyscallN(getVtableFunc(props, 9), uintptr(props), uintptr(unsafe.Pointer(&artistHs)))
+			syscall.SyscallN(getVtableFunc(props, 10), uintptr(props), uintptr(unsafe.Pointer(&albumHs)))
 
 			media.Title = stringFromHstring(titleHs)
 			media.Artist = stringFromHstring(artistHs)
@@ -739,7 +760,7 @@ func displayPowerCallback(context uintptr, typ uint32, setting uintptr) uintptr 
 	if setting == 0 {
 		return 0
 	}
-	pbs := (*powerBroadcastSetting)(unsafe.Pointer(setting))
+	pbs := (*powerBroadcastSetting)(toUnsafePointer(setting))
 	if pbs.PowerSetting == guidConsoleDisplayState && pbs.DataLength >= 1 {
 		displayPowerMu.Lock()
 		displayPowerActive = pbs.Data[0] != 0
@@ -824,7 +845,7 @@ func utf16PtrToString(ptr uintptr, maxLen int) string {
 	if ptr == 0 {
 		return ""
 	}
-	buf := unsafe.Slice((*uint16)(unsafe.Pointer(ptr)), maxLen)
+	buf := unsafe.Slice((*uint16)(toUnsafePointer(ptr)), maxLen)
 	for i, v := range buf {
 		if v == 0 {
 			return syscall.UTF16ToString(buf[:i])
@@ -843,7 +864,7 @@ func GetActiveAudioOutputDevice() string {
 		defer procCoUninitialize.Call()
 	}
 
-	var enumerator uintptr
+	var enumerator unsafe.Pointer
 	hr, _, _ := procCoCreateInstance.Call(
 		uintptr(unsafe.Pointer(&clsidMMDeviceEnumerator)),
 		0,
@@ -851,30 +872,30 @@ func GetActiveAudioOutputDevice() string {
 		uintptr(unsafe.Pointer(&iidIMMDeviceEnumerator)),
 		uintptr(unsafe.Pointer(&enumerator)),
 	)
-	if int32(hr) < 0 || enumerator == 0 {
+	if int32(hr) < 0 || enumerator == nil {
 		return ""
 	}
 	defer comRelease(enumerator)
 
-	enumVtbl := *(**[5]uintptr)(unsafe.Pointer(enumerator))
-	var device uintptr
-	r, _, _ := syscall.SyscallN(enumVtbl[4], enumerator, 0, 1, uintptr(unsafe.Pointer(&device)))
-	if int32(r) < 0 || device == 0 {
+	fnGetDefaultEndpoint := getVtableFunc(enumerator, 4)
+	var device unsafe.Pointer
+	r, _, _ := syscall.SyscallN(fnGetDefaultEndpoint, uintptr(enumerator), 0, 1, uintptr(unsafe.Pointer(&device)))
+	if int32(r) < 0 || device == nil {
 		return ""
 	}
 	defer comRelease(device)
 
-	devVtbl := *(**[5]uintptr)(unsafe.Pointer(device))
-	var propStore uintptr
-	r, _, _ = syscall.SyscallN(devVtbl[4], device, 0, uintptr(unsafe.Pointer(&propStore)))
-	if int32(r) < 0 || propStore == 0 {
+	fnOpenPropertyStore := getVtableFunc(device, 4)
+	var propStore unsafe.Pointer
+	r, _, _ = syscall.SyscallN(fnOpenPropertyStore, uintptr(device), 0, uintptr(unsafe.Pointer(&propStore)))
+	if int32(r) < 0 || propStore == nil {
 		return ""
 	}
 	defer comRelease(propStore)
 
-	storeVtbl := *(**[6]uintptr)(unsafe.Pointer(propStore))
+	fnGetValue := getVtableFunc(propStore, 5)
 	var pv propVariant
-	r, _, _ = syscall.SyscallN(storeVtbl[5], propStore, uintptr(unsafe.Pointer(&pkeyDeviceFriendlyName)), uintptr(unsafe.Pointer(&pv)))
+	r, _, _ = syscall.SyscallN(fnGetValue, uintptr(propStore), uintptr(unsafe.Pointer(&pkeyDeviceFriendlyName)), uintptr(unsafe.Pointer(&pv)))
 	name := ""
 	if int32(r) >= 0 && pv.vt == 31 && pv.data[0] != 0 {
 		name = utf16PtrToString(pv.data[0], 256)
@@ -928,14 +949,14 @@ func GetWifiStatus() (string, *int) {
 	}
 	defer procWlanCloseHandle.Call(handle, 0)
 
-	var pList uintptr
+	var pList unsafe.Pointer
 	rList, _, _ := procWlanEnumInterfaces.Call(handle, 0, uintptr(unsafe.Pointer(&pList)))
-	if rList != 0 || pList == 0 {
+	if rList != 0 || pList == nil {
 		return detectWiredOrDisconnected()
 	}
-	defer procWlanFreeMemory.Call(pList)
+	defer procWlanFreeMemory.Call(uintptr(pList))
 
-	list := (*wlanInterfaceInfoList)(unsafe.Pointer(pList))
+	list := (*wlanInterfaceInfoList)(pList)
 	if list.dwNumberOfItems == 0 {
 		return detectWiredOrDisconnected()
 	}
@@ -946,7 +967,7 @@ func GetWifiStatus() (string, *int) {
 			continue
 		}
 		var dataSize uint32
-		var pData uintptr
+		var pData unsafe.Pointer
 		var opcodeType uint32
 		rQuery, _, _ := procWlanQueryInterface.Call(
 			handle,
@@ -957,17 +978,17 @@ func GetWifiStatus() (string, *int) {
 			uintptr(unsafe.Pointer(&pData)),
 			uintptr(unsafe.Pointer(&opcodeType)),
 		)
-		if rQuery != 0 || pData == 0 {
+		if rQuery != 0 || pData == nil {
 			continue
 		}
-		conn := (*wlanConnectionAttributes)(unsafe.Pointer(pData))
+		conn := (*wlanConnectionAttributes)(pData)
 		ssidLen := conn.wlanAssociationAttributes.dot11Ssid.uSSIDLength
 		if ssidLen > 32 {
 			ssidLen = 32
 		}
 		ssid := string(conn.wlanAssociationAttributes.dot11Ssid.ucSSID[:ssidLen])
 		quality := int(conn.wlanAssociationAttributes.wlanSignalQuality)
-		procWlanFreeMemory.Call(pData)
+		procWlanFreeMemory.Call(uintptr(pData))
 		if ssid != "" {
 			return ssid, &quality
 		}

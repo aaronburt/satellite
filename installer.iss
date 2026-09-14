@@ -32,7 +32,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "startup"; Description: "Automatically start Satellite on Windows logon"; GroupDescription: "Startup Options:"
+Name: "startup"; Description: "Automatically start Satellite on Windows logon"; GroupDescription: "Startup Options:"; Flags: unchecked
 
 [Files]
 Source: "{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion

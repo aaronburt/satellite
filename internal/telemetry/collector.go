@@ -8,6 +8,21 @@ import (
 	"satellite/internal/config"
 )
 
+type DiskInfo struct {
+	Mount       string  `json:"mount"`
+	UsedGB      float64 `json:"used_gb"`
+	TotalGB     float64 `json:"total_gb"`
+	UsedPercent float64 `json:"used_percent"`
+}
+
+type MediaInfo struct {
+	Status string `json:"status"`
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
+	Album  string `json:"album"`
+	AppID  string `json:"app_id"`
+}
+
 type Snapshot struct {
 	CPUPercent        *float64   `json:"cpu_percent,omitempty"`
 	MemoryUsedGB      *float64   `json:"memory_used_gb,omitempty"`

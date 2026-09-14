@@ -33,7 +33,7 @@ Lightweight Windows telemetry agent and remote controller for Home Assistant ove
 - **CLI Mode:** Run `.\satellite.exe --cli` for interactive terminal dashboard.
 
 ### 3. Configure
-Right-click the tray icon and select **Open Web UI** to configure your MQTT broker connection and toggle exposed sensors.
+Right-click the tray icon and select **WebUI: Disabled (Click to Enable)**, then click **Open Web UI** to configure your MQTT broker connection and toggle exposed sensors.
 
 Config is saved at `%APPDATA%\satellite\config.json`.
 

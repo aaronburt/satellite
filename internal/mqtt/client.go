@@ -326,15 +326,15 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 
 func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.status != StatusConnected || c.pahoClient == nil {
+		c.mu.Unlock()
 		return nil
 	}
 
 	now := time.Now()
 	isHeartbeat := now.Sub(c.lastSentTime) >= 60*time.Second
 	if !isHeartbeat && !telemetry.HasSignificantDelta(c.lastSnapshot, snap) {
+		c.mu.Unlock()
 		return nil
 	}
 
@@ -343,6 +343,8 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		prefix = "satellite"
 	}
 	stateTopic := fmt.Sprintf("%s/%s/state", prefix, c.cfg.NodeID)
+	pClient := c.pahoClient
+	c.mu.Unlock()
 
 	bytes, err := json.Marshal(snap)
 	if err != nil {
@@ -352,15 +354,17 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	_, err = c.pahoClient.Publish(ctx, &paho.Publish{
+	_, err = pClient.Publish(ctx, &paho.Publish{
 		Topic:   stateTopic,
 		Payload: bytes,
 		QoS:     0,
 		Retain:  false,
 	})
 	if err == nil {
+		c.mu.Lock()
 		c.lastSnapshot = snap
 		c.lastSentTime = now
+		c.mu.Unlock()
 	}
 	return err
 }
