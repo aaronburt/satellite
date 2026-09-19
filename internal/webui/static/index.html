@@ -3,665 +3,861 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>satellite v{{VERSION}}</title>
+<title>Task Manager - satellite v{{VERSION}}</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   color-scheme: dark;
-  --bg:#09090b;
-  --surface:#121215;
-  --surface-hover:#18181c;
-  --input-bg:#16161a;
-  --border:#27272a;
-  --border-focus:#3b82f6;
+  --bg:#18181b;
+  --header-bg:#202024;
+  --surface:#1f1f23;
+  --surface-alt:#27272a;
+  --row-hover:#2d2d32;
+  --row-active:#1e3a5f;
+  --input-bg:#121214;
+  --border:#333338;
+  --border-subtle:#2a2a2e;
+  --border-focus:#0078d4;
   --text:#f4f4f5;
-  --muted:#a1a1aa;
-  --accent:#2563eb;
-  --accent-hover:#1d4ed8;
-  --green:#22c55e;
-  --yellow:#eab308;
-  --red:#ef4444;
+  --muted:#9ca3af;
+  --faint:#6b7280;
+  --accent:#0078d4;
+  --accent-hover:#106ebe;
+  --meter-bg:#27272a;
+  --green:#107c41;
+  --yellow:#d83b01;
+  --red:#e81123;
+  --heat-low:#107c41;
+  --heat-mid:#d83b01;
+  --heat-high:#e81123;
 }
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  font-size:13px;
-  line-height:1.5;
+  font-family:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+  font-size:12px;
+  line-height:1.4;
   display:flex;
   justify-content:center;
-  padding:32px 16px;
+  padding:24px 16px;
   min-height:100vh;
+  -webkit-font-smoothing:antialiased;
 }
 .mono{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  font-family:"Cascadia Code","Consolas",ui-monospace,Menlo,Monaco,monospace;
   font-variant-numeric:tabular-nums;
 }
 .wrap{
   width:100%;
-  max-width:540px;
+  max-width:680px;
   display:flex;
   flex-direction:column;
-  gap:18px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 12px 32px rgba(0,0,0,0.45);
+  overflow:hidden;
 }
-header{
+
+/* Window Titlebar */
+.win-titlebar{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding-bottom:12px;
+  background:var(--header-bg);
+  padding:8px 14px;
   border-bottom:1px solid var(--border);
+  user-select:none;
 }
-.brand{
+.win-left{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:10px;
 }
-.brand svg{
-  width:16px;
-  height:16px;
-  stroke:var(--muted);
+.win-icon{
+  width:15px;
+  height:15px;
+  stroke:var(--text);
+  display:flex;
+  align-items:center;
 }
-.brand-name{
-  font-size:13px;
+.win-title{
+  font-size:12px;
   font-weight:600;
+  color:var(--text);
   letter-spacing:-0.01em;
 }
-.brand-ver{
+.win-ver{
   font-size:11px;
   color:var(--muted);
   font-weight:400;
 }
-.status-indicator{
+.win-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.status-pill{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  font-size:12px;
+  padding:2px 8px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border-subtle);
+  font-size:11px;
   color:var(--muted);
 }
-.dot{
+.status-dot{
   width:6px;
   height:6px;
   border-radius:50%;
   background:var(--muted);
 }
-.dot.online{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.4)}
-.dot.connecting{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.4)}
-.dot.offline{background:var(--red)}
+.status-dot.online{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,0.5)}
+.status-dot.connecting{background:#facc15;box-shadow:0 0 6px rgba(250,204,21,0.5)}
+.status-dot.offline{background:#f87171}
 
-.tab-nav{
+/* Top Tab Bar */
+.win-tabs{
   display:flex;
-  gap:4px;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:3px;
+  gap:2px;
+  background:var(--header-bg);
+  padding:0 8px;
+  border-bottom:1px solid var(--border);
 }
-.tab-btn{
-  flex:1;
+.win-tab{
   background:transparent;
   border:none;
+  border-bottom:2px solid transparent;
   color:var(--muted);
   font-size:12px;
   font-weight:500;
-  padding:6px 12px;
-  border-radius:4px;
+  padding:8px 16px;
   cursor:pointer;
-  transition:color 0.15s, background 0.15s;
+  transition:color 0.1s, border-color 0.1s;
 }
-.tab-btn:hover{
+.win-tab:hover{
   color:var(--text);
+  background:rgba(255,255,255,0.03);
 }
-.tab-btn.active{
-  background:var(--input-bg);
+.win-tab.active{
   color:var(--text);
-  box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  font-weight:600;
+  border-bottom-color:var(--accent);
+  background:rgba(255,255,255,0.05);
 }
 
 .panel{
   display:flex;
   flex-direction:column;
-  gap:16px;
+  padding:14px;
+  gap:14px;
 }
 .panel.hidden{
   display:none;
 }
 
-.card{
-  border:1px solid var(--border);
-  background:var(--surface);
-  border-radius:6px;
-  padding:14px 16px;
+/* Overview Gauges Banner */
+.gauges-banner{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+.gauge-card{
+  background:var(--surface-alt);
+  border:1px solid var(--border-subtle);
+  border-radius:5px;
+  padding:9px 10px;
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:4px;
 }
-.card-header{
+.gauge-card:hover{
+  border-color:var(--border);
+}
+.gauge-header{
   display:flex;
   justify-content:space-between;
-  align-items:center;
+  align-items:baseline;
 }
-.card-title{
+.gauge-label{
   font-size:11px;
-  color:var(--muted);
   font-weight:600;
-  letter-spacing:0.04em;
-  text-transform:uppercase;
-}
-
-.metric-list{
-  display:flex;
-  flex-direction:column;
-}
-.metric-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:8px 0;
-  border-bottom:1px solid var(--border);
-}
-.metric-row:last-child{
-  border-bottom:none;
-}
-.metric-row.hidden{
-  display:none;
-}
-.metric-label{
   color:var(--muted);
-  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
 }
-.metric-right{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.metric-value{
-  font-size:12px;
-  font-weight:500;
+.gauge-value{
+  font-size:13px;
+  font-weight:700;
   color:var(--text);
-  max-width:260px;
+}
+.gauge-sub{
+  font-size:10px;
+  color:var(--faint);
+  white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  white-space:nowrap;
+}
+.gauge-bar{
+  width:100%;
+  height:3px;
+  background:var(--meter-bg);
+  border-radius:2px;
+  overflow:hidden;
+  margin-top:2px;
+}
+.gauge-fill{
+  height:100%;
+  background:var(--accent);
+  transition:width 0.3s ease;
+}
+
+/* Process/Task Table */
+.task-table-wrap{
+  border:1px solid var(--border);
+  border-radius:5px;
+  background:var(--surface-alt);
+  overflow:hidden;
+}
+.task-table{
+  width:100%;
+  border-collapse:collapse;
+  text-align:left;
+  font-size:11.5px;
+}
+.task-table thead{
+  background:var(--header-bg);
+  border-bottom:1px solid var(--border);
+  position:sticky;
+  top:0;
+  user-select:none;
+}
+.task-table th{
+  padding:7px 12px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+  border-right:1px solid var(--border-subtle);
+}
+.task-table th:last-child{
+  border-right:none;
+}
+.task-table th.right{
   text-align:right;
 }
-.metric-sub{
-  color:var(--muted);
-  font-size:11px;
-  margin-left:4px;
+.task-table tbody tr{
+  border-bottom:1px solid var(--border-subtle);
+  transition:background 0.08s;
 }
-.meter{
-  width:56px;
+.task-table tbody tr:last-child{
+  border-bottom:none;
+}
+.task-table tbody tr:hover{
+  background:var(--row-hover);
+}
+.task-table tbody tr.hidden{
+  display:none;
+}
+.task-table td{
+  padding:6.5px 12px;
+  color:var(--text);
+  vertical-align:middle;
+  border-right:1px solid rgba(255,255,255,0.03);
+}
+.task-table td:last-child{
+  border-right:none;
+}
+.task-table td.right{
+  text-align:right;
+}
+.task-name-cell{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:500;
+}
+.task-badge{
+  display:inline-block;
+  font-size:10px;
+  font-weight:600;
+  padding:1px 5px;
+  border-radius:3px;
+  background:rgba(255,255,255,0.06);
+  color:var(--muted);
+  border:1px solid var(--border-subtle);
+}
+.task-badge.active{
+  background:rgba(16,124,65,0.2);
+  color:#4ade80;
+  border-color:rgba(16,124,65,0.4);
+}
+.task-badge.warn{
+  background:rgba(216,59,1,0.2);
+  color:#fb923c;
+  border-color:rgba(216,59,1,0.4);
+}
+
+.table-meter{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  width:100%;
+  justify-content:flex-end;
+}
+.table-bar{
+  width:44px;
   height:4px;
-  background:#27272a;
+  background:var(--meter-bg);
   border-radius:2px;
   overflow:hidden;
   flex-shrink:0;
 }
-.meter-fill{
+.table-bar-fill{
   height:100%;
   background:var(--accent);
   border-radius:2px;
   transition:width 0.3s ease;
 }
 
-.btn-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
+/* Command Ribbon / Action Bar */
+.ribbon-card{
+  background:var(--surface-alt);
+  border:1px solid var(--border-subtle);
+  border-radius:5px;
+  padding:10px 12px;
+  display:flex;
+  flex-direction:column;
   gap:8px;
 }
-.quick-btn{
-  background:var(--input-bg);
+.ribbon-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.ribbon-title{
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+.action-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.action-btn{
+  background:var(--header-bg);
   color:var(--text);
   border:1px solid var(--border);
-  font-size:12px;
+  font-size:11px;
   font-weight:500;
-  padding:8px 12px;
+  padding:6px 10px;
   border-radius:4px;
   cursor:pointer;
-  transition:background 0.15s, border-color 0.15s;
+  transition:background 0.1s, border-color 0.1s;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:6px;
+  gap:5px;
+  user-select:none;
 }
-.quick-btn:hover{
-  background:var(--surface-hover);
-  border-color:#3f3f46;
+.action-btn:hover{
+  background:var(--row-hover);
+  border-color:#4b4b52;
 }
-.quick-btn:active{
-  transform:scale(0.98);
+.action-btn:active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
 }
 
+/* Settings Form */
+.config-section{
+  background:var(--surface-alt);
+  border:1px solid var(--border-subtle);
+  border-radius:5px;
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding-bottom:4px;
+  border-bottom:1px solid var(--border-subtle);
+}
+.section-title{
+  font-size:11px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
 .field{
   display:flex;
   flex-direction:column;
-  gap:5px;
+  gap:4px;
 }
 .field-row{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:10px;
+  gap:8px;
 }
 label{
   font-size:11px;
   color:var(--muted);
   font-weight:500;
 }
-input {
+input,select{
   width:100%;
   appearance:none;
-  -webkit-appearance:none;
   background-color:var(--input-bg) !important;
   color:var(--text) !important;
   border:1px solid var(--border);
-  border-radius:4px;
-  padding:7px 10px;
-  font-size:12px;
+  border-radius:3px;
+  padding:6px 8px;
+  font-size:11.5px;
   outline:none;
-  transition:border-color 0.15s, box-shadow 0.15s;
 }
-input:focus{
+input:focus,select:focus{
   border-color:var(--border-focus);
-  box-shadow:0 0 0 1px var(--border-focus);
-}
-select{
-  background:var(--input-bg);
-  color:var(--text);
-  border:1px solid var(--border);
-  border-radius:4px;
-  padding:7px 10px;
-  font-size:12px;
-  outline:none;
-  width:100%;
-}
-
-.subgroup{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.subgroup-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding-bottom:4px;
-  border-bottom:1px solid #1e1e24;
-}
-.subgroup-title{
-  font-size:11px;
-  color:var(--muted);
-  font-weight:500;
 }
 .toggle-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:8px;
+  gap:6px;
 }
 .toggle-item{
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:7px;
   cursor:pointer;
   user-select:none;
 }
 .toggle-item input[type="checkbox"]{
-  width:14px;
-  height:14px;
+  width:13px;
+  height:13px;
   accent-color:var(--accent);
-  cursor:pointer;
   margin:0;
-  padding:0;
+  cursor:pointer;
   appearance:auto;
-  -webkit-appearance:auto;
-  background-color:initial !important;
-  border:initial;
 }
 .toggle-item span{
-  font-size:12px;
+  font-size:11.5px;
   color:var(--text);
 }
-
 .link-btn{
   background:transparent;
   border:none;
-  color:var(--muted);
+  color:var(--accent);
   font-size:11px;
   cursor:pointer;
-  padding:0 4px;
+  padding:0 3px;
 }
 .link-btn:hover{
-  color:var(--text);
   text-decoration:underline;
 }
 
-.actions{
+.bottom-bar{
   display:flex;
-  justify-content:flex-end;
+  justify-content:space-between;
   align-items:center;
-  gap:8px;
-  padding-top:4px;
-}
-button{
-  font-size:12px;
-  font-weight:500;
-  padding:7px 14px;
-  border-radius:4px;
-  cursor:pointer;
-  transition:background 0.15s, border-color 0.15s, color 0.15s;
+  background:var(--header-bg);
+  padding:8px 14px;
+  border-top:1px solid var(--border);
 }
 .btn-primary{
   background:var(--accent);
   color:#fff;
   border:1px solid transparent;
+  font-size:11.5px;
+  font-weight:600;
+  padding:6px 14px;
+  border-radius:3px;
+  cursor:pointer;
 }
-.btn-primary:hover{
-  background:var(--accent-hover);
-}
+.btn-primary:hover{background:var(--accent-hover)}
 .btn-secondary{
   background:transparent;
   color:var(--muted);
   border:1px solid var(--border);
+  font-size:11.5px;
+  padding:6px 12px;
+  border-radius:3px;
+  cursor:pointer;
 }
-.btn-secondary:hover{
-  color:var(--text);
-  border-color:#3f3f46;
-}
-
+.btn-secondary:hover{color:var(--text);border-color:#4b4b52}
 .msg-area{
-  min-height:20px;
-  display:flex;
-  align-items:center;
   font-size:11px;
 }
-.msg-ok{color:var(--green)}
-.msg-err{color:var(--red)}
+.msg-ok{color:#4ade80}
+.msg-err{color:#f87171}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <div class="brand">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/>
-        <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/>
-        <circle cx="12" cy="12" r="2"/>
-        <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/>
-        <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
-      </svg>
-      <span class="brand-name mono">satellite</span>
-      <span class="brand-ver mono">v{{VERSION}}</span>
+  <!-- Windows Title Bar -->
+  <div class="win-titlebar">
+    <div class="win-left">
+      <span class="win-title">Satellite Task Manager</span>
+      <span class="win-ver mono">v{{VERSION}}</span>
     </div>
-    <div class="status-indicator">
-      <span id="dot" class="dot"></span>
-      <span id="status-text" class="mono">disconnected</span>
+    <div class="win-right">
+      <div class="status-pill">
+        <span id="dot" class="status-dot"></span>
+        <span id="status-text" class="mono">offline</span>
+      </div>
     </div>
-  </header>
+  </div>
 
-  <nav class="tab-nav">
-    <button type="button" class="tab-btn active" id="tab-dash" onclick="switchTab('dashboard')">Dashboard</button>
-    <button type="button" class="tab-btn" id="tab-set" onclick="switchTab('settings')">Settings</button>
+  <!-- Tabs Navigation -->
+  <nav class="win-tabs">
+    <button type="button" class="win-tab active" id="tab-dash" onclick="switchTab('dashboard')">Performance</button>
+    <button type="button" class="win-tab" id="tab-set" onclick="switchTab('settings')">Configuration</button>
   </nav>
 
   <!-- DASHBOARD PANEL -->
   <main id="panel-dashboard" class="panel">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Live Telemetry</span>
+    <!-- Top Gauges Banner -->
+    <div class="gauges-banner">
+      <div class="gauge-card">
+        <div class="gauge-header">
+          <span class="gauge-label">CPU</span>
+          <span class="gauge-value mono" id="top-cpu">0%</span>
+        </div>
+        <div class="gauge-bar"><div class="gauge-fill" id="top-cpu-bar" style="width:0%"></div></div>
+        <span class="gauge-sub mono" id="top-cpu-sub">Processor</span>
       </div>
-      <dl class="metric-list" id="telemetry-list">
-        <div class="metric-row" id="row-cpu">
-          <dt class="metric-label">Processor</dt>
-          <dd class="metric-right">
-            <div class="meter"><div class="meter-fill" id="meter-cpu" style="width:0%"></div></div>
-            <span class="metric-value mono" id="val-cpu">--</span>
-          </dd>
+      <div class="gauge-card">
+        <div class="gauge-header">
+          <span class="gauge-label">Memory</span>
+          <span class="gauge-value mono" id="top-mem">0%</span>
         </div>
-        <div class="metric-row" id="row-memory">
-          <dt class="metric-label">Memory</dt>
-          <dd class="metric-right">
-            <div class="meter"><div class="meter-fill" id="meter-mem" style="width:0%"></div></div>
-            <span class="metric-value mono">
-              <span id="val-mem">--</span>
-              <span class="metric-sub" id="val-mem-sub"></span>
-            </span>
-          </dd>
+        <div class="gauge-bar"><div class="gauge-fill" id="top-mem-bar" style="width:0%"></div></div>
+        <span class="gauge-sub mono" id="top-mem-sub">0 / 0 GB</span>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-header">
+          <span class="gauge-label">Disk</span>
+          <span class="gauge-value mono" id="top-disk">--</span>
         </div>
-        <div id="drives-container"></div>
-        <div class="metric-row" id="row-network">
-          <dt class="metric-label">Network Throughput</dt>
-          <dd class="metric-value mono" id="val-net">--</dd>
+        <div class="gauge-bar"><div class="gauge-fill" id="top-disk-bar" style="width:0%"></div></div>
+        <span class="gauge-sub mono" id="top-disk-sub">System Drive</span>
+      </div>
+      <div class="gauge-card">
+        <div class="gauge-header">
+          <span class="gauge-label">Network</span>
+          <span class="gauge-value mono" id="top-net">0 KB/s</span>
         </div>
-        <div class="metric-row" id="row-local-ip">
-          <dt class="metric-label">Local IP</dt>
-          <dd class="metric-value mono" id="val-ip">--</dd>
-        </div>
-        <div class="metric-row" id="row-uptime">
-          <dt class="metric-label">Uptime</dt>
-          <dd class="metric-value mono" id="val-uptime">--</dd>
-        </div>
-        <div class="metric-row" id="row-presence">
-          <dt class="metric-label">User Presence</dt>
-          <dd class="metric-value mono" id="val-presence">--</dd>
-        </div>
-        <div class="metric-row" id="row-lock">
-          <dt class="metric-label">Workstation Locked</dt>
-          <dd class="metric-value mono" id="val-lock">--</dd>
-        </div>
-        <div class="metric-row" id="row-mic">
-          <dt class="metric-label">Microphone Active</dt>
-          <dd class="metric-value mono" id="val-mic">--</dd>
-        </div>
-        <div class="metric-row" id="row-webcam">
-          <dt class="metric-label">Webcam Active</dt>
-          <dd class="metric-value mono" id="val-webcam">--</dd>
-        </div>
-        <div class="metric-row" id="row-audio-output">
-          <dt class="metric-label">Audio Output</dt>
-          <dd class="metric-value mono" id="val-audio-output">--</dd>
-        </div>
-        <div class="metric-row" id="row-wifi">
-          <dt class="metric-label">Network / Wi-Fi</dt>
-          <dd class="metric-right">
-            <div class="meter" id="meter-wifi-wrap" style="display:none;"><div class="meter-fill" id="meter-wifi" style="width:0%"></div></div>
-            <span class="metric-value mono" id="val-wifi">--</span>
-          </dd>
-        </div>
-        <div class="metric-row" id="row-display">
-          <dt class="metric-label">Display Power</dt>
-          <dd class="metric-value mono" id="val-display">--</dd>
-        </div>
-        <div class="metric-row" id="row-fullscreen">
-          <dt class="metric-label">Fullscreen / Gaming</dt>
-          <dd class="metric-value mono" id="val-fullscreen">--</dd>
-        </div>
-        <div class="metric-row" id="row-theme">
-          <dt class="metric-label">Windows Theme</dt>
-          <dd class="metric-value mono" id="val-theme">--</dd>
-        </div>
-        <div class="metric-row" id="row-battery">
-          <dt class="metric-label">Battery / Power</dt>
-          <dd class="metric-value mono" id="val-battery">--</dd>
-        </div>
-        <div class="metric-row" id="row-window">
-          <dt class="metric-label">Active Program</dt>
-          <dd class="metric-value mono" id="val-window">--</dd>
-        </div>
-        <div class="metric-row" id="row-title">
-          <dt class="metric-label">Window Title</dt>
-          <dd class="metric-value mono" id="val-title">--</dd>
-        </div>
-        <div class="metric-row" id="row-reboot">
-          <dt class="metric-label">Pending Reboot</dt>
-          <dd class="metric-value mono" id="val-reboot">--</dd>
-        </div>
-        <div class="metric-row" id="row-media">
-          <dt class="metric-label">Now Playing</dt>
-          <dd class="metric-value" id="val-media">--</dd>
-        </div>
-      </dl>
+        <div class="gauge-bar"><div class="gauge-fill" style="width:100%;background:rgba(255,255,255,0.1)"></div></div>
+        <span class="gauge-sub mono" id="top-net-sub">Throughput</span>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Quick Actions & Testing</span>
+    <!-- Process & Task Telemetry Table -->
+    <div class="task-table-wrap">
+      <table class="task-table">
+        <thead>
+          <tr>
+            <th style="width:38%;">Sensor / Component</th>
+            <th style="width:24%;">Status</th>
+            <th class="right" style="width:38%;">Value / Utilization</th>
+          </tr>
+        </thead>
+        <tbody id="task-tbody">
+          <tr id="row-cpu">
+            <td>
+              <div class="task-name-cell">
+                <span>Processor</span>
+              </div>
+            </td>
+            <td><span class="task-badge active">Active</span></td>
+            <td class="right mono">
+              <div class="table-meter">
+                <div class="table-bar"><div class="table-bar-fill" id="meter-cpu" style="width:0%"></div></div>
+                <span id="val-cpu">-- %</span>
+              </div>
+            </td>
+          </tr>
+          <tr id="row-memory">
+            <td>
+              <div class="task-name-cell">
+                <span>Memory (RAM)</span>
+              </div>
+            </td>
+            <td><span class="task-badge active">Committed</span></td>
+            <td class="right mono">
+              <div class="table-meter">
+                <div class="table-bar"><div class="table-bar-fill" id="meter-mem" style="width:0%"></div></div>
+                <span id="val-mem">--</span>
+                <span style="color:var(--faint);font-size:10px;" id="val-mem-sub"></span>
+              </div>
+            </td>
+          </tr>
+          <tr id="row-network">
+            <td>
+              <div class="task-name-cell">
+                <span>Network Interface</span>
+              </div>
+            </td>
+            <td><span class="task-badge" id="badge-ip">LAN</span></td>
+            <td class="right mono" id="val-net">--</td>
+          </tr>
+          <tr id="row-local-ip">
+            <td><div class="task-name-cell"><span>IPv4 Address</span></div></td>
+            <td><span class="task-badge">Configured</span></td>
+            <td class="right mono" id="val-ip">--</td>
+          </tr>
+          <tr id="row-wifi">
+            <td><div class="task-name-cell"><span>Wi-Fi Connection</span></div></td>
+            <td><span class="task-badge" id="badge-wifi">WLAN</span></td>
+            <td class="right mono">
+              <div class="table-meter">
+                <div class="table-bar" id="meter-wifi-wrap" style="display:none;"><div class="table-bar-fill" id="meter-wifi" style="width:0%"></div></div>
+                <span id="val-wifi">--</span>
+              </div>
+            </td>
+          </tr>
+          <tr id="row-uptime">
+            <td><div class="task-name-cell"><span>System Uptime</span></div></td>
+            <td><span class="task-badge">Online</span></td>
+            <td class="right mono" id="val-uptime">--</td>
+          </tr>
+          <tr id="row-window">
+            <td><div class="task-name-cell"><span>Foreground Process</span></div></td>
+            <td><span class="task-badge" id="badge-fullscreen">Normal</span></td>
+            <td class="right mono" id="val-window" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
+          </tr>
+          <tr id="row-title">
+            <td><div class="task-name-cell"><span>Active Window Title</span></div></td>
+            <td><span class="task-badge">Focus</span></td>
+            <td class="right mono" id="val-title" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
+          </tr>
+          <tr id="row-presence">
+            <td><div class="task-name-cell"><span>User Session</span></div></td>
+            <td><span class="task-badge" id="badge-lock">Unlocked</span></td>
+            <td class="right mono" id="val-presence">--</td>
+          </tr>
+          <tr id="row-mic">
+            <td><div class="task-name-cell"><span>Microphone Capture</span></div></td>
+            <td><span class="task-badge" id="badge-mic">Idle</span></td>
+            <td class="right mono" id="val-mic">Inactive</td>
+          </tr>
+          <tr id="row-webcam">
+            <td><div class="task-name-cell"><span>Webcam Video</span></div></td>
+            <td><span class="task-badge" id="badge-webcam">Idle</span></td>
+            <td class="right mono" id="val-webcam">Inactive</td>
+          </tr>
+          <tr id="row-audio-output">
+            <td><div class="task-name-cell"><span>Audio Endpoint</span></div></td>
+            <td><span class="task-badge">Playback</span></td>
+            <td class="right mono" id="val-audio-output" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
+          </tr>
+          <tr id="row-media">
+            <td><div class="task-name-cell"><span>Now Playing</span></div></td>
+            <td><span class="task-badge" id="badge-media">Idle</span></td>
+            <td class="right mono" id="val-media" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
+          </tr>
+          <tr id="row-display">
+            <td><div class="task-name-cell"><span>Display Power</span></div></td>
+            <td><span class="task-badge" id="badge-display">Active</span></td>
+            <td class="right mono" id="val-display">Powered On</td>
+          </tr>
+          <tr id="row-battery">
+            <td><div class="task-name-cell"><span>Battery / Power</span></div></td>
+            <td><span class="task-badge" id="badge-pwr">AC</span></td>
+            <td class="right mono" id="val-battery">--</td>
+          </tr>
+          <tr id="row-theme">
+            <td><div class="task-name-cell"><span>Personalization</span></div></td>
+            <td><span class="task-badge">Theme</span></td>
+            <td class="right mono" id="val-theme">--</td>
+          </tr>
+          <tr id="row-reboot">
+            <td><div class="task-name-cell"><span>Windows Update</span></div></td>
+            <td><span class="task-badge" id="badge-reboot">OK</span></td>
+            <td class="right mono" id="val-reboot">Up to Date</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quick Operations Ribbon -->
+    <div class="ribbon-card">
+      <div class="ribbon-head">
+        <span class="ribbon-title">Control Actions</span>
+        <span class="msg-area mono" id="action-msg-area"></span>
       </div>
-      <div class="btn-grid">
-        <button type="button" class="quick-btn" onclick="triggerAction('test_toast')">🔔 Send Test Toast</button>
-        <button type="button" class="quick-btn" onclick="triggerAction('lock')">🔒 Lock Workstation</button>
-        <button type="button" class="quick-btn" onclick="triggerAction('mute')">🔇 Toggle Mute</button>
-        <button type="button" class="quick-btn" onclick="triggerAction('play_pause')">⏯ Play / Pause</button>
+      <div class="action-grid">
+        <button type="button" class="action-btn" onclick="triggerAction('test_toast')">Test Toast</button>
+        <button type="button" class="action-btn" onclick="triggerAction('lock')">Lock PC</button>
+        <button type="button" class="action-btn" onclick="triggerAction('mute')">Toggle Mute</button>
+        <button type="button" class="action-btn" onclick="triggerAction('play_pause')">Play / Pause</button>
       </div>
-      <div class="msg-area" id="action-msg-area"></div>
     </div>
   </main>
 
-  <!-- SETTINGS PANEL -->
+  <!-- CONFIGURATION PANEL -->
   <main id="panel-settings" class="panel hidden">
-    <form id="cfg-form">
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">MQTT Connection</span>
-        </div>
-        <div class="field">
-          <label for="node_id">Node identifier</label>
-          <input class="mono" id="node_id" required autocomplete="off">
-        </div>
-        <div class="field">
-          <label for="broker">MQTT broker URL</label>
-          <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
-        </div>
-        <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Skip TLS certificate verification (Insecure)</span></label>
+    <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
+      <!-- MQTT -->
+      <div class="config-section">
+        <div class="section-head">
+          <span class="section-title">MQTT Service Endpoint</span>
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="user">Username</label>
+            <label for="node_id">Client Node ID</label>
+            <input class="mono" id="node_id" required autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="broker">Broker URI</label>
+            <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
+          </div>
+        </div>
+        <div class="field">
+          <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Allow Insecure TLS (Skip CA verification)</span></label>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="user">Broker Username</label>
             <input class="mono" id="user" autocomplete="off">
           </div>
           <div class="field">
-            <label for="pass">Password</label>
+            <label for="pass">Broker Password</label>
             <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
           </div>
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="prefix">Topic prefix</label>
+            <label for="prefix">Topic Prefix</label>
             <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
           </div>
           <div class="field">
-            <label for="interval">Publish interval (seconds)</label>
+            <label for="interval">Publish Rate (Seconds)</label>
             <input type="number" class="mono" id="interval" min="1" max="300" required>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Exposed Entities (Home Assistant)</span>
+      <!-- Exposed Entities -->
+      <div class="config-section">
+        <div class="section-head">
+          <span class="section-title">Exposed Sensors & Remote Services</span>
           <div>
-            <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">All</button>
-            <span style="color:var(--border)">|</span>
+            <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">Select All</button>
+            <span style="color:var(--faint)">|</span>
             <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
           </div>
         </div>
 
-        <div class="subgroup">
-          <div class="subgroup-head"><span class="subgroup-title">Hardware & System Telemetry</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;">System Telemetry</span>
           <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Storage Drives</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>Uptime</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Battery & Power</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
             <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-theme"><span>Windows Theme</span></label>
             <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
           </div>
-        </div>
 
-        <div class="subgroup" style="margin-top:4px;">
-          <div class="subgroup-head"><span class="subgroup-title">Peripherals, Session & Network</span></div>
+          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:6px;">Peripherals & User Session</span>
           <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock State</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Active</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Active</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Output Device</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi / Network SSID</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display Power & Controls</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Gaming</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Program</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence & Idle</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
             <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
           </div>
-        </div>
 
-        <div class="subgroup" style="margin-top:4px;">
-          <div class="subgroup-head"><span class="subgroup-title">Controls & Notifications</span></div>
+          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:6px;">Remote Control & Notifications</span>
           <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Player</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Remote Lock Action</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Remote Lock Command</span></label>
             <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Toast Notifications</span></label>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">JSON Telemetry Snapshot API (/json)</span>
+      <!-- JSON API -->
+      <div class="config-section">
+        <div class="section-head">
+          <span class="section-title">Local JSON REST Interface (/json)</span>
         </div>
         <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable /json Snapshot Endpoint</span></label>
-        </div>
-        <div class="field">
-          <label for="api_key">API Key (or header X-API-Key)</label>
-          <input class="mono" id="api_key" placeholder="Leave empty to auto-generate" autocomplete="off">
+          <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="bind_address">Bind Address</label>
+            <label for="bind_address">Listen Address</label>
             <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
           </div>
           <div class="field">
-            <label for="port">HTTP Port (0 for random)</label>
-            <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0 (random)" autocomplete="off">
+            <label for="port">Port (0 for auto)</label>
+            <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
           </div>
+        </div>
+        <div class="field">
+          <label for="api_key">Authentication Token (or header X-API-Key)</label>
+          <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <span class="card-title">Log Webhooks</span>
+      <!-- Webhook -->
+      <div class="config-section">
+        <div class="section-head">
+          <span class="section-title">Telemetry & Event Webhook</span>
         </div>
         <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="webhook_enabled"><span>Enable Webhook Log Pushing</span></label>
+          <label class="toggle-item"><input type="checkbox" id="webhook_enabled"><span>Enable Outbound Webhooks</span></label>
         </div>
         <div class="field">
-          <label for="webhook_url">Webhook URL</label>
-          <input class="mono" id="webhook_url" placeholder="https://discord.com/api/webhooks/... or https://..." autocomplete="off">
+          <label for="webhook_url">Endpoint URL</label>
+          <input class="mono" id="webhook_url" placeholder="https://..." autocomplete="off">
         </div>
         <div class="field-row">
           <div class="field">
-            <label for="webhook_min_level">Minimum Log Level</label>
+            <label for="webhook_min_level">Threshold Level</label>
             <select id="webhook_min_level" class="mono">
-              <option value="info">Info (All operational events)</option>
-              <option value="warn">Warn (Warnings and errors only)</option>
-              <option value="error">Error (Errors only)</option>
+              <option value="info">Info (Verbose)</option>
+              <option value="warn">Warning (Alerts only)</option>
+              <option value="error">Error (Critical only)</option>
             </select>
           </div>
           <div class="field">
-            <label for="webhook_secret">Secret / Bearer Token (Optional)</label>
-            <input type="password" class="mono" id="webhook_secret" placeholder="Optional authorization token" autocomplete="new-password">
+            <label for="webhook_secret">Bearer / Secret Header</label>
+            <input type="password" class="mono" id="webhook_secret" placeholder="Optional token" autocomplete="new-password">
           </div>
         </div>
       </div>
 
-      <div class="actions">
-        <button type="button" id="btn-test" class="btn-secondary">Test MQTT</button>
-        <button type="button" id="btn-test-webhook" class="btn-secondary">Test Webhook</button>
-        <button type="submit" class="btn-primary">Save & Connect</button>
+      <!-- Bottom Form Actions -->
+      <div class="bottom-bar">
+        <div style="display:flex;gap:6px;">
+          <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
+          <button type="button" id="btn-test-webhook" class="btn-secondary">Test Webhook</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span class="msg-area mono" id="msg-area"></span>
+          <button type="submit" class="btn-primary">Apply & Restart Service</button>
+        </div>
       </div>
-      <div class="msg-area" id="msg-area"></div>
     </form>
   </main>
 </div>
@@ -683,8 +879,8 @@ function switchTab(tab) {
   const isDash = tab === 'dashboard';
   $('panel-dashboard').className = 'panel' + (isDash ? '' : ' hidden');
   $('panel-settings').className = 'panel' + (isDash ? ' hidden' : '');
-  $('tab-dash').className = 'tab-btn' + (isDash ? ' active' : '');
-  $('tab-set').className = 'tab-btn' + (isDash ? '' : ' active');
+  $('tab-dash').className = 'win-tab' + (isDash ? ' active' : '');
+  $('tab-set').className = 'win-tab' + (isDash ? '' : ' active');
 }
 
 function bulkToggleEntities(checked) {
@@ -696,7 +892,7 @@ function bulkToggleEntities(checked) {
 async function triggerAction(actionName) {
   const msgArea = $('action-msg-area');
   msgArea.className = 'msg-area mono';
-  msgArea.innerText = 'Executing action...';
+  msgArea.innerText = 'Dispatching...';
   try {
     const res = await authFetch('/api/action', {
       method: 'POST',
@@ -706,10 +902,10 @@ async function triggerAction(actionName) {
     const result = await res.json();
     if (result.success) {
       msgArea.className = 'msg-area msg-ok mono';
-      msgArea.innerText = 'Action executed successfully';
+      msgArea.innerText = 'Success';
     } else {
       msgArea.className = 'msg-area msg-err mono';
-      msgArea.innerText = 'Action failed: ' + result.error;
+      msgArea.innerText = 'Failed: ' + result.error;
     }
   } catch (err) {
     msgArea.className = 'msg-area msg-err mono';
@@ -717,7 +913,7 @@ async function triggerAction(actionName) {
   }
   setTimeout(() => {
     msgArea.innerText = '';
-  }, 4000);
+  }, 3500);
 }
 
 let activePollTimeout = null;
@@ -727,10 +923,10 @@ let currentExpose = {};
 function setStatusBadge(status) {
   const dot = $('dot');
   const txt = $('status-text');
-  dot.className = 'dot';
+  dot.className = 'status-dot';
   if (status === 'Connected') {
     dot.classList.add('online');
-    txt.innerText = 'online';
+    txt.innerText = 'connected';
   } else if (status === 'Connecting') {
     dot.classList.add('connecting');
     txt.innerText = 'connecting';
@@ -743,30 +939,28 @@ function setStatusBadge(status) {
 function setStaleUI() {
   const dot = $('dot');
   const txt = $('status-text');
-  dot.className = 'dot offline';
+  dot.className = 'status-dot offline';
   txt.innerText = 'unreachable';
 }
 
 function updateRowVisibility(expose, hasBattery) {
-  $('row-cpu').className = 'metric-row' + (expose.cpu ? '' : ' hidden');
-  $('row-memory').className = 'metric-row' + (expose.memory ? '' : ' hidden');
-  $('row-network').className = 'metric-row' + (expose.network ? '' : ' hidden');
-  $('row-local-ip').className = 'metric-row' + (expose.local_ip ? '' : ' hidden');
-  $('row-uptime').className = 'metric-row' + (expose.uptime ? '' : ' hidden');
-  $('row-presence').className = 'metric-row' + (expose.user_presence ? '' : ' hidden');
-  $('row-lock').className = 'metric-row' + (expose.session_lock ? '' : ' hidden');
-  $('row-mic').className = 'metric-row' + (expose.microphone ? '' : ' hidden');
-  $('row-webcam').className = 'metric-row' + (expose.webcam ? '' : ' hidden');
-  $('row-audio-output').className = 'metric-row' + (expose.audio_output ? '' : ' hidden');
-  $('row-wifi').className = 'metric-row' + (expose.wifi ? '' : ' hidden');
-  $('row-display').className = 'metric-row' + (expose.display_state ? '' : ' hidden');
-  $('row-fullscreen').className = 'metric-row' + (expose.fullscreen ? '' : ' hidden');
-  $('row-theme').className = 'metric-row' + (expose.windows_theme ? '' : ' hidden');
-  $('row-window').className = 'metric-row' + (expose.active_window ? '' : ' hidden');
-  $('row-title').className = 'metric-row' + (expose.window_title ? '' : ' hidden');
-  $('row-reboot').className = 'metric-row' + (expose.update_pending ? '' : ' hidden');
-  $('row-media').className = 'metric-row' + (expose.media_control ? '' : ' hidden');
-  $('row-battery').className = 'metric-row' + (expose.battery && hasBattery ? '' : ' hidden');
+  $('row-cpu').className = expose.cpu ? '' : 'hidden';
+  $('row-memory').className = expose.memory ? '' : 'hidden';
+  $('row-network').className = expose.network ? '' : 'hidden';
+  $('row-local-ip').className = expose.local_ip ? '' : 'hidden';
+  $('row-uptime').className = expose.uptime ? '' : 'hidden';
+  $('row-presence').className = expose.user_presence ? '' : 'hidden';
+  $('row-mic').className = expose.microphone ? '' : 'hidden';
+  $('row-webcam').className = expose.webcam ? '' : 'hidden';
+  $('row-audio-output').className = expose.audio_output ? '' : 'hidden';
+  $('row-wifi').className = expose.wifi ? '' : 'hidden';
+  $('row-display').className = expose.display_state ? '' : 'hidden';
+  $('row-theme').className = expose.windows_theme ? '' : 'hidden';
+  $('row-window').className = expose.active_window ? '' : 'hidden';
+  $('row-title').className = expose.window_title ? '' : 'hidden';
+  $('row-reboot').className = expose.update_pending ? '' : 'hidden';
+  $('row-media').className = expose.media_control ? '' : 'hidden';
+  $('row-battery').className = (expose.battery && hasBattery) ? '' : 'hidden';
 }
 
 async function poll() {
@@ -785,59 +979,64 @@ async function poll() {
       updateRowVisibility(currentExpose, t.has_battery);
 
       if (t.cpu_percent !== undefined) {
-        $('val-cpu').innerText = t.cpu_percent.toFixed(1) + ' %';
+        const cpuStr = t.cpu_percent.toFixed(1) + ' %';
+        $('val-cpu').innerText = cpuStr;
         $('meter-cpu').style.width = Math.min(100, Math.max(0, t.cpu_percent)) + '%';
+        $('top-cpu').innerText = Math.round(t.cpu_percent) + '%';
+        $('top-cpu-bar').style.width = Math.min(100, Math.max(0, t.cpu_percent)) + '%';
       }
       if (t.memory_used_gb !== undefined) {
         $('val-mem').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
-        $('val-mem-sub').innerText = '(' + t.memory_percent.toFixed(1) + ' %)';
+        $('val-mem-sub').innerText = '(' + t.memory_percent.toFixed(0) + '%)';
         $('meter-mem').style.width = Math.min(100, Math.max(0, t.memory_percent)) + '%';
+        $('top-mem').innerText = Math.round(t.memory_percent) + '%';
+        $('top-mem-bar').style.width = Math.min(100, Math.max(0, t.memory_percent)) + '%';
+        $('top-mem-sub').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
       }
 
-      const drivesDiv = $('drives-container');
       if (currentExpose.storage && t.drives && t.drives.length > 0) {
-        drivesDiv.innerHTML = t.drives.map(d => `
-          <div class="metric-row">
-            <dt class="metric-label">Storage (${d.mount})</dt>
-            <dd class="metric-right">
-              <div class="meter"><div class="meter-fill" style="width:${Math.min(100, Math.max(0, d.used_percent))}%"></div></div>
-              <span class="metric-value mono">${d.used_gb.toFixed(1)} / ${d.total_gb.toFixed(1)} GB <span class="metric-sub">(${d.used_percent.toFixed(1)} %)</span></span>
-            </dd>
-          </div>
-        `).join('');
-      } else {
-        drivesDiv.innerHTML = '';
+        const d0 = t.drives[0];
+        $('top-disk').innerText = Math.round(d0.used_percent) + '%';
+        $('top-disk-bar').style.width = Math.min(100, Math.max(0, d0.used_percent)) + '%';
+        $('top-disk-sub').innerText = `${d0.mount} (${d0.used_gb.toFixed(0)}/${d0.total_gb.toFixed(0)} GB)`;
       }
 
       if (t.network_rx_kbs !== undefined) {
-        $('val-net').innerText = '↓ ' + t.network_rx_kbs.toFixed(1) + '  ↑ ' + t.network_tx_kbs.toFixed(1) + ' kB/s';
+        const netStr = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
+        $('val-net').innerText = netStr;
+        const totalNet = Math.round(t.network_rx_kbs + t.network_tx_kbs);
+        $('top-net').innerText = totalNet > 1024 ? (totalNet/1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
       }
+
       if (t.local_ip) {
         $('val-ip').innerText = t.local_ip;
       }
       if (t.uptime_seconds !== undefined) {
         const hrs = (t.uptime_seconds / 3600).toFixed(1);
-        $('val-uptime').innerText = hrs + ' h';
+        $('val-uptime').innerText = hrs + ' hrs';
       }
       if (t.user_idle_seconds !== undefined) {
         const status = t.user_active ? 'Active' : 'Idle';
         $('val-presence').innerText = status + ' (' + t.user_idle_seconds + 's)';
-      }
-      if (t.session_locked !== undefined) {
-        $('val-lock').innerText = t.session_locked ? 'Locked' : 'Unlocked';
+        $('badge-lock').innerText = t.session_locked ? 'Locked' : (t.user_active ? 'Active' : 'Idle');
+        $('badge-lock').className = 'task-badge ' + (t.session_locked ? 'warn' : (t.user_active ? 'active' : ''));
       }
       if (t.microphone_in_use !== undefined) {
-        $('val-mic').innerText = t.microphone_in_use ? 'Active' : 'Muted / Inactive';
+        $('val-mic').innerText = t.microphone_in_use ? 'Capture Active' : 'Idle';
+        $('badge-mic').innerText = t.microphone_in_use ? 'In Use' : 'Idle';
+        $('badge-mic').className = 'task-badge ' + (t.microphone_in_use ? 'warn' : '');
       }
       if (t.fullscreen_active !== undefined) {
-        $('val-fullscreen').innerText = t.fullscreen_active ? 'Yes' : 'No';
+        $('badge-fullscreen').innerText = t.fullscreen_active ? 'Fullscreen' : 'Windowed';
+        $('badge-fullscreen').className = 'task-badge ' + (t.fullscreen_active ? 'active' : '');
       }
       if (t.windows_theme) {
-        $('val-theme').innerText = t.windows_theme === 'dark' ? 'Dark Mode' : 'Light Mode';
+        $('val-theme').innerText = t.windows_theme === 'dark' ? 'Dark' : 'Light';
       }
       if (t.has_battery && t.battery_percent !== undefined) {
         const pwr = t.power_plugged ? 'AC' : 'Batt';
-        $('val-battery').innerText = t.battery_percent + ' % [' + pwr + ']';
+        $('val-battery').innerText = t.battery_percent + '% (' + pwr + ')';
+        $('badge-pwr').innerText = pwr;
       }
       if (t.active_process) {
         $('val-window').innerText = t.active_process;
@@ -847,35 +1046,35 @@ async function poll() {
         $('val-title').title = t.active_window_title;
       }
       if (t.update_pending !== undefined) {
-        $('val-reboot').innerText = t.update_pending ? 'Restart Required' : 'Up to Date';
+        $('val-reboot').innerText = t.update_pending ? 'Restart Pending' : 'Normal';
+        $('badge-reboot').innerText = t.update_pending ? 'Reboot' : 'OK';
+        $('badge-reboot').className = 'task-badge ' + (t.update_pending ? 'warn' : 'active');
       }
       if (t.media) {
         if (t.media.status === 'playing' || t.media.status === 'paused') {
-          const badge = t.media.status === 'playing' ? '▶' : '⏸';
-          const appPart = t.media.app_id ? `[${t.media.app_id}] ` : '';
-          const trackPart = t.media.title ? (t.media.artist ? `${t.media.title} - ${t.media.artist}` : t.media.title) : 'Active Media';
-          $('val-media').innerText = `${badge} ${appPart}${trackPart}`;
-          $('val-media').title = `${t.media.status.toUpperCase()}: ${trackPart}`;
+          const track = t.media.title ? (t.media.artist ? `${t.media.title} - ${t.media.artist}` : t.media.title) : 'Active';
+          $('val-media').innerText = track;
+          $('badge-media').innerText = t.media.status.toUpperCase();
+          $('badge-media').className = 'task-badge ' + (t.media.status === 'playing' ? 'active' : '');
         } else {
-          $('val-media').innerText = 'Idle';
-          $('val-media').title = 'Idle';
+          $('val-media').innerText = 'None';
+          $('badge-media').innerText = 'Idle';
+          $('badge-media').className = 'task-badge';
         }
-      } else {
-        $('val-media').innerText = 'Idle';
       }
       if (t.webcam_in_use !== undefined) {
-        const appInfo = t.webcam_active_app ? ` (${t.webcam_active_app})` : '';
-        $('val-webcam').innerText = t.webcam_in_use ? `Active${appInfo}` : 'Inactive';
+        $('val-webcam').innerText = t.webcam_in_use ? (t.webcam_active_app || 'Active') : 'Idle';
+        $('badge-webcam').innerText = t.webcam_in_use ? 'Live' : 'Off';
+        $('badge-webcam').className = 'task-badge ' + (t.webcam_in_use ? 'warn' : '');
       }
       if (t.audio_output_name) {
         $('val-audio-output').innerText = t.audio_output_name;
-        $('val-audio-output').title = t.audio_output_name;
       }
       if (t.wifi_ssid) {
-        const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent} %)` : '';
+        const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent}%)` : '';
         $('val-wifi').innerText = `${t.wifi_ssid}${sig}`;
         if (t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null) {
-          $('meter-wifi-wrap').style.display = 'block';
+          $('meter-wifi-wrap').style.display = 'inline-block';
           $('meter-wifi').style.width = Math.min(100, Math.max(0, t.wifi_signal_percent)) + '%';
         } else {
           $('meter-wifi-wrap').style.display = 'none';
@@ -884,7 +1083,9 @@ async function poll() {
         $('meter-wifi-wrap').style.display = 'none';
       }
       if (t.display_powered !== undefined) {
-        $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby / Asleep';
+        $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby';
+        $('badge-display').innerText = t.display_powered ? 'On' : 'Sleep';
+        $('badge-display').className = 'task-badge ' + (t.display_powered ? 'active' : '');
       }
     }
   } catch (err) {
@@ -948,7 +1149,7 @@ function showMessage(text, isError) {
   el.className = 'msg-area ' + (isError ? 'msg-err mono' : 'msg-ok mono');
   setTimeout(() => {
     el.innerText = '';
-  }, 5000);
+  }, 4000);
 }
 
 $('btn-test').onclick = async () => {
@@ -965,7 +1166,7 @@ $('btn-test').onclick = async () => {
       })
     });
     const result = await res.json();
-    showMessage(result.success ? 'Connection succeeded' : 'Error: ' + result.error, !result.success);
+    showMessage(result.success ? 'Broker reached' : 'Error: ' + result.error, !result.success);
   } catch (err) {
     showMessage('Error: ' + err.message, true);
   }
@@ -983,7 +1184,7 @@ $('btn-test-webhook').onclick = async () => {
       })
     });
     const result = await res.json();
-    showMessage(result.success ? 'Webhook test succeeded' : 'Error: ' + result.error, !result.success);
+    showMessage(result.success ? 'Webhook OK' : 'Error: ' + result.error, !result.success);
   } catch (err) {
     showMessage('Error: ' + err.message, true);
   }
@@ -1051,7 +1252,7 @@ $('cfg-form').onsubmit = async (e) => {
     if (result.success) {
       currentIntervalMs = Math.max(1, intervalSec) * 1000;
       currentExpose = newExpose;
-      showMessage('Config saved. Reconnecting...', false);
+      showMessage('Saved. Reconnecting...', false);
       clearTimeout(activePollTimeout);
       poll();
     } else {

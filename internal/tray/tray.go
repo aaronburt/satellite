@@ -90,11 +90,11 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 			title := fmt.Sprintf("Status: %s", status)
 			switch status {
 			case mqtt.StatusConnected:
-				title = "Status: 🟢 Connected"
+				title = "Status: Connected"
 			case mqtt.StatusConnecting:
-				title = "Status: 🟡 Connecting"
+				title = "Status: Connecting"
 			case mqtt.StatusDisconnected:
-				title = "Status: 🔴 Disconnected"
+				title = "Status: Disconnected"
 			}
 			t.statusItem.SetTitle(title)
 

@@ -3,66 +3,64 @@
 package toast
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/xml"
+	_ "embed"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
 	"syscall"
-	"unicode/utf16"
+
+	"github.com/gen2brain/beeep"
 )
 
-func encodeUTF16LE(s string) []byte {
-	runes := utf16.Encode([]rune(s))
-	encoded := make([]byte, len(runes)*2)
-	for i, r := range runes {
-		encoded[i*2] = byte(r)
-		encoded[i*2+1] = byte(r >> 8)
-	}
-	return encoded
-}
+//go:embed icon.ico
+var embeddedIcon []byte
 
-func xmlEscape(s string) string {
-	var buf bytes.Buffer
-	_ = xml.EscapeText(&buf, []byte(s))
-	return buf.String()
+var (
+	iconOnce     sync.Once
+	savedIconPath string
+)
+
+func getIconPath() string {
+	iconOnce.Do(func() {
+		appData := os.Getenv("APPDATA")
+		if appData == "" {
+			appData = "."
+		}
+		dir := filepath.Join(appData, "satellite")
+		_ = os.MkdirAll(dir, 0755)
+		target := filepath.Join(dir, "icon.ico")
+		if len(embeddedIcon) > 0 {
+			if _, err := os.Stat(target); os.IsNotExist(err) {
+				_ = os.WriteFile(target, embeddedIcon, 0644)
+			}
+		}
+		savedIconPath = target
+	})
+	return savedIconPath
 }
 
 func Show(n Notification) error {
-	escapedTitle := xmlEscape(n.Title)
-	escapedMessage := xmlEscape(n.Message)
-	escapedURL := xmlEscape(n.URL)
-
-	var launchAttr string
-	if escapedURL != "" {
-		launchAttr = fmt.Sprintf(` activationType="protocol" launch="%s"`, escapedURL)
+	iconPath := getIconPath()
+	title := strings.TrimSpace(n.Title)
+	if title == "" {
+		title = "Satellite"
 	}
 
-	var audioTag string
-	if n.Silent {
-		audioTag = `<audio silent="true"/>`
-	}
-
-	xmlDoc := fmt.Sprintf(`<toast%s><visual><binding template="ToastGeneric"><text>%s</text><text>%s</text></binding></visual>%s</toast>`,
-		launchAttr, escapedTitle, escapedMessage, audioTag)
-
-	script := fmt.Sprintf(`[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
-$xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-$xml.LoadXml(@'
-%s
-'@)
-$toast = New-Object Windows.UI.Notifications.ToastNotification $xml
-[Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier('Satellite').Show($toast)
-`, xmlDoc)
-
-	encoded := base64.StdEncoding.EncodeToString(encodeUTF16LE(script))
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded)
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-
-	output, err := cmd.CombinedOutput()
+	err := beeep.Notify(title, n.Message, iconPath)
 	if err != nil {
-		return fmt.Errorf("toast notification failed: %w: %s", err, string(output))
+		return fmt.Errorf("notification failed: %w", err)
 	}
+
+	if strings.TrimSpace(n.URL) != "" {
+		go func(targetURL string) {
+			cmd := exec.Command("cmd", "/c", "start", "", targetURL)
+			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+			_ = cmd.Start()
+		}(strings.TrimSpace(n.URL))
+	}
+
 	return nil
 }

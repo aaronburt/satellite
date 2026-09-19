@@ -2,8 +2,8 @@
 
 package toast
 
-import "errors"
+import "github.com/gen2brain/beeep"
 
 func Show(n Notification) error {
-	return errors.New("toast notifications are only supported on Windows")
+	return beeep.Notify(n.Title, n.Message, "")
 }
