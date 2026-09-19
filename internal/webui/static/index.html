@@ -8,25 +8,24 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   color-scheme: dark;
-  --bg:#18181b;
-  --header-bg:#202024;
-  --surface:#1f1f23;
-  --surface-alt:#27272a;
-  --row-hover:#2d2d32;
-  --row-active:#1e3a5f;
-  --input-bg:#121214;
-  --border:#333338;
-  --border-subtle:#2a2a2e;
+  --bg:#1f1f1f;
+  --sidebar-bg:#181818;
+  --topbar-bg:#202020;
+  --content-bg:#191919;
+  --surface:#202020;
+  --surface-alt:#2b2b2b;
+  --row-hover:#2d2d2d;
+  --row-active:#26354a;
+  --row-active-border:#0078d4;
+  --border:#2d2d2d;
+  --border-subtle:#262626;
   --border-focus:#0078d4;
-  --text:#f4f4f5;
-  --muted:#9ca3af;
-  --faint:#6b7280;
+  --text:#ffffff;
+  --text-dim:#cccccc;
+  --muted:#8c8c8c;
+  --faint:#616161;
   --accent:#0078d4;
   --accent-hover:#106ebe;
-  --meter-bg:#27272a;
-  --green:#107c41;
-  --yellow:#d83b01;
-  --red:#e81123;
   --heat-low:#107c41;
   --heat-mid:#d83b01;
   --heat-high:#e81123;
@@ -34,371 +33,416 @@
 body{
   background:var(--bg);
   color:var(--text);
-  font-family:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
-  font-size:12px;
-  line-height:1.4;
+  font-family:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,sans-serif;
+  font-size:14px;
+  line-height:1.45;
+  margin:0;
+  padding:0;
   display:flex;
-  justify-content:center;
-  padding:24px 16px;
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
 }
 .mono{
-  font-family:"Cascadia Code","Consolas",ui-monospace,Menlo,Monaco,monospace;
+  font-family:"Cascadia Code","Consolas",monospace;
   font-variant-numeric:tabular-nums;
 }
-.wrap{
+.app-window{
   width:100%;
-  max-width:680px;
+  height:100%;
+  max-width:none;
+  min-height:0;
+  background:var(--bg);
+  border:none;
+  border-radius:0;
+  box-shadow:none;
   display:flex;
-  flex-direction:column;
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:8px;
-  box-shadow:0 12px 32px rgba(0,0,0,0.45);
   overflow:hidden;
 }
 
-/* Window Titlebar */
-.win-titlebar{
+/* Windows 11 Sidebar */
+.sidebar{
+  width:190px;
+  background:var(--sidebar-bg);
+  border-right:1px solid var(--border-subtle);
   display:flex;
+  flex-direction:column;
   justify-content:space-between;
-  align-items:center;
-  background:var(--header-bg);
-  padding:8px 14px;
-  border-bottom:1px solid var(--border);
+  flex-shrink:0;
   user-select:none;
 }
-.win-left{
+.sidebar-top{
   display:flex;
-  align-items:center;
-  gap:10px;
+  flex-direction:column;
 }
-.win-icon{
-  width:15px;
-  height:15px;
-  stroke:var(--text);
+.sidebar-brand{
+  padding:16px 18px;
   display:flex;
-  align-items:center;
+  flex-direction:column;
+  gap:3px;
+  border-bottom:1px solid rgba(255,255,255,0.04);
 }
-.win-title{
-  font-size:12px;
+.sidebar-title{
+  font-size:14px;
   font-weight:600;
   color:var(--text);
   letter-spacing:-0.01em;
 }
-.win-ver{
-  font-size:11px;
+.sidebar-ver{
+  font-size:12px;
   color:var(--muted);
-  font-weight:400;
 }
-.win-right{
+.nav-list{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  padding:10px 8px;
+}
+.nav-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border-radius:4px;
+  background:transparent;
+  border:none;
+  color:var(--text-dim);
+  font-size:13.5px;
+  font-weight:400;
+  cursor:pointer;
+  text-align:left;
+  width:100%;
+  transition:background 0.1s;
+}
+.nav-item:hover{
+  background:rgba(255,255,255,0.04);
+  color:var(--text);
+}
+.nav-item.active{
+  background:rgba(255,255,255,0.08);
+  color:#ffffff;
+  font-weight:600;
+  position:relative;
+}
+.nav-item.active::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:6px;
+  bottom:6px;
+  width:3px;
+  background:var(--accent);
+  border-radius:2px;
+}
+.sidebar-bottom{
+  padding:10px 8px;
+  border-top:1px solid rgba(255,255,255,0.04);
+}
+
+/* Main Content Area */
+.main-stage{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  background:var(--content-bg);
+  min-width:0;
+}
+
+/* Windows 11 Command Bar Header */
+.command-bar{
+  background:var(--topbar-bg);
+  padding:12px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid var(--border);
+  user-select:none;
+}
+.command-left{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.page-title{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+}
+.command-actions{
   display:flex;
   align-items:center;
   gap:8px;
+}
+.cmd-btn{
+  background:transparent;
+  border:1px solid transparent;
+  color:var(--text-dim);
+  font-size:13px;
+  padding:6px 12px;
+  border-radius:4px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:background 0.1s, border-color 0.1s;
+}
+.cmd-btn:hover{
+  background:rgba(255,255,255,0.06);
+  border-color:var(--border);
+  color:var(--text);
+}
+.cmd-btn:active{
+  background:rgba(255,255,255,0.1);
 }
 .status-pill{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  padding:2px 8px;
+  padding:4px 10px;
   border-radius:12px;
   background:rgba(255,255,255,0.04);
   border:1px solid var(--border-subtle);
-  font-size:11px;
+  font-size:12px;
   color:var(--muted);
 }
 .status-dot{
-  width:6px;
-  height:6px;
+  width:7px;
+  height:7px;
   border-radius:50%;
   background:var(--muted);
 }
 .status-dot.online{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,0.5)}
-.status-dot.connecting{background:#facc15;box-shadow:0 0 6px rgba(250,204,21,0.5)}
+.status-dot.connecting{background:#facc15}
 .status-dot.offline{background:#f87171}
 
-/* Top Tab Bar */
-.win-tabs{
-  display:flex;
-  gap:2px;
-  background:var(--header-bg);
-  padding:0 8px;
-  border-bottom:1px solid var(--border);
-}
-.win-tab{
-  background:transparent;
-  border:none;
-  border-bottom:2px solid transparent;
-  color:var(--muted);
-  font-size:12px;
-  font-weight:500;
-  padding:8px 16px;
-  cursor:pointer;
-  transition:color 0.1s, border-color 0.1s;
-}
-.win-tab:hover{
-  color:var(--text);
-  background:rgba(255,255,255,0.03);
-}
-.win-tab.active{
-  color:var(--text);
-  font-weight:600;
-  border-bottom-color:var(--accent);
-  background:rgba(255,255,255,0.05);
-}
-
-.panel{
+.content-panel{
+  flex:1;
   display:flex;
   flex-direction:column;
-  padding:14px;
-  gap:14px;
+  overflow-y:auto;
 }
-.panel.hidden{
+.content-panel.hidden{
   display:none;
 }
 
-/* Overview Gauges Banner */
-.gauges-banner{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:8px;
+/* Process View Table */
+.tm-table-wrap{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13.5px;
+  text-align:left;
 }
-.gauge-card{
-  background:var(--surface-alt);
-  border:1px solid var(--border-subtle);
-  border-radius:5px;
-  padding:9px 10px;
+.tm-table{
+  width:100%;
+  border-collapse:collapse;
+}
+.tm-table thead{
+  background:var(--surface);
+  position:sticky;
+  top:0;
+  z-index:10;
+  border-bottom:1px solid var(--border);
+  user-select:none;
+}
+.tm-table th{
+  padding:8px 16px;
+  font-size:13px;
+  font-weight:600;
+  color:var(--text-dim);
+  border-right:1px solid var(--border-subtle);
+  white-space:nowrap;
+}
+.tm-table th:last-child{
+  border-right:none;
+}
+.tm-table th.num-col{
+  text-align:right;
+  width:85px;
+}
+.th-val{
+  font-size:11px;
+  color:var(--muted);
+  display:block;
+  font-weight:400;
+}
+.group-header-row td{
+  background:#1e1e1e;
+  padding:8px 16px;
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--muted);
+  border-bottom:1px solid var(--border-subtle);
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+}
+.tm-table tbody tr.data-row{
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  transition:background 0.08s;
+  cursor:default;
+}
+.tm-table tbody tr.data-row:hover{
+  background:var(--row-hover);
+}
+.tm-table tbody tr.data-row.active-row{
+  background:var(--row-active);
+}
+.tm-table tbody tr.data-row.hidden{
+  display:none;
+}
+.tm-table td{
+  padding:8px 16px;
+  color:var(--text);
+  vertical-align:middle;
+  border-right:1px solid rgba(255,255,255,0.02);
+  white-space:nowrap;
+  font-size:13.5px;
+}
+.tm-table td:last-child{
+  border-right:none;
+}
+.tm-table td.num-col{
+  text-align:right;
+  color:var(--text-dim);
+}
+.heat-cell{
+  background:rgba(255,255,255,0.02);
+}
+.item-title-cell{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.item-badge{
+  font-size:11px;
+  padding:2px 6px;
+  border-radius:3px;
+  background:rgba(255,255,255,0.06);
+  color:var(--muted);
+  border:1px solid rgba(255,255,255,0.05);
+}
+.item-badge.active{
+  color:#4ade80;
+  background:rgba(74,222,128,0.1);
+  border-color:rgba(74,222,128,0.2);
+}
+.item-badge.warn{
+  color:#fb923c;
+  background:rgba(251,146,60,0.1);
+  border-color:rgba(251,146,60,0.2);
+}
+
+/* Performance Tab (Gauges & Sparklines) */
+.perf-container{
+  padding:20px;
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:18px;
 }
-.gauge-card:hover{
-  border-color:var(--border);
+.gauges-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
 }
-.gauge-header{
+.perf-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  cursor:default;
+}
+.perf-card-header{
   display:flex;
   justify-content:space-between;
   align-items:baseline;
 }
-.gauge-label{
-  font-size:11px;
+.perf-title{
+  font-size:12px;
   font-weight:600;
   color:var(--muted);
   text-transform:uppercase;
-  letter-spacing:0.03em;
 }
-.gauge-value{
-  font-size:13px;
+.perf-val{
+  font-size:17px;
   font-weight:700;
   color:var(--text);
 }
-.gauge-sub{
-  font-size:10px;
+.perf-sub{
+  font-size:12px;
   color:var(--faint);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
 }
-.gauge-bar{
+.sparkline-svg{
   width:100%;
-  height:3px;
-  background:var(--meter-bg);
-  border-radius:2px;
-  overflow:hidden;
-  margin-top:2px;
+  height:60px;
+  display:block;
 }
-.gauge-fill{
-  height:100%;
-  background:var(--accent);
-  transition:width 0.3s ease;
+.sparkline-grid{
+  stroke:rgba(255,255,255,0.06);
+  stroke-width:1;
+  stroke-dasharray:2 2;
 }
-
-/* Process/Task Table */
-.task-table-wrap{
-  border:1px solid var(--border);
-  border-radius:5px;
-  background:var(--surface-alt);
-  overflow:hidden;
+.sparkline-area{
+  fill:rgba(0,120,212,0.18);
 }
-.task-table{
-  width:100%;
-  border-collapse:collapse;
-  text-align:left;
-  font-size:11.5px;
-}
-.task-table thead{
-  background:var(--header-bg);
-  border-bottom:1px solid var(--border);
-  position:sticky;
-  top:0;
-  user-select:none;
-}
-.task-table th{
-  padding:7px 12px;
-  font-size:11px;
-  font-weight:600;
-  color:var(--muted);
-  text-transform:uppercase;
-  letter-spacing:0.02em;
-  border-right:1px solid var(--border-subtle);
-}
-.task-table th:last-child{
-  border-right:none;
-}
-.task-table th.right{
-  text-align:right;
-}
-.task-table tbody tr{
-  border-bottom:1px solid var(--border-subtle);
-  transition:background 0.08s;
-}
-.task-table tbody tr:last-child{
-  border-bottom:none;
-}
-.task-table tbody tr:hover{
-  background:var(--row-hover);
-}
-.task-table tbody tr.hidden{
-  display:none;
-}
-.task-table td{
-  padding:6.5px 12px;
-  color:var(--text);
-  vertical-align:middle;
-  border-right:1px solid rgba(255,255,255,0.03);
-}
-.task-table td:last-child{
-  border-right:none;
-}
-.task-table td.right{
-  text-align:right;
-}
-.task-name-cell{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  font-weight:500;
-}
-.task-badge{
-  display:inline-block;
-  font-size:10px;
-  font-weight:600;
-  padding:1px 5px;
-  border-radius:3px;
-  background:rgba(255,255,255,0.06);
-  color:var(--muted);
-  border:1px solid var(--border-subtle);
-}
-.task-badge.active{
-  background:rgba(16,124,65,0.2);
-  color:#4ade80;
-  border-color:rgba(16,124,65,0.4);
-}
-.task-badge.warn{
-  background:rgba(216,59,1,0.2);
-  color:#fb923c;
-  border-color:rgba(216,59,1,0.4);
-}
-
-.table-meter{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  width:100%;
-  justify-content:flex-end;
-}
-.table-bar{
-  width:44px;
-  height:4px;
-  background:var(--meter-bg);
-  border-radius:2px;
-  overflow:hidden;
-  flex-shrink:0;
-}
-.table-bar-fill{
-  height:100%;
-  background:var(--accent);
-  border-radius:2px;
-  transition:width 0.3s ease;
-}
-
-/* Command Ribbon / Action Bar */
-.ribbon-card{
-  background:var(--surface-alt);
-  border:1px solid var(--border-subtle);
-  border-radius:5px;
-  padding:10px 12px;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.ribbon-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-.ribbon-title{
-  font-size:11px;
-  font-weight:600;
-  color:var(--muted);
-  text-transform:uppercase;
-  letter-spacing:0.03em;
-}
-.action-grid{
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:6px;
-}
-.action-btn{
-  background:var(--header-bg);
-  color:var(--text);
-  border:1px solid var(--border);
-  font-size:11px;
-  font-weight:500;
-  padding:6px 10px;
-  border-radius:4px;
-  cursor:pointer;
-  transition:background 0.1s, border-color 0.1s;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  gap:5px;
-  user-select:none;
-}
-.action-btn:hover{
-  background:var(--row-hover);
-  border-color:#4b4b52;
-}
-.action-btn:active{
-  background:var(--accent);
-  border-color:var(--accent);
-  color:#fff;
+.sparkline-line{
+  fill:none;
+  stroke:var(--accent);
+  stroke-width:1.5;
+  stroke-linejoin:round;
 }
 
 /* Settings Form */
-.config-section{
-  background:var(--surface-alt);
-  border:1px solid var(--border-subtle);
-  border-radius:5px;
-  padding:12px 14px;
+.config-container{
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  max-width:920px;
+}
+.config-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:14px;
   display:flex;
   flex-direction:column;
   gap:10px;
 }
-.section-head{
+.config-card.card-danger{
+  border-color:rgba(232,17,35,0.4);
+  background:rgba(232,17,35,0.03);
+}
+.card-head{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding-bottom:4px;
   border-bottom:1px solid var(--border-subtle);
 }
-.section-title{
-  font-size:11px;
+.card-head.head-danger{
+  border-bottom-color:rgba(232,17,35,0.25);
+}
+.card-title{
+  font-size:12px;
   font-weight:600;
   color:var(--muted);
   text-transform:uppercase;
   letter-spacing:0.03em;
+}
+.card-title.title-danger{
+  color:#f87171;
+  font-weight:700;
+}
+.danger-warning{
+  font-size:12px;
+  color:#fca5a5;
+  background:rgba(232,17,35,0.08);
+  border:1px solid rgba(232,17,35,0.2);
+  border-radius:4px;
+  padding:8px 12px;
+  line-height:1.4;
 }
 .field{
   display:flex;
@@ -411,19 +455,19 @@ body{
   gap:8px;
 }
 label{
-  font-size:11px;
+  font-size:12px;
   color:var(--muted);
   font-weight:500;
 }
 input,select{
   width:100%;
   appearance:none;
-  background-color:var(--input-bg) !important;
+  background-color:#141414 !important;
   color:var(--text) !important;
   border:1px solid var(--border);
   border-radius:3px;
-  padding:6px 8px;
-  font-size:11.5px;
+  padding:7px 10px;
+  font-size:13px;
   outline:none;
 }
 input:focus,select:focus{
@@ -432,54 +476,45 @@ input:focus,select:focus{
 .toggle-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:6px;
+  gap:8px;
 }
 .toggle-item{
   display:flex;
   align-items:center;
-  gap:7px;
+  gap:8px;
   cursor:pointer;
   user-select:none;
 }
 .toggle-item input[type="checkbox"]{
-  width:13px;
-  height:13px;
+  width:15px;
+  height:15px;
   accent-color:var(--accent);
   margin:0;
   cursor:pointer;
   appearance:auto;
 }
 .toggle-item span{
-  font-size:11.5px;
+  font-size:13px;
   color:var(--text);
 }
 .link-btn{
   background:transparent;
   border:none;
   color:var(--accent);
-  font-size:11px;
+  font-size:12px;
   cursor:pointer;
   padding:0 3px;
 }
 .link-btn:hover{
   text-decoration:underline;
 }
-
-.bottom-bar{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  background:var(--header-bg);
-  padding:8px 14px;
-  border-top:1px solid var(--border);
-}
 .btn-primary{
   background:var(--accent);
   color:#fff;
   border:1px solid transparent;
-  font-size:11.5px;
+  font-size:13px;
   font-weight:600;
-  padding:6px 14px;
+  padding:7px 16px;
   border-radius:3px;
   cursor:pointer;
 }
@@ -488,378 +523,337 @@ input:focus,select:focus{
   background:transparent;
   color:var(--muted);
   border:1px solid var(--border);
-  font-size:11.5px;
-  padding:6px 12px;
+  font-size:13px;
+  padding:7px 14px;
   border-radius:3px;
   cursor:pointer;
 }
 .btn-secondary:hover{color:var(--text);border-color:#4b4b52}
 .msg-area{
-  font-size:11px;
+  font-size:12px;
 }
 .msg-ok{color:#4ade80}
 .msg-err{color:#f87171}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <!-- Windows Title Bar -->
-  <div class="win-titlebar">
-    <div class="win-left">
-      <span class="win-title">Satellite Task Manager</span>
-      <span class="win-ver mono">v{{VERSION}}</span>
-    </div>
-    <div class="win-right">
-      <div class="status-pill">
-        <span id="dot" class="status-dot"></span>
-        <span id="status-text" class="mono">offline</span>
+<div class="app-window">
+  <!-- Left Navigation Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <span class="sidebar-title">Task Manager</span>
+        <span class="sidebar-ver mono">satellite v{{VERSION}}</span>
       </div>
+      <nav class="nav-list">
+        <button type="button" class="nav-item active" id="nav-proc" onclick="switchNav('processes')">
+          <span>Processes</span>
+        </button>
+        <button type="button" class="nav-item" id="nav-perf" onclick="switchNav('performance')">
+          <span>Performance</span>
+        </button>
+      </nav>
     </div>
+    <div class="sidebar-bottom">
+      <button type="button" class="nav-item" id="nav-settings" onclick="switchNav('settings')">
+        <span>Settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Right Main Stage -->
+  <div class="main-stage">
+    <!-- Windows 11 Command Bar Header -->
+    <header class="command-bar">
+      <div class="command-left">
+        <span class="page-title" id="page-title">Processes</span>
+      </div>
+      <div class="command-actions">
+        <button type="button" class="cmd-btn" onclick="triggerAction('test_toast')">Run Test Toast</button>
+        <button type="button" class="cmd-btn" onclick="triggerAction('lock')">Lock Workstation</button>
+        <button type="button" class="cmd-btn" onclick="triggerAction('mute')">Mute Audio</button>
+        <button type="button" class="cmd-btn" onclick="triggerAction('play_pause')">Play / Pause</button>
+        <div class="status-pill">
+          <span id="dot" class="status-dot"></span>
+          <span id="status-text" class="mono">offline</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- TAB 1: PROCESSES / TELEMETRY TABLE -->
+    <section id="panel-processes" class="content-panel">
+      <div class="tm-table-wrap">
+        <table class="tm-table">
+          <thead>
+            <tr>
+              <th style="width:40%;">Sensor / Component</th>
+              <th style="width:20%;">Status</th>
+              <th style="width:40%;text-align:right;padding-right:20px;">Current Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="data-row" id="row-cpu">
+              <td><div class="item-title-cell"><span>Processor</span></div></td>
+              <td><span class="item-badge active">Hardware</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;" id="val-cpu">0%</td>
+            </tr>
+            <tr class="data-row" id="row-memory">
+              <td><div class="item-title-cell"><span>Memory (RAM)</span></div></td>
+              <td><span class="item-badge active">Committed</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;" id="val-mem">0 / 0 GB</td>
+            </tr>
+            <tr class="data-row" id="row-network">
+              <td><div class="item-title-cell"><span>Network Adapter</span></div></td>
+              <td><span class="item-badge" id="badge-ip">Connected</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;" id="val-net">0 kB/s</td>
+            </tr>
+            <tr class="data-row" id="row-local-ip">
+              <td><div class="item-title-cell"><span>IPv4 Address</span></div></td>
+              <td><span class="item-badge">Configured</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-ip">--</td>
+            </tr>
+            <tr class="data-row" id="row-wifi">
+              <td><div class="item-title-cell"><span>Wi-Fi SSID</span></div></td>
+              <td><span class="item-badge" id="badge-wifi">WLAN</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-wifi">--</td>
+            </tr>
+            <tr class="data-row" id="row-uptime">
+              <td><div class="item-title-cell"><span>System Uptime</span></div></td>
+              <td><span class="item-badge">Online</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-uptime">--</td>
+            </tr>
+            <tr class="data-row" id="row-window">
+              <td><div class="item-title-cell"><span>Foreground App</span></div></td>
+              <td><span class="item-badge" id="badge-fullscreen">Normal</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-window">--</td>
+            </tr>
+            <tr class="data-row" id="row-title">
+              <td><div class="item-title-cell"><span>Focus Window Title</span></div></td>
+              <td><span class="item-badge">Focus</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);max-width:350px;overflow:hidden;text-overflow:ellipsis;" id="val-title">--</td>
+            </tr>
+            <tr class="data-row" id="row-presence">
+              <td><div class="item-title-cell"><span>User Session</span></div></td>
+              <td><span class="item-badge" id="badge-lock">Active</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-presence">--</td>
+            </tr>
+            <tr class="data-row" id="row-mic">
+              <td><div class="item-title-cell"><span>Microphone Capture</span></div></td>
+              <td><span class="item-badge" id="badge-mic">Idle</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-mic">Inactive</td>
+            </tr>
+            <tr class="data-row" id="row-webcam">
+              <td><div class="item-title-cell"><span>Webcam Video</span></div></td>
+              <td><span class="item-badge" id="badge-webcam">Idle</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-webcam">Inactive</td>
+            </tr>
+            <tr class="data-row" id="row-audio-output">
+              <td><div class="item-title-cell"><span>Audio Endpoint</span></div></td>
+              <td><span class="item-badge">Playback</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-audio-output">--</td>
+            </tr>
+            <tr class="data-row" id="row-media">
+              <td><div class="item-title-cell"><span>Media Player</span></div></td>
+              <td><span class="item-badge" id="badge-media">Idle</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-media">--</td>
+            </tr>
+            <tr class="data-row" id="row-display">
+              <td><div class="item-title-cell"><span>Display Power</span></div></td>
+              <td><span class="item-badge" id="badge-display">Active</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-display">Powered On</td>
+            </tr>
+            <tr class="data-row" id="row-battery">
+              <td><div class="item-title-cell"><span>Power / Battery</span></div></td>
+              <td><span class="item-badge" id="badge-pwr">AC</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-battery">--</td>
+            </tr>
+            <tr class="data-row" id="row-reboot">
+              <td><div class="item-title-cell"><span>Windows Update</span></div></td>
+              <td><span class="item-badge" id="badge-reboot">OK</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-reboot">Up to Date</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 2: PERFORMANCE GRAPHS -->
+    <section id="panel-performance" class="content-panel hidden">
+      <div class="perf-container">
+        <div class="gauges-grid">
+          <div class="perf-card">
+            <div class="perf-card-header">
+              <span class="perf-title">CPU</span>
+              <span class="perf-val mono" id="top-cpu">0%</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
+              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
+              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
+              <polygon class="sparkline-area" id="poly-cpu" points="0,40 100,40"/>
+              <polyline class="sparkline-line" id="line-cpu" points="0,40 100,40"/>
+            </svg>
+            <span class="perf-sub mono" id="top-cpu-sub">Processor 60s history</span>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-card-header">
+              <span class="perf-title">Memory</span>
+              <span class="perf-val mono" id="top-mem">0%</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
+              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
+              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
+              <polygon class="sparkline-area" id="poly-mem" points="0,40 100,40"/>
+              <polyline class="sparkline-line" id="line-mem" points="0,40 100,40"/>
+            </svg>
+            <span class="perf-sub mono" id="top-mem-sub">0 / 0 GB committed</span>
+          </div>
+
+          <div class="perf-card">
+            <div class="perf-card-header">
+              <span class="perf-title">Network</span>
+              <span class="perf-val mono" id="top-net">0 KB/s</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
+              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
+              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
+              <polygon class="sparkline-area" id="poly-net" points="0,40 100,40"/>
+              <polyline class="sparkline-line" id="line-net" points="0,40 100,40"/>
+            </svg>
+            <span class="perf-sub mono" id="top-net-sub">Throughput</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: CONFIGURATION -->
+    <section id="panel-settings" class="content-panel hidden">
+      <div class="config-container">
+        <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">MQTT Service Endpoint</span>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="node_id">Client Node ID</label>
+                <input class="mono" id="node_id" required autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="broker">Broker URI</label>
+                <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Allow Insecure TLS (Skip CA verification)</span></label>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="user">Broker Username</label>
+                <input class="mono" id="user" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="pass">Broker Password</label>
+                <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="prefix">Topic Prefix</label>
+                <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="interval">Publish Rate (Seconds)</label>
+                <input type="number" class="mono" id="interval" min="1" max="300" required>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">Exposed Sensors & Remote Services</span>
+              <div>
+                <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">Select All</button>
+                <span style="color:var(--faint)">|</span>
+                <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
+              </div>
+            </div>
+            <div class="toggle-grid">
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-theme"><span>Windows Theme</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+            </div>
+          </div>
+
+          <div class="config-card card-danger">
+            <div class="card-head head-danger">
+              <span class="card-title title-danger">Danger Zone: Privileged Remote Control</span>
+            </div>
+            <div class="danger-warning">
+              Elevated permissions allow remote MQTT subscribers to execute actions and display unprompted interactive alerts on this workstation.
+            </div>
+            <div class="toggle-grid">
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">Local JSON REST Interface (/json)</span>
+            </div>
+            <div class="field">
+              <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="bind_address">Listen Address</label>
+                <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="port">Port (0 for auto)</label>
+                <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <label for="api_key">Authentication Token (or header X-API-Key)</label>
+              <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+            <div style="display:flex;gap:6px;">
+              <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span class="msg-area mono" id="msg-area"></span>
+              <button type="submit" class="btn-primary">Apply & Restart Service</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
   </div>
-
-  <!-- Tabs Navigation -->
-  <nav class="win-tabs">
-    <button type="button" class="win-tab active" id="tab-dash" onclick="switchTab('dashboard')">Performance</button>
-    <button type="button" class="win-tab" id="tab-set" onclick="switchTab('settings')">Configuration</button>
-  </nav>
-
-  <!-- DASHBOARD PANEL -->
-  <main id="panel-dashboard" class="panel">
-    <!-- Top Gauges Banner -->
-    <div class="gauges-banner">
-      <div class="gauge-card">
-        <div class="gauge-header">
-          <span class="gauge-label">CPU</span>
-          <span class="gauge-value mono" id="top-cpu">0%</span>
-        </div>
-        <div class="gauge-bar"><div class="gauge-fill" id="top-cpu-bar" style="width:0%"></div></div>
-        <span class="gauge-sub mono" id="top-cpu-sub">Processor</span>
-      </div>
-      <div class="gauge-card">
-        <div class="gauge-header">
-          <span class="gauge-label">Memory</span>
-          <span class="gauge-value mono" id="top-mem">0%</span>
-        </div>
-        <div class="gauge-bar"><div class="gauge-fill" id="top-mem-bar" style="width:0%"></div></div>
-        <span class="gauge-sub mono" id="top-mem-sub">0 / 0 GB</span>
-      </div>
-      <div class="gauge-card">
-        <div class="gauge-header">
-          <span class="gauge-label">Disk</span>
-          <span class="gauge-value mono" id="top-disk">--</span>
-        </div>
-        <div class="gauge-bar"><div class="gauge-fill" id="top-disk-bar" style="width:0%"></div></div>
-        <span class="gauge-sub mono" id="top-disk-sub">System Drive</span>
-      </div>
-      <div class="gauge-card">
-        <div class="gauge-header">
-          <span class="gauge-label">Network</span>
-          <span class="gauge-value mono" id="top-net">0 KB/s</span>
-        </div>
-        <div class="gauge-bar"><div class="gauge-fill" style="width:100%;background:rgba(255,255,255,0.1)"></div></div>
-        <span class="gauge-sub mono" id="top-net-sub">Throughput</span>
-      </div>
-    </div>
-
-    <!-- Process & Task Telemetry Table -->
-    <div class="task-table-wrap">
-      <table class="task-table">
-        <thead>
-          <tr>
-            <th style="width:38%;">Sensor / Component</th>
-            <th style="width:24%;">Status</th>
-            <th class="right" style="width:38%;">Value / Utilization</th>
-          </tr>
-        </thead>
-        <tbody id="task-tbody">
-          <tr id="row-cpu">
-            <td>
-              <div class="task-name-cell">
-                <span>Processor</span>
-              </div>
-            </td>
-            <td><span class="task-badge active">Active</span></td>
-            <td class="right mono">
-              <div class="table-meter">
-                <div class="table-bar"><div class="table-bar-fill" id="meter-cpu" style="width:0%"></div></div>
-                <span id="val-cpu">-- %</span>
-              </div>
-            </td>
-          </tr>
-          <tr id="row-memory">
-            <td>
-              <div class="task-name-cell">
-                <span>Memory (RAM)</span>
-              </div>
-            </td>
-            <td><span class="task-badge active">Committed</span></td>
-            <td class="right mono">
-              <div class="table-meter">
-                <div class="table-bar"><div class="table-bar-fill" id="meter-mem" style="width:0%"></div></div>
-                <span id="val-mem">--</span>
-                <span style="color:var(--faint);font-size:10px;" id="val-mem-sub"></span>
-              </div>
-            </td>
-          </tr>
-          <tr id="row-network">
-            <td>
-              <div class="task-name-cell">
-                <span>Network Interface</span>
-              </div>
-            </td>
-            <td><span class="task-badge" id="badge-ip">LAN</span></td>
-            <td class="right mono" id="val-net">--</td>
-          </tr>
-          <tr id="row-local-ip">
-            <td><div class="task-name-cell"><span>IPv4 Address</span></div></td>
-            <td><span class="task-badge">Configured</span></td>
-            <td class="right mono" id="val-ip">--</td>
-          </tr>
-          <tr id="row-wifi">
-            <td><div class="task-name-cell"><span>Wi-Fi Connection</span></div></td>
-            <td><span class="task-badge" id="badge-wifi">WLAN</span></td>
-            <td class="right mono">
-              <div class="table-meter">
-                <div class="table-bar" id="meter-wifi-wrap" style="display:none;"><div class="table-bar-fill" id="meter-wifi" style="width:0%"></div></div>
-                <span id="val-wifi">--</span>
-              </div>
-            </td>
-          </tr>
-          <tr id="row-uptime">
-            <td><div class="task-name-cell"><span>System Uptime</span></div></td>
-            <td><span class="task-badge">Online</span></td>
-            <td class="right mono" id="val-uptime">--</td>
-          </tr>
-          <tr id="row-window">
-            <td><div class="task-name-cell"><span>Foreground Process</span></div></td>
-            <td><span class="task-badge" id="badge-fullscreen">Normal</span></td>
-            <td class="right mono" id="val-window" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
-          </tr>
-          <tr id="row-title">
-            <td><div class="task-name-cell"><span>Active Window Title</span></div></td>
-            <td><span class="task-badge">Focus</span></td>
-            <td class="right mono" id="val-title" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
-          </tr>
-          <tr id="row-presence">
-            <td><div class="task-name-cell"><span>User Session</span></div></td>
-            <td><span class="task-badge" id="badge-lock">Unlocked</span></td>
-            <td class="right mono" id="val-presence">--</td>
-          </tr>
-          <tr id="row-mic">
-            <td><div class="task-name-cell"><span>Microphone Capture</span></div></td>
-            <td><span class="task-badge" id="badge-mic">Idle</span></td>
-            <td class="right mono" id="val-mic">Inactive</td>
-          </tr>
-          <tr id="row-webcam">
-            <td><div class="task-name-cell"><span>Webcam Video</span></div></td>
-            <td><span class="task-badge" id="badge-webcam">Idle</span></td>
-            <td class="right mono" id="val-webcam">Inactive</td>
-          </tr>
-          <tr id="row-audio-output">
-            <td><div class="task-name-cell"><span>Audio Endpoint</span></div></td>
-            <td><span class="task-badge">Playback</span></td>
-            <td class="right mono" id="val-audio-output" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
-          </tr>
-          <tr id="row-media">
-            <td><div class="task-name-cell"><span>Now Playing</span></div></td>
-            <td><span class="task-badge" id="badge-media">Idle</span></td>
-            <td class="right mono" id="val-media" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">--</td>
-          </tr>
-          <tr id="row-display">
-            <td><div class="task-name-cell"><span>Display Power</span></div></td>
-            <td><span class="task-badge" id="badge-display">Active</span></td>
-            <td class="right mono" id="val-display">Powered On</td>
-          </tr>
-          <tr id="row-battery">
-            <td><div class="task-name-cell"><span>Battery / Power</span></div></td>
-            <td><span class="task-badge" id="badge-pwr">AC</span></td>
-            <td class="right mono" id="val-battery">--</td>
-          </tr>
-          <tr id="row-theme">
-            <td><div class="task-name-cell"><span>Personalization</span></div></td>
-            <td><span class="task-badge">Theme</span></td>
-            <td class="right mono" id="val-theme">--</td>
-          </tr>
-          <tr id="row-reboot">
-            <td><div class="task-name-cell"><span>Windows Update</span></div></td>
-            <td><span class="task-badge" id="badge-reboot">OK</span></td>
-            <td class="right mono" id="val-reboot">Up to Date</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Quick Operations Ribbon -->
-    <div class="ribbon-card">
-      <div class="ribbon-head">
-        <span class="ribbon-title">Control Actions</span>
-        <span class="msg-area mono" id="action-msg-area"></span>
-      </div>
-      <div class="action-grid">
-        <button type="button" class="action-btn" onclick="triggerAction('test_toast')">Test Toast</button>
-        <button type="button" class="action-btn" onclick="triggerAction('lock')">Lock PC</button>
-        <button type="button" class="action-btn" onclick="triggerAction('mute')">Toggle Mute</button>
-        <button type="button" class="action-btn" onclick="triggerAction('play_pause')">Play / Pause</button>
-      </div>
-    </div>
-  </main>
-
-  <!-- CONFIGURATION PANEL -->
-  <main id="panel-settings" class="panel hidden">
-    <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
-      <!-- MQTT -->
-      <div class="config-section">
-        <div class="section-head">
-          <span class="section-title">MQTT Service Endpoint</span>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="node_id">Client Node ID</label>
-            <input class="mono" id="node_id" required autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="broker">Broker URI</label>
-            <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
-          </div>
-        </div>
-        <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Allow Insecure TLS (Skip CA verification)</span></label>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="user">Broker Username</label>
-            <input class="mono" id="user" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="pass">Broker Password</label>
-            <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
-          </div>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="prefix">Topic Prefix</label>
-            <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="interval">Publish Rate (Seconds)</label>
-            <input type="number" class="mono" id="interval" min="1" max="300" required>
-          </div>
-        </div>
-      </div>
-
-      <!-- Exposed Entities -->
-      <div class="config-section">
-        <div class="section-head">
-          <span class="section-title">Exposed Sensors & Remote Services</span>
-          <div>
-            <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">Select All</button>
-            <span style="color:var(--faint)">|</span>
-            <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
-          </div>
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:8px;">
-          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;">System Telemetry</span>
-          <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-theme"><span>Windows Theme</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
-          </div>
-
-          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:6px;">Peripherals & User Session</span>
-          <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence & Idle</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
-          </div>
-
-          <span style="font-size:10.5px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-top:6px;">Remote Control & Notifications</span>
-          <div class="toggle-grid">
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Remote Lock Command</span></label>
-            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Toast Notifications</span></label>
-          </div>
-        </div>
-      </div>
-
-      <!-- JSON API -->
-      <div class="config-section">
-        <div class="section-head">
-          <span class="section-title">Local JSON REST Interface (/json)</span>
-        </div>
-        <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="bind_address">Listen Address</label>
-            <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
-          </div>
-          <div class="field">
-            <label for="port">Port (0 for auto)</label>
-            <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
-          </div>
-        </div>
-        <div class="field">
-          <label for="api_key">Authentication Token (or header X-API-Key)</label>
-          <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
-        </div>
-      </div>
-
-      <!-- Webhook -->
-      <div class="config-section">
-        <div class="section-head">
-          <span class="section-title">Telemetry & Event Webhook</span>
-        </div>
-        <div class="field">
-          <label class="toggle-item"><input type="checkbox" id="webhook_enabled"><span>Enable Outbound Webhooks</span></label>
-        </div>
-        <div class="field">
-          <label for="webhook_url">Endpoint URL</label>
-          <input class="mono" id="webhook_url" placeholder="https://..." autocomplete="off">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="webhook_min_level">Threshold Level</label>
-            <select id="webhook_min_level" class="mono">
-              <option value="info">Info (Verbose)</option>
-              <option value="warn">Warning (Alerts only)</option>
-              <option value="error">Error (Critical only)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="webhook_secret">Bearer / Secret Header</label>
-            <input type="password" class="mono" id="webhook_secret" placeholder="Optional token" autocomplete="new-password">
-          </div>
-        </div>
-      </div>
-
-      <!-- Bottom Form Actions -->
-      <div class="bottom-bar">
-        <div style="display:flex;gap:6px;">
-          <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
-          <button type="button" id="btn-test-webhook" class="btn-secondary">Test Webhook</button>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span class="msg-area mono" id="msg-area"></span>
-          <button type="submit" class="btn-primary">Apply & Restart Service</button>
-        </div>
-      </div>
-    </form>
-  </main>
 </div>
 
 <script>
@@ -875,12 +869,21 @@ async function authFetch(url, options = {}) {
   return fetch(url, options);
 }
 
-function switchTab(tab) {
-  const isDash = tab === 'dashboard';
-  $('panel-dashboard').className = 'panel' + (isDash ? '' : ' hidden');
-  $('panel-settings').className = 'panel' + (isDash ? ' hidden' : '');
-  $('tab-dash').className = 'win-tab' + (isDash ? ' active' : '');
-  $('tab-set').className = 'win-tab' + (isDash ? '' : ' active');
+function switchNav(tab) {
+  $('panel-processes').className = 'content-panel' + (tab === 'processes' ? '' : ' hidden');
+  $('panel-performance').className = 'content-panel' + (tab === 'performance' ? '' : ' hidden');
+  $('panel-settings').className = 'content-panel' + (tab === 'settings' ? '' : ' hidden');
+
+  $('nav-proc').className = 'nav-item' + (tab === 'processes' ? ' active' : '');
+  $('nav-perf').className = 'nav-item' + (tab === 'performance' ? ' active' : '');
+  $('nav-settings').className = 'nav-item' + (tab === 'settings' ? ' active' : '');
+
+  const titles = {
+    processes: 'Processes',
+    performance: 'Performance',
+    settings: 'Settings'
+  };
+  $('page-title').innerText = titles[tab] || 'Task Manager';
 }
 
 function bulkToggleEntities(checked) {
@@ -890,35 +893,57 @@ function bulkToggleEntities(checked) {
 }
 
 async function triggerAction(actionName) {
-  const msgArea = $('action-msg-area');
-  msgArea.className = 'msg-area mono';
-  msgArea.innerText = 'Dispatching...';
   try {
-    const res = await authFetch('/api/action', {
+    await authFetch('/api/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: actionName })
     });
-    const result = await res.json();
-    if (result.success) {
-      msgArea.className = 'msg-area msg-ok mono';
-      msgArea.innerText = 'Success';
-    } else {
-      msgArea.className = 'msg-area msg-err mono';
-      msgArea.innerText = 'Failed: ' + result.error;
-    }
   } catch (err) {
-    msgArea.className = 'msg-area msg-err mono';
-    msgArea.innerText = 'Error: ' + err.message;
   }
-  setTimeout(() => {
-    msgArea.innerText = '';
-  }, 3500);
 }
 
 let activePollTimeout = null;
 let currentIntervalMs = 5000;
 let currentExpose = {};
+
+const MAX_HISTORY = 20;
+const historyCPU = [];
+const historyMem = [];
+const historyNet = [];
+
+function pushHistory(arr, val) {
+  arr.push(val);
+  if (arr.length > MAX_HISTORY) {
+    arr.shift();
+  }
+}
+
+function renderSparkline(polyId, lineId, data, maxVal) {
+  if (data.length < 2) {
+    return;
+  }
+  const max = maxVal > 0 ? maxVal : 1;
+  const step = 100 / (MAX_HISTORY - 1);
+  const offset = (MAX_HISTORY - data.length) * step;
+
+  const points = data.map((v, i) => {
+    const x = (offset + i * step).toFixed(1);
+    const clamped = Math.min(max, Math.max(0, v));
+    const y = (40 - (clamped / max) * 36).toFixed(1);
+    return `${x},${y}`;
+  });
+
+  const lineStr = points.join(' ');
+  const polyStr = `${points[0].split(',')[0]},40 ` + lineStr + ` ${points[points.length - 1].split(',')[0]},40`;
+
+  const polyEl = $(polyId);
+  const lineEl = $(lineId);
+  if (polyEl && lineEl) {
+    polyEl.setAttribute('points', polyStr);
+    lineEl.setAttribute('points', lineStr);
+  }
+}
 
 function setStatusBadge(status) {
   const dot = $('dot');
@@ -944,23 +969,22 @@ function setStaleUI() {
 }
 
 function updateRowVisibility(expose, hasBattery) {
-  $('row-cpu').className = expose.cpu ? '' : 'hidden';
-  $('row-memory').className = expose.memory ? '' : 'hidden';
-  $('row-network').className = expose.network ? '' : 'hidden';
-  $('row-local-ip').className = expose.local_ip ? '' : 'hidden';
-  $('row-uptime').className = expose.uptime ? '' : 'hidden';
-  $('row-presence').className = expose.user_presence ? '' : 'hidden';
-  $('row-mic').className = expose.microphone ? '' : 'hidden';
-  $('row-webcam').className = expose.webcam ? '' : 'hidden';
-  $('row-audio-output').className = expose.audio_output ? '' : 'hidden';
-  $('row-wifi').className = expose.wifi ? '' : 'hidden';
-  $('row-display').className = expose.display_state ? '' : 'hidden';
-  $('row-theme').className = expose.windows_theme ? '' : 'hidden';
-  $('row-window').className = expose.active_window ? '' : 'hidden';
-  $('row-title').className = expose.window_title ? '' : 'hidden';
-  $('row-reboot').className = expose.update_pending ? '' : 'hidden';
-  $('row-media').className = expose.media_control ? '' : 'hidden';
-  $('row-battery').className = (expose.battery && hasBattery) ? '' : 'hidden';
+  $('row-cpu').className = 'data-row' + (expose.cpu ? '' : ' hidden');
+  $('row-memory').className = 'data-row' + (expose.memory ? '' : ' hidden');
+  $('row-network').className = 'data-row' + (expose.network ? '' : ' hidden');
+  $('row-local-ip').className = 'data-row' + (expose.local_ip ? '' : ' hidden');
+  $('row-uptime').className = 'data-row' + (expose.uptime ? '' : ' hidden');
+  $('row-presence').className = 'data-row' + (expose.user_presence ? '' : ' hidden');
+  $('row-mic').className = 'data-row' + (expose.microphone ? '' : ' hidden');
+  $('row-webcam').className = 'data-row' + (expose.webcam ? '' : ' hidden');
+  $('row-audio-output').className = 'data-row' + (expose.audio_output ? '' : ' hidden');
+  $('row-wifi').className = 'data-row' + (expose.wifi ? '' : ' hidden');
+  $('row-display').className = 'data-row' + (expose.display_state ? '' : ' hidden');
+  $('row-window').className = 'data-row' + (expose.active_window ? '' : ' hidden');
+  $('row-title').className = 'data-row' + (expose.window_title ? '' : ' hidden');
+  $('row-reboot').className = 'data-row' + (expose.update_pending ? '' : ' hidden');
+  $('row-media').className = 'data-row' + (expose.media_control ? '' : ' hidden');
+  $('row-battery').className = 'data-row' + ((expose.battery && hasBattery) ? '' : ' hidden');
 }
 
 async function poll() {
@@ -979,33 +1003,30 @@ async function poll() {
       updateRowVisibility(currentExpose, t.has_battery);
 
       if (t.cpu_percent !== undefined) {
-        const cpuStr = t.cpu_percent.toFixed(1) + ' %';
-        $('val-cpu').innerText = cpuStr;
-        $('meter-cpu').style.width = Math.min(100, Math.max(0, t.cpu_percent)) + '%';
-        $('top-cpu').innerText = Math.round(t.cpu_percent) + '%';
-        $('top-cpu-bar').style.width = Math.min(100, Math.max(0, t.cpu_percent)) + '%';
+        const cpuStr = t.cpu_percent.toFixed(1) + '%';
+        if ($('val-cpu')) $('val-cpu').innerText = cpuStr;
+        if ($('top-cpu')) $('top-cpu').innerText = cpuStr;
+        pushHistory(historyCPU, t.cpu_percent);
+        renderSparkline('poly-cpu', 'line-cpu', historyCPU, 100);
       }
       if (t.memory_used_gb !== undefined) {
-        $('val-mem').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
-        $('val-mem-sub').innerText = '(' + t.memory_percent.toFixed(0) + '%)';
-        $('meter-mem').style.width = Math.min(100, Math.max(0, t.memory_percent)) + '%';
-        $('top-mem').innerText = Math.round(t.memory_percent) + '%';
-        $('top-mem-bar').style.width = Math.min(100, Math.max(0, t.memory_percent)) + '%';
-        $('top-mem-sub').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
-      }
-
-      if (currentExpose.storage && t.drives && t.drives.length > 0) {
-        const d0 = t.drives[0];
-        $('top-disk').innerText = Math.round(d0.used_percent) + '%';
-        $('top-disk-bar').style.width = Math.min(100, Math.max(0, d0.used_percent)) + '%';
-        $('top-disk-sub').innerText = `${d0.mount} (${d0.used_gb.toFixed(0)}/${d0.total_gb.toFixed(0)} GB)`;
+        const memStr = `${t.memory_used_gb.toFixed(1)} GB (${t.memory_percent.toFixed(0)}%)`;
+        if ($('val-mem')) $('val-mem').innerText = memStr;
+        if ($('top-mem')) $('top-mem').innerText = t.memory_percent.toFixed(1) + '%';
+        if ($('top-mem-sub')) $('top-mem-sub').innerText = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB`;
+        pushHistory(historyMem, t.memory_percent);
+        renderSparkline('poly-mem', 'line-mem', historyMem, 100);
       }
 
       if (t.network_rx_kbs !== undefined) {
         const netStr = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
-        $('val-net').innerText = netStr;
+        if ($('val-net')) $('val-net').innerText = netStr;
         const totalNet = Math.round(t.network_rx_kbs + t.network_tx_kbs);
-        $('top-net').innerText = totalNet > 1024 ? (totalNet/1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
+        const netText = totalNet > 1024 ? (totalNet/1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
+        if ($('top-net')) $('top-net').innerText = netText;
+        pushHistory(historyNet, totalNet);
+        const peakNet = Math.max(...historyNet, 100);
+        renderSparkline('poly-net', 'line-net', historyNet, peakNet);
       }
 
       if (t.local_ip) {
@@ -1019,19 +1040,16 @@ async function poll() {
         const status = t.user_active ? 'Active' : 'Idle';
         $('val-presence').innerText = status + ' (' + t.user_idle_seconds + 's)';
         $('badge-lock').innerText = t.session_locked ? 'Locked' : (t.user_active ? 'Active' : 'Idle');
-        $('badge-lock').className = 'task-badge ' + (t.session_locked ? 'warn' : (t.user_active ? 'active' : ''));
+        $('badge-lock').className = 'item-badge ' + (t.session_locked ? 'warn' : (t.user_active ? 'active' : ''));
       }
       if (t.microphone_in_use !== undefined) {
         $('val-mic').innerText = t.microphone_in_use ? 'Capture Active' : 'Idle';
         $('badge-mic').innerText = t.microphone_in_use ? 'In Use' : 'Idle';
-        $('badge-mic').className = 'task-badge ' + (t.microphone_in_use ? 'warn' : '');
+        $('badge-mic').className = 'item-badge ' + (t.microphone_in_use ? 'warn' : '');
       }
       if (t.fullscreen_active !== undefined) {
         $('badge-fullscreen').innerText = t.fullscreen_active ? 'Fullscreen' : 'Windowed';
-        $('badge-fullscreen').className = 'task-badge ' + (t.fullscreen_active ? 'active' : '');
-      }
-      if (t.windows_theme) {
-        $('val-theme').innerText = t.windows_theme === 'dark' ? 'Dark' : 'Light';
+        $('badge-fullscreen').className = 'item-badge ' + (t.fullscreen_active ? 'active' : '');
       }
       if (t.has_battery && t.battery_percent !== undefined) {
         const pwr = t.power_plugged ? 'AC' : 'Batt';
@@ -1048,24 +1066,24 @@ async function poll() {
       if (t.update_pending !== undefined) {
         $('val-reboot').innerText = t.update_pending ? 'Restart Pending' : 'Normal';
         $('badge-reboot').innerText = t.update_pending ? 'Reboot' : 'OK';
-        $('badge-reboot').className = 'task-badge ' + (t.update_pending ? 'warn' : 'active');
+        $('badge-reboot').className = 'item-badge ' + (t.update_pending ? 'warn' : 'active');
       }
       if (t.media) {
         if (t.media.status === 'playing' || t.media.status === 'paused') {
           const track = t.media.title ? (t.media.artist ? `${t.media.title} - ${t.media.artist}` : t.media.title) : 'Active';
           $('val-media').innerText = track;
           $('badge-media').innerText = t.media.status.toUpperCase();
-          $('badge-media').className = 'task-badge ' + (t.media.status === 'playing' ? 'active' : '');
+          $('badge-media').className = 'item-badge ' + (t.media.status === 'playing' ? 'active' : '');
         } else {
           $('val-media').innerText = 'None';
           $('badge-media').innerText = 'Idle';
-          $('badge-media').className = 'task-badge';
+          $('badge-media').className = 'item-badge';
         }
       }
       if (t.webcam_in_use !== undefined) {
         $('val-webcam').innerText = t.webcam_in_use ? (t.webcam_active_app || 'Active') : 'Idle';
         $('badge-webcam').innerText = t.webcam_in_use ? 'Live' : 'Off';
-        $('badge-webcam').className = 'task-badge ' + (t.webcam_in_use ? 'warn' : '');
+        $('badge-webcam').className = 'item-badge ' + (t.webcam_in_use ? 'warn' : '');
       }
       if (t.audio_output_name) {
         $('val-audio-output').innerText = t.audio_output_name;
@@ -1073,19 +1091,11 @@ async function poll() {
       if (t.wifi_ssid) {
         const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent}%)` : '';
         $('val-wifi').innerText = `${t.wifi_ssid}${sig}`;
-        if (t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null) {
-          $('meter-wifi-wrap').style.display = 'inline-block';
-          $('meter-wifi').style.width = Math.min(100, Math.max(0, t.wifi_signal_percent)) + '%';
-        } else {
-          $('meter-wifi-wrap').style.display = 'none';
-        }
-      } else {
-        $('meter-wifi-wrap').style.display = 'none';
       }
       if (t.display_powered !== undefined) {
         $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby';
         $('badge-display').innerText = t.display_powered ? 'On' : 'Sleep';
-        $('badge-display').className = 'task-badge ' + (t.display_powered ? 'active' : '');
+        $('badge-display').className = 'item-badge ' + (t.display_powered ? 'active' : '');
       }
     }
   } catch (err) {
@@ -1109,12 +1119,6 @@ async function loadConfig() {
     $('port').value = cfg.port || cfg.webui_port || '';
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
-    if (cfg.webhook) {
-      $('webhook_enabled').checked = !!cfg.webhook.enabled;
-      $('webhook_url').value = cfg.webhook.url || '';
-      $('webhook_min_level').value = cfg.webhook.min_level || 'info';
-      $('webhook_secret').value = cfg.webhook.secret || '';
-    }
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -1172,23 +1176,6 @@ $('btn-test').onclick = async () => {
   }
 };
 
-$('btn-test-webhook').onclick = async () => {
-  showMessage('Testing webhook...', false);
-  try {
-    const res = await authFetch('/api/test-webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: $('webhook_url').value,
-        secret: $('webhook_secret').value,
-      })
-    });
-    const result = await res.json();
-    showMessage(result.success ? 'Webhook OK' : 'Error: ' + result.error, !result.success);
-  } catch (err) {
-    showMessage('Error: ' + err.message, true);
-  }
-};
 
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
@@ -1235,10 +1222,10 @@ $('cfg-form').onsubmit = async (e) => {
     json_enabled: $('json_enabled').checked,
     api_key: $('api_key').value.trim(),
     webhook: {
-      enabled: $('webhook_enabled').checked,
-      url: $('webhook_url').value.trim(),
-      min_level: $('webhook_min_level').value,
-      secret: $('webhook_secret').value.trim(),
+      enabled: false,
+      url: '',
+      min_level: 'info',
+      secret: '',
     },
   };
 

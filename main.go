@@ -156,6 +156,7 @@ func main() {
 	debug.SetMemoryLimit(16 * 1024 * 1024)
 
 	cliMode := flag.Bool("cli", false, "Run in terminal CLI/TUI mode")
+	debugMode := flag.Bool("debug", false, "Run in debug mode (enables WebUI automatically with hot reload from disk)")
 	flag.Parse()
 
 	cfg, err := config.Load()
@@ -182,8 +183,14 @@ func main() {
 	mqttClient.Start(cfg)
 
 	server := webui.NewServer(collector, mqttClient)
-	server.SetWebUIEnabled(false)
-	if cfg.JSONEnabled {
+	server.SetWebUIEnabled(*debugMode)
+	if *debugMode {
+		port, err := server.Start(cfg.GetPort())
+		if err == nil {
+			url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", port, server.Token())
+			fmt.Printf("\n[DEBUG] WebUI running with live disk reload at: %s\n\n", url)
+		}
+	} else if cfg.JSONEnabled {
 		if cfg.APIKey == "" {
 			cfg.APIKey = config.GenerateAPIKey()
 			_ = config.Save(cfg)
@@ -219,6 +226,14 @@ func main() {
 		cancelTicker()
 		mqttClient.Stop()
 		server.Stop()
+	}
+
+	if *debugMode {
+		sigCtx, sigCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer sigCancel()
+		<-sigCtx.Done()
+		onExit()
+		return
 	}
 
 	t := tray.NewTray(server, mqttClient, onExit)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -196,7 +197,11 @@ func (s *Server) Start(preferredPort int) (int, error) {
 			return
 		}
 
-		rendered := bytes.ReplaceAll(indexHTML, []byte("{{VERSION}}"), []byte(config.Version))
+		rawHTML := indexHTML
+		if diskHTML, err := os.ReadFile("internal/webui/static/index.html"); err == nil {
+			rawHTML = diskHTML
+		}
+		rendered := bytes.ReplaceAll(rawHTML, []byte("{{VERSION}}"), []byte(config.Version))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(rendered)
 	}))
