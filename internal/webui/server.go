@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"satellite/internal/config"
+	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
 )
@@ -120,6 +121,10 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	}
 
 	cfg := config.Get()
+	if preferredPort <= 0 {
+		preferredPort = cfg.GetPort()
+	}
+
 	bindHost := cfg.BindAddress
 	if bindHost == "" {
 		bindHost = "127.0.0.1"
@@ -152,6 +157,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 			s.mu.Unlock()
 
 			if tokenParam != expected && tokenHeader != expected {
+				logger.Warn("api", fmt.Sprintf("Unauthorized access attempt to %s from %s", r.URL.Path, r.RemoteAddr))
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
 				_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -184,6 +190,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 		s.mu.Unlock()
 
 		if tokenParam != expected {
+			logger.Warn("api", fmt.Sprintf("Unauthorized webui access attempt from %s", r.RemoteAddr))
 			http.Error(w, "Unauthorized: valid ephemeral token required in URL", http.StatusUnauthorized)
 			return
 		}
@@ -196,12 +203,15 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	mux.HandleFunc("/api/status", webUIMiddleware(authMiddleware(s.handleStatus)))
 	mux.HandleFunc("/api/config", webUIMiddleware(authMiddleware(s.handleConfig)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
+	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
 	mux.HandleFunc("/json", s.handleJSON)
 	mux.HandleFunc("/json/", s.handleJSON)
 
 	httpSrv := &http.Server{Handler: mux}
 	s.server = httpSrv
 	s.running = true
+
+	logger.Info("api", fmt.Sprintf("HTTP server listening on %s:%d", bindHost, s.port))
 
 	go func() {
 		_ = httpSrv.Serve(s.listener)
@@ -234,6 +244,7 @@ func (s *Server) handleJSON(w http.ResponseWriter, r *http.Request) {
 	s.mu.Unlock()
 
 	if expectedKey == "" || providedKey != expectedKey {
+		logger.Warn("api", fmt.Sprintf("Unauthorized /json access attempt from %s", r.RemoteAddr))
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -319,7 +330,14 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 				incoming.APIKey = config.GenerateAPIKey()
 			}
 		}
-		incoming.WebUIPort = current.WebUIPort
+		if incoming.Port > 0 {
+			incoming.WebUIPort = incoming.Port
+		} else if incoming.WebUIPort > 0 {
+			incoming.Port = incoming.WebUIPort
+		} else {
+			incoming.Port = 0
+			incoming.WebUIPort = 0
+		}
 
 		if err := config.Save(incoming); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -329,8 +347,15 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 
 		s.SetJSONEnabled(incoming.JSONEnabled)
 		s.SetAPIKey(incoming.APIKey)
-		if incoming.JSONEnabled && !s.IsRunning() {
-			_, _ = s.Start(incoming.WebUIPort)
+		logger.UpdateConfig(incoming.Webhook, incoming.NodeID)
+		logger.Info("api", "Configuration updated via WebUI")
+
+		portChanged := incoming.GetPort() != current.GetPort()
+		if portChanged && s.IsRunning() {
+			s.Stop()
+			_, _ = s.Start(incoming.GetPort())
+		} else if incoming.JSONEnabled && !s.IsRunning() {
+			_, _ = s.Start(incoming.GetPort())
 		} else if !incoming.JSONEnabled && !s.IsWebUIEnabled() && s.IsRunning() {
 			s.Stop()
 		}
@@ -361,6 +386,36 @@ func (s *Server) handleTestConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := mqtt.TestConnection(mCfg)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+}
+
+func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var wCfg config.WebhookConfig
+	if err := json.NewDecoder(r.Body).Decode(&wCfg); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	current := config.Get()
+	if wCfg.URL == "" {
+		wCfg.URL = current.Webhook.URL
+	}
+	if wCfg.Secret == "" {
+		wCfg.Secret = current.Webhook.Secret
+	}
+
+	err := logger.SendTestWebhook(wCfg, current.NodeID)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})

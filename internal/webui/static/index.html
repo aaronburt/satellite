@@ -451,20 +451,50 @@ button{
         <div class="field" style="margin-top: 8px;">
           <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable /json Snapshot Endpoint</span></label>
         </div>
+        <div class="field" style="margin-top: 8px;">
+          <label for="api_key">API Key (or header X-API-Key)</label>
+          <input class="mono" id="api_key" placeholder="Leave empty to auto-generate" autocomplete="off">
+        </div>
         <div class="field-row" style="margin-top: 8px;">
-          <div class="field">
-            <label for="api_key">API Key (or header X-API-Key)</label>
-            <input class="mono" id="api_key" placeholder="Leave empty to auto-generate" autocomplete="off">
-          </div>
           <div class="field">
             <label for="bind_address">Bind Address</label>
             <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="port">HTTP Port (0 for random)</label>
+            <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0 (random)" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <span class="toggle-title">Log Webhooks</span>
+        <div class="field" style="margin-top: 8px;">
+          <label class="toggle-item"><input type="checkbox" id="webhook_enabled"><span>Enable Webhook Log Pushing</span></label>
+        </div>
+        <div class="field" style="margin-top: 8px;">
+          <label for="webhook_url">Webhook URL</label>
+          <input class="mono" id="webhook_url" placeholder="https://discord.com/api/webhooks/... or https://..." autocomplete="off">
+        </div>
+        <div class="field-row" style="margin-top: 8px;">
+          <div class="field">
+            <label for="webhook_min_level">Minimum Log Level</label>
+            <select id="webhook_min_level" class="mono" style="background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px 10px;width:100%;">
+              <option value="info">Info (All operational events)</option>
+              <option value="warn">Warn (Warnings and errors only)</option>
+              <option value="error">Error (Errors only)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="webhook_secret">Secret / Bearer Token (Optional)</label>
+            <input type="password" class="mono" id="webhook_secret" placeholder="Optional authorization token" autocomplete="new-password">
           </div>
         </div>
       </div>
 
       <div class="actions">
-        <button type="button" id="btn-test" class="btn-secondary">Test Connection</button>
+        <button type="button" id="btn-test" class="btn-secondary">Test MQTT</button>
+        <button type="button" id="btn-test-webhook" class="btn-secondary">Test Webhook</button>
         <button type="submit" class="btn-primary">Save & Connect</button>
       </div>
       <div class="msg-area" id="msg-area"></div>
@@ -676,6 +706,13 @@ async function loadConfig() {
     $('json_enabled').checked = cfg.json_enabled === true;
     $('api_key').value = cfg.api_key || '';
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
+    $('port').value = cfg.port || cfg.webui_port || '';
+
+    const wh = cfg.webhook || {};
+    $('webhook_enabled').checked = wh.enabled === true;
+    $('webhook_url').value = wh.url || '';
+    $('webhook_min_level').value = wh.min_level || 'info';
+    $('webhook_secret').value = wh.secret || '';
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -732,6 +769,24 @@ $('btn-test').onclick = async () => {
   }
 };
 
+$('btn-test-webhook').onclick = async () => {
+  showMessage('Testing webhook...', false);
+  try {
+    const res = await authFetch('/api/test-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: $('webhook_url').value,
+        secret: $('webhook_secret').value,
+      })
+    });
+    const result = await res.json();
+    showMessage(result.success ? 'Webhook test succeeded' : 'Error: ' + result.error, !result.success);
+  } catch (err) {
+    showMessage('Error: ' + err.message, true);
+  }
+};
+
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
   const intervalSec = parseInt($('interval').value, 10) || 5;
@@ -771,8 +826,16 @@ $('cfg-form').onsubmit = async (e) => {
     expose: newExpose,
     interval_sec: intervalSec,
     bind_address: $('bind_address').value.trim() || '127.0.0.1',
+    port: parseInt($('port').value, 10) || 0,
+    webui_port: parseInt($('port').value, 10) || 0,
     json_enabled: $('json_enabled').checked,
     api_key: $('api_key').value.trim(),
+    webhook: {
+      enabled: $('webhook_enabled').checked,
+      url: $('webhook_url').value.trim(),
+      min_level: $('webhook_min_level').value,
+      secret: $('webhook_secret').value.trim(),
+    },
   };
 
   try {

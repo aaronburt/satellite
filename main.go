@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
 	"satellite/internal/tray"
@@ -163,6 +164,9 @@ func main() {
 		cfg = config.DefaultConfig()
 	}
 
+	logger.Init(cfg.Webhook, cfg.NodeID)
+	logger.Info("system", fmt.Sprintf("Satellite agent v%s started on %s", config.Version, cfg.NodeID))
+
 	collector := telemetry.NewCollector()
 
 	if *cliMode {
@@ -186,7 +190,7 @@ func main() {
 		}
 		server.SetJSONEnabled(true)
 		server.SetAPIKey(cfg.APIKey)
-		_, _ = server.Start(cfg.WebUIPort)
+		_, _ = server.Start(cfg.GetPort())
 	}
 
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
@@ -211,6 +215,7 @@ func main() {
 	}()
 
 	onExit := func() {
+		logger.Info("system", "Satellite agent shutting down")
 		cancelTicker()
 		mqttClient.Stop()
 		server.Stop()

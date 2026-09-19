@@ -128,8 +128,7 @@ func (t *Tray) eventLoop() {
 			} else {
 				t.server.SetWebUIEnabled(true)
 				if !t.server.IsRunning() {
-					preferredPort := config.Get().WebUIPort
-					_, _ = t.server.Start(preferredPort)
+					_, _ = t.server.Start(config.Get().GetPort())
 				}
 				if t.server.IsRunning() {
 					t.openItem.Enable()

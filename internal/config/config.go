@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.9.0"
+const Version = "0.10.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -45,15 +45,34 @@ type ExposeConfig struct {
 	DisplayState  bool `json:"display_state"`
 }
 
+type WebhookConfig struct {
+	Enabled  bool   `json:"enabled"`
+	URL      string `json:"url"`
+	MinLevel string `json:"min_level,omitempty"`
+	Secret   string `json:"secret,omitempty"`
+}
+
 type Config struct {
-	NodeID      string       `json:"node_id"`
-	MQTT        MQTTConfig   `json:"mqtt"`
-	Expose      ExposeConfig `json:"expose"`
-	IntervalSec int          `json:"interval_sec"`
-	WebUIPort   int          `json:"webui_port"`
-	BindAddress string       `json:"bind_address,omitempty"`
-	JSONEnabled bool         `json:"json_enabled"`
-	APIKey      string       `json:"api_key"`
+	NodeID      string        `json:"node_id"`
+	MQTT        MQTTConfig    `json:"mqtt"`
+	Expose      ExposeConfig  `json:"expose"`
+	IntervalSec int           `json:"interval_sec"`
+	Port        int           `json:"port,omitempty"`
+	WebUIPort   int           `json:"webui_port"`
+	BindAddress string        `json:"bind_address,omitempty"`
+	JSONEnabled bool          `json:"json_enabled"`
+	APIKey      string        `json:"api_key"`
+	Webhook     WebhookConfig `json:"webhook"`
+}
+
+func (c Config) GetPort() int {
+	if c.Port > 0 {
+		return c.Port
+	}
+	if c.WebUIPort > 0 {
+		return c.WebUIPort
+	}
+	return 0
 }
 
 var (
@@ -117,10 +136,17 @@ func DefaultConfig() Config {
 		},
 		Expose:      DefaultExpose(),
 		IntervalSec: 5,
+		Port:        0,
 		WebUIPort:   0,
 		BindAddress: "127.0.0.1",
 		JSONEnabled: false,
 		APIKey:      "",
+		Webhook: WebhookConfig{
+			Enabled:  false,
+			URL:      "",
+			MinLevel: "info",
+			Secret:   "",
+		},
 	}
 }
 
@@ -150,6 +176,14 @@ func Load() (Config, error) {
 	}
 	if cfg.BindAddress == "" {
 		cfg.BindAddress = "127.0.0.1"
+	}
+	if cfg.Port > 0 && cfg.WebUIPort == 0 {
+		cfg.WebUIPort = cfg.Port
+	} else if cfg.WebUIPort > 0 && cfg.Port == 0 {
+		cfg.Port = cfg.WebUIPort
+	}
+	if cfg.Webhook.MinLevel == "" {
+		cfg.Webhook.MinLevel = "info"
 	}
 
 	current = cfg

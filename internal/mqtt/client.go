@@ -13,6 +13,7 @@ import (
 
 	"satellite/internal/actions"
 	"satellite/internal/config"
+	"satellite/internal/logger"
 	"satellite/internal/telemetry"
 
 	"github.com/eclipse/paho.golang/paho"
@@ -133,6 +134,7 @@ func (c *Client) runLoop(ctx context.Context) {
 				c.mu.Lock()
 				c.status = StatusDisconnected
 				c.mu.Unlock()
+				logger.Warn("mqtt", fmt.Sprintf("MQTT connection error: %v", err))
 			}
 
 			if time.Since(startTime) >= 10*time.Second {
@@ -266,6 +268,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	c.status = StatusConnected
 	connAssigned = true
 	c.mu.Unlock()
+	logger.Info("mqtt", fmt.Sprintf("Connected to MQTT broker: %s", brokerURL))
 
 	pubCtx, pubCancel := context.WithTimeout(ctx, 5*time.Second)
 	_, _ = pClient.Publish(pubCtx, &paho.Publish{

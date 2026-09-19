@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"satellite/internal/logger"
 	"satellite/internal/telemetry"
 )
 
@@ -119,10 +120,16 @@ func (r *Registry) Execute(actionName string) error {
 	r.mu.RUnlock()
 
 	if !exists {
+		logger.Warn("action", fmt.Sprintf("Unrecognized action requested: %s", actionName))
 		return fmt.Errorf("%w: %s", ErrActionNotFound, actionName)
 	}
 
-	return handler()
+	logger.Info("action", fmt.Sprintf("Executing action: %s", key))
+	err := handler()
+	if err != nil {
+		logger.Error("action", fmt.Sprintf("Action %s failed: %v", key, err))
+	}
+	return err
 }
 
 func (r *Registry) ExecutePayload(raw []byte) error {
