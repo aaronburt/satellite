@@ -178,6 +178,16 @@ func main() {
 	mqttClient.Start(cfg)
 
 	server := webui.NewServer(collector, mqttClient)
+	server.SetWebUIEnabled(false)
+	if cfg.JSONEnabled {
+		if cfg.APIKey == "" {
+			cfg.APIKey = config.GenerateAPIKey()
+			_ = config.Save(cfg)
+		}
+		server.SetJSONEnabled(true)
+		server.SetAPIKey(cfg.APIKey)
+		_, _ = server.Start(cfg.WebUIPort)
+	}
 
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go func() {

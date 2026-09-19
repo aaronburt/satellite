@@ -26,14 +26,14 @@ Lightweight Windows telemetry agent and remote controller for Home Assistant ove
   ```powershell
   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer.iss
   ```
-  The compiled installer is output to `dist/Satellite-Setup-v0.8.0.exe`.
+  The compiled installer is output to `dist/Satellite-Setup-v0.9.0.exe`.
 
 ### 2. Run
 - **Tray Mode:** Double-click `satellite.exe` (runs in system tray).
 - **CLI Mode:** Run `.\satellite.exe --cli` for interactive terminal dashboard.
 
 ### 3. Configure
-Right-click the tray icon and select **WebUI: Disabled (Click to Enable)**, then click **Open Web UI** to configure your MQTT broker connection and toggle exposed sensors.
+Right-click the tray icon and select **WebUI: Disabled (Click to Enable)**, then click **Open Web UI** to configure your MQTT broker connection, toggle exposed sensors, or configure the `/json` snapshot endpoint.
 
 Config is saved at `%APPDATA%\satellite\config.json`.
 

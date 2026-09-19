@@ -98,7 +98,7 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 			}
 			t.statusItem.SetTitle(title)
 
-			if t.server.IsRunning() {
+			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
 				t.openItem.Enable()
 				t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
 			} else {
@@ -113,18 +113,24 @@ func (t *Tray) eventLoop() {
 	for {
 		select {
 		case <-t.openItem.ClickedCh:
-			if t.server.IsRunning() {
+			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
 				url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", t.server.Port(), t.server.Token())
 				_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 			}
 		case <-t.toggleItem.ClickedCh:
-			if t.server.IsRunning() {
-				t.server.Stop()
+			if t.server.IsWebUIEnabled() {
+				t.server.SetWebUIEnabled(false)
+				if !t.server.IsJSONEnabled() {
+					t.server.Stop()
+				}
 				t.openItem.Disable()
 				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
 			} else {
-				preferredPort := config.Get().WebUIPort
-				_, _ = t.server.Start(preferredPort)
+				t.server.SetWebUIEnabled(true)
+				if !t.server.IsRunning() {
+					preferredPort := config.Get().WebUIPort
+					_, _ = t.server.Start(preferredPort)
+				}
 				if t.server.IsRunning() {
 					t.openItem.Enable()
 					t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -8,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.8.0"
+const Version = "0.9.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -49,6 +51,9 @@ type Config struct {
 	Expose      ExposeConfig `json:"expose"`
 	IntervalSec int          `json:"interval_sec"`
 	WebUIPort   int          `json:"webui_port"`
+	BindAddress string       `json:"bind_address,omitempty"`
+	JSONEnabled bool         `json:"json_enabled"`
+	APIKey      string       `json:"api_key"`
 }
 
 var (
@@ -113,7 +118,16 @@ func DefaultConfig() Config {
 		Expose:      DefaultExpose(),
 		IntervalSec: 5,
 		WebUIPort:   0,
+		BindAddress: "127.0.0.1",
+		JSONEnabled: false,
+		APIKey:      "",
 	}
+}
+
+func GenerateAPIKey() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
 }
 
 func Load() (Config, error) {
@@ -133,6 +147,9 @@ func Load() (Config, error) {
 	cfg := DefaultConfig()
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
+	}
+	if cfg.BindAddress == "" {
+		cfg.BindAddress = "127.0.0.1"
 	}
 
 	current = cfg

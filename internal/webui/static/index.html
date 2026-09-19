@@ -446,6 +446,23 @@ button{
         </div>
       </div>
 
+      <div class="toggle-group">
+        <span class="toggle-title">JSON Telemetry Snapshot API (/json)</span>
+        <div class="field" style="margin-top: 8px;">
+          <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable /json Snapshot Endpoint</span></label>
+        </div>
+        <div class="field-row" style="margin-top: 8px;">
+          <div class="field">
+            <label for="api_key">API Key (or header X-API-Key)</label>
+            <input class="mono" id="api_key" placeholder="Leave empty to auto-generate" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="bind_address">Bind Address</label>
+            <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
       <div class="actions">
         <button type="button" id="btn-test" class="btn-secondary">Test Connection</button>
         <button type="submit" class="btn-primary">Save & Connect</button>
@@ -656,6 +673,10 @@ async function loadConfig() {
     $('interval').value = intervalSec;
     currentIntervalMs = Math.max(1, intervalSec) * 1000;
 
+    $('json_enabled').checked = cfg.json_enabled === true;
+    $('api_key').value = cfg.api_key || '';
+    $('bind_address').value = cfg.bind_address || '127.0.0.1';
+
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
@@ -749,6 +770,9 @@ $('cfg-form').onsubmit = async (e) => {
     },
     expose: newExpose,
     interval_sec: intervalSec,
+    bind_address: $('bind_address').value.trim() || '127.0.0.1',
+    json_enabled: $('json_enabled').checked,
+    api_key: $('api_key').value.trim(),
   };
 
   try {
