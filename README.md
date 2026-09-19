@@ -27,7 +27,7 @@ Lightweight Windows telemetry agent and remote controller for Home Assistant ove
   ```powershell
   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer.iss
   ```
-  The compiled installer is output to `dist/Satellite-Setup-v0.11.0.exe`.
+  The compiled installer is output to `dist/Satellite-Setup-v0.12.0.exe`.
 
 ### 2. Run
 - **Tray Mode:** Double-click `satellite.exe` (runs in system tray).

@@ -73,6 +73,10 @@ func (c *Client) Status() Status {
 	return c.status
 }
 
+func (c *Client) Registry() *actions.Registry {
+	return c.registry
+}
+
 func (c *Client) UpdateConfigAndRestart(cfg config.Config) {
 	c.Stop()
 	c.Start(cfg)

@@ -16,6 +16,7 @@ import (
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
+	"satellite/internal/toast"
 )
 
 //go:embed static/index.html
@@ -202,6 +203,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 
 	mux.HandleFunc("/api/status", webUIMiddleware(authMiddleware(s.handleStatus)))
 	mux.HandleFunc("/api/config", webUIMiddleware(authMiddleware(s.handleConfig)))
+	mux.HandleFunc("/api/action", webUIMiddleware(authMiddleware(s.handleAction)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
 	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
 	mux.HandleFunc("/json", s.handleJSON)
@@ -423,3 +425,49 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
 }
+
+func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Action string `json:"action"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	action := strings.ToLower(strings.TrimSpace(req.Action))
+	w.Header().Set("Content-Type", "application/json")
+
+	if action == "test_toast" {
+		go func() {
+			_ = toast.Show(toast.Notification{
+				Title:   "Satellite Test",
+				Message: "Quick action test notification from Web UI.",
+			})
+		}()
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+		return
+	}
+
+	reg := s.mqttClient.Registry()
+	if reg == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "action registry unavailable"})
+		return
+	}
+
+	if err := reg.Execute(action); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+}
+

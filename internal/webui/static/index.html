@@ -10,7 +10,8 @@
   color-scheme: dark;
   --bg:#09090b;
   --surface:#121215;
-  --input-bg:#18181b;
+  --surface-hover:#18181c;
+  --input-bg:#16161a;
   --border:#27272a;
   --border-focus:#3b82f6;
   --text:#f4f4f5;
@@ -38,10 +39,10 @@ body{
 }
 .wrap{
   width:100%;
-  max-width:500px;
+  max-width:540px;
   display:flex;
   flex-direction:column;
-  gap:24px;
+  gap:18px;
 }
 header{
   display:flex;
@@ -87,29 +88,75 @@ header{
 .dot.connecting{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.4)}
 .dot.offline{background:var(--red)}
 
-section{
+.tab-nav{
   display:flex;
-  flex-direction:column;
-  gap:8px;
+  gap:4px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:3px;
 }
-.section-title{
-  font-size:11px;
+.tab-btn{
+  flex:1;
+  background:transparent;
+  border:none;
   color:var(--muted);
+  font-size:12px;
   font-weight:500;
-  letter-spacing:0.02em;
+  padding:6px 12px;
+  border-radius:4px;
+  cursor:pointer;
+  transition:color 0.15s, background 0.15s;
+}
+.tab-btn:hover{
+  color:var(--text);
+}
+.tab-btn.active{
+  background:var(--input-bg);
+  color:var(--text);
+  box-shadow:0 1px 3px rgba(0,0,0,0.3);
 }
 
-/* Telemetry List */
-.metric-list{
+.panel{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.panel.hidden{
+  display:none;
+}
+
+.card{
   border:1px solid var(--border);
   background:var(--surface);
   border-radius:6px;
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.card-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.card-title{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:600;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+}
+
+.metric-list{
+  display:flex;
+  flex-direction:column;
 }
 .metric-row{
   display:flex;
   justify-content:space-between;
-  align-items:baseline;
-  padding:8px 14px;
+  align-items:center;
+  padding:8px 0;
   border-bottom:1px solid var(--border);
 }
 .metric-row:last-child{
@@ -122,11 +169,16 @@ section{
   color:var(--muted);
   font-size:12px;
 }
+.metric-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 .metric-value{
   font-size:12px;
   font-weight:500;
   color:var(--text);
-  max-width:280px;
+  max-width:260px;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
@@ -137,33 +189,64 @@ section{
   font-size:11px;
   margin-left:4px;
 }
-
-/* Config Form */
-form{
-  border:1px solid var(--border);
-  background:var(--surface);
-  border-radius:6px;
-  padding:16px;
-  display:flex;
-  flex-direction:column;
-  gap:14px;
+.meter{
+  width:56px;
+  height:4px;
+  background:#27272a;
+  border-radius:2px;
+  overflow:hidden;
+  flex-shrink:0;
 }
+.meter-fill{
+  height:100%;
+  background:var(--accent);
+  border-radius:2px;
+  transition:width 0.3s ease;
+}
+
+.btn-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.quick-btn{
+  background:var(--input-bg);
+  color:var(--text);
+  border:1px solid var(--border);
+  font-size:12px;
+  font-weight:500;
+  padding:8px 12px;
+  border-radius:4px;
+  cursor:pointer;
+  transition:background 0.15s, border-color 0.15s;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+}
+.quick-btn:hover{
+  background:var(--surface-hover);
+  border-color:#3f3f46;
+}
+.quick-btn:active{
+  transform:scale(0.98);
+}
+
 .field{
   display:flex;
   flex-direction:column;
-  gap:6px;
+  gap:5px;
 }
 .field-row{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px;
+  gap:10px;
 }
 label{
-  font-size:12px;
+  font-size:11px;
   color:var(--muted);
   font-weight:500;
 }
-
 input {
   width:100%;
   appearance:none;
@@ -172,36 +255,39 @@ input {
   color:var(--text) !important;
   border:1px solid var(--border);
   border-radius:4px;
-  padding:8px 10px;
+  padding:7px 10px;
   font-size:12px;
   outline:none;
   transition:border-color 0.15s, box-shadow 0.15s;
 }
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--input-bg) inset !important;
-  -webkit-text-fill-color: var(--text) !important;
-  caret-color: var(--text) !important;
-  border-color: var(--border) !important;
-}
-
 input:focus{
   border-color:var(--border-focus);
   box-shadow:0 0 0 1px var(--border-focus);
 }
+select{
+  background:var(--input-bg);
+  color:var(--text);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:7px 10px;
+  font-size:12px;
+  outline:none;
+  width:100%;
+}
 
-/* Toggles Grid */
-.toggle-group{
+.subgroup{
   display:flex;
   flex-direction:column;
-  gap:10px;
-  padding-top:14px;
-  border-top:1px solid var(--border);
+  gap:8px;
 }
-.toggle-title{
+.subgroup-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding-bottom:4px;
+  border-bottom:1px solid #1e1e24;
+}
+.subgroup-title{
   font-size:11px;
   color:var(--muted);
   font-weight:500;
@@ -209,7 +295,7 @@ input:focus{
 .toggle-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:10px;
+  gap:8px;
 }
 .toggle-item{
   display:flex;
@@ -235,11 +321,24 @@ input:focus{
   color:var(--text);
 }
 
+.link-btn{
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  font-size:11px;
+  cursor:pointer;
+  padding:0 4px;
+}
+.link-btn:hover{
+  color:var(--text);
+  text-decoration:underline;
+}
+
 .actions{
   display:flex;
   justify-content:flex-end;
   align-items:center;
-  gap:10px;
+  gap:8px;
   padding-top:4px;
 }
 button{
@@ -248,12 +347,12 @@ button{
   padding:7px 14px;
   border-radius:4px;
   cursor:pointer;
-  transition:all 0.15s;
+  transition:background 0.15s, border-color 0.15s, color 0.15s;
 }
 .btn-primary{
   background:var(--accent);
   color:#fff;
-  border:1px solid var(--accent);
+  border:1px solid transparent;
 }
 .btn-primary:hover{
   background:var(--accent-hover);
@@ -269,7 +368,7 @@ button{
 }
 
 .msg-area{
-  min-height:22px;
+  min-height:20px;
   display:flex;
   align-items:center;
   font-size:11px;
@@ -298,165 +397,227 @@ button{
     </div>
   </header>
 
-  <section>
-    <span class="section-title">Telemetry</span>
-    <dl class="metric-list" id="telemetry-list">
-      <div class="metric-row" id="row-cpu">
-        <dt class="metric-label">Processor</dt>
-        <dd class="metric-value mono" id="val-cpu">--</dd>
-      </div>
-      <div class="metric-row" id="row-memory">
-        <dt class="metric-label">Memory</dt>
-        <dd class="metric-value mono">
-          <span id="val-mem">--</span>
-          <span class="metric-sub" id="val-mem-sub"></span>
-        </dd>
-      </div>
-      <div id="drives-container"></div>
-      <div class="metric-row" id="row-network">
-        <dt class="metric-label">Network Throughput</dt>
-        <dd class="metric-value mono" id="val-net">--</dd>
-      </div>
-      <div class="metric-row" id="row-local-ip">
-        <dt class="metric-label">Local IP</dt>
-        <dd class="metric-value mono" id="val-ip">--</dd>
-      </div>
-      <div class="metric-row" id="row-uptime">
-        <dt class="metric-label">Uptime</dt>
-        <dd class="metric-value mono" id="val-uptime">--</dd>
-      </div>
-      <div class="metric-row" id="row-presence">
-        <dt class="metric-label">User Presence</dt>
-        <dd class="metric-value mono" id="val-presence">--</dd>
-      </div>
-      <div class="metric-row" id="row-lock">
-        <dt class="metric-label">Workstation Locked</dt>
-        <dd class="metric-value mono" id="val-lock">--</dd>
-      </div>
-      <div class="metric-row" id="row-mic">
-        <dt class="metric-label">Microphone Active</dt>
-        <dd class="metric-value mono" id="val-mic">--</dd>
-      </div>
-      <div class="metric-row" id="row-fullscreen">
-        <dt class="metric-label">Fullscreen / Gaming</dt>
-        <dd class="metric-value mono" id="val-fullscreen">--</dd>
-      </div>
-      <div class="metric-row" id="row-theme">
-        <dt class="metric-label">Windows Theme</dt>
-        <dd class="metric-value mono" id="val-theme">--</dd>
-      </div>
-      <div class="metric-row" id="row-battery">
-        <dt class="metric-label">Battery / Power</dt>
-        <dd class="metric-value mono" id="val-battery">--</dd>
-      </div>
-      <div class="metric-row" id="row-window">
-        <dt class="metric-label">Active Program</dt>
-        <dd class="metric-value mono" id="val-window">--</dd>
-      </div>
-      <div class="metric-row" id="row-title">
-        <dt class="metric-label">Window Title</dt>
-        <dd class="metric-value mono" id="val-title">--</dd>
-      </div>
-      <div class="metric-row" id="row-reboot">
-        <dt class="metric-label">Pending Reboot</dt>
-        <dd class="metric-value mono" id="val-reboot">--</dd>
-      </div>
-      <div class="metric-row" id="row-media">
-        <dt class="metric-label">Now Playing</dt>
-        <dd class="metric-value" id="val-media">--</dd>
-      </div>
-      <div class="metric-row" id="row-webcam">
-        <dt class="metric-label">Webcam Active</dt>
-        <dd class="metric-value mono" id="val-webcam">--</dd>
-      </div>
-      <div class="metric-row" id="row-audio-output">
-        <dt class="metric-label">Audio Output</dt>
-        <dd class="metric-value mono" id="val-audio-output">--</dd>
-      </div>
-      <div class="metric-row" id="row-wifi">
-        <dt class="metric-label">Network / Wi-Fi</dt>
-        <dd class="metric-value mono" id="val-wifi">--</dd>
-      </div>
-      <div class="metric-row" id="row-display">
-        <dt class="metric-label">Display Power</dt>
-        <dd class="metric-value mono" id="val-display">--</dd>
-      </div>
-    </dl>
-  </section>
+  <nav class="tab-nav">
+    <button type="button" class="tab-btn active" id="tab-dash" onclick="switchTab('dashboard')">Dashboard</button>
+    <button type="button" class="tab-btn" id="tab-set" onclick="switchTab('settings')">Settings</button>
+  </nav>
 
-  <section>
-    <span class="section-title">Configuration</span>
+  <!-- DASHBOARD PANEL -->
+  <main id="panel-dashboard" class="panel">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Live Telemetry</span>
+      </div>
+      <dl class="metric-list" id="telemetry-list">
+        <div class="metric-row" id="row-cpu">
+          <dt class="metric-label">Processor</dt>
+          <dd class="metric-right">
+            <div class="meter"><div class="meter-fill" id="meter-cpu" style="width:0%"></div></div>
+            <span class="metric-value mono" id="val-cpu">--</span>
+          </dd>
+        </div>
+        <div class="metric-row" id="row-memory">
+          <dt class="metric-label">Memory</dt>
+          <dd class="metric-right">
+            <div class="meter"><div class="meter-fill" id="meter-mem" style="width:0%"></div></div>
+            <span class="metric-value mono">
+              <span id="val-mem">--</span>
+              <span class="metric-sub" id="val-mem-sub"></span>
+            </span>
+          </dd>
+        </div>
+        <div id="drives-container"></div>
+        <div class="metric-row" id="row-network">
+          <dt class="metric-label">Network Throughput</dt>
+          <dd class="metric-value mono" id="val-net">--</dd>
+        </div>
+        <div class="metric-row" id="row-local-ip">
+          <dt class="metric-label">Local IP</dt>
+          <dd class="metric-value mono" id="val-ip">--</dd>
+        </div>
+        <div class="metric-row" id="row-uptime">
+          <dt class="metric-label">Uptime</dt>
+          <dd class="metric-value mono" id="val-uptime">--</dd>
+        </div>
+        <div class="metric-row" id="row-presence">
+          <dt class="metric-label">User Presence</dt>
+          <dd class="metric-value mono" id="val-presence">--</dd>
+        </div>
+        <div class="metric-row" id="row-lock">
+          <dt class="metric-label">Workstation Locked</dt>
+          <dd class="metric-value mono" id="val-lock">--</dd>
+        </div>
+        <div class="metric-row" id="row-mic">
+          <dt class="metric-label">Microphone Active</dt>
+          <dd class="metric-value mono" id="val-mic">--</dd>
+        </div>
+        <div class="metric-row" id="row-webcam">
+          <dt class="metric-label">Webcam Active</dt>
+          <dd class="metric-value mono" id="val-webcam">--</dd>
+        </div>
+        <div class="metric-row" id="row-audio-output">
+          <dt class="metric-label">Audio Output</dt>
+          <dd class="metric-value mono" id="val-audio-output">--</dd>
+        </div>
+        <div class="metric-row" id="row-wifi">
+          <dt class="metric-label">Network / Wi-Fi</dt>
+          <dd class="metric-right">
+            <div class="meter" id="meter-wifi-wrap" style="display:none;"><div class="meter-fill" id="meter-wifi" style="width:0%"></div></div>
+            <span class="metric-value mono" id="val-wifi">--</span>
+          </dd>
+        </div>
+        <div class="metric-row" id="row-display">
+          <dt class="metric-label">Display Power</dt>
+          <dd class="metric-value mono" id="val-display">--</dd>
+        </div>
+        <div class="metric-row" id="row-fullscreen">
+          <dt class="metric-label">Fullscreen / Gaming</dt>
+          <dd class="metric-value mono" id="val-fullscreen">--</dd>
+        </div>
+        <div class="metric-row" id="row-theme">
+          <dt class="metric-label">Windows Theme</dt>
+          <dd class="metric-value mono" id="val-theme">--</dd>
+        </div>
+        <div class="metric-row" id="row-battery">
+          <dt class="metric-label">Battery / Power</dt>
+          <dd class="metric-value mono" id="val-battery">--</dd>
+        </div>
+        <div class="metric-row" id="row-window">
+          <dt class="metric-label">Active Program</dt>
+          <dd class="metric-value mono" id="val-window">--</dd>
+        </div>
+        <div class="metric-row" id="row-title">
+          <dt class="metric-label">Window Title</dt>
+          <dd class="metric-value mono" id="val-title">--</dd>
+        </div>
+        <div class="metric-row" id="row-reboot">
+          <dt class="metric-label">Pending Reboot</dt>
+          <dd class="metric-value mono" id="val-reboot">--</dd>
+        </div>
+        <div class="metric-row" id="row-media">
+          <dt class="metric-label">Now Playing</dt>
+          <dd class="metric-value" id="val-media">--</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Quick Actions & Testing</span>
+      </div>
+      <div class="btn-grid">
+        <button type="button" class="quick-btn" onclick="triggerAction('test_toast')">🔔 Send Test Toast</button>
+        <button type="button" class="quick-btn" onclick="triggerAction('lock')">🔒 Lock Workstation</button>
+        <button type="button" class="quick-btn" onclick="triggerAction('mute')">🔇 Toggle Mute</button>
+        <button type="button" class="quick-btn" onclick="triggerAction('play_pause')">⏯ Play / Pause</button>
+      </div>
+      <div class="msg-area" id="action-msg-area"></div>
+    </div>
+  </main>
+
+  <!-- SETTINGS PANEL -->
+  <main id="panel-settings" class="panel hidden">
     <form id="cfg-form">
-      <div class="field">
-        <label for="node_id">Node identifier</label>
-        <input class="mono" id="node_id" required autocomplete="off">
-      </div>
-      <div class="field">
-        <label for="broker">MQTT broker</label>
-        <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
-      </div>
-      <div class="field">
-        <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Skip TLS certificate verification (Insecure)</span></label>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="user">Username</label>
-          <input class="mono" id="user" autocomplete="off">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">MQTT Connection</span>
         </div>
         <div class="field">
-          <label for="pass">Password</label>
-          <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="prefix">Topic prefix</label>
-          <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
+          <label for="node_id">Node identifier</label>
+          <input class="mono" id="node_id" required autocomplete="off">
         </div>
         <div class="field">
-          <label for="interval">Publish interval (seconds)</label>
-          <input type="number" class="mono" id="interval" min="1" max="300" required>
+          <label for="broker">MQTT broker URL</label>
+          <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Skip TLS certificate verification (Insecure)</span></label>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="user">Username</label>
+            <input class="mono" id="user" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="pass">Password</label>
+            <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="prefix">Topic prefix</label>
+            <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="interval">Publish interval (seconds)</label>
+            <input type="number" class="mono" id="interval" min="1" max="300" required>
+          </div>
         </div>
       </div>
 
-      <div class="toggle-group">
-        <span class="toggle-title">Exposed Entities (Home Assistant)</span>
-        <div class="toggle-grid">
-          <label class="toggle-item"><input type="checkbox" id="exp-cpu"><span>Processor</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-mem"><span>Memory</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-storage"><span>Storage Drives</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-net"><span>Network</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-local-ip"><span>Local IP</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-uptime"><span>Uptime</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-presence"><span>User Presence</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-lock"><span>Workstation Lock</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-mic"><span>Microphone Active</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-fullscreen"><span>Fullscreen / Gaming</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-theme"><span>Windows Theme</span></label>
-          <label class="toggle-item" id="item-battery"><input type="checkbox" id="exp-battery"><span>Battery & Power</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-window"><span>Active Program</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-title"><span>Window Title</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-reboot"><span>Pending Reboot</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-media"><span>Media Player</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-remote-lock"><span>Remote Workstation Lock</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-webcam"><span>Webcam Active</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-audio-output"><span>Audio Output Device</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-wifi"><span>Wi-Fi / Network SSID</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-display"><span>Display Power & Controls</span></label>
-          <label class="toggle-item"><input type="checkbox" id="exp-notifications"><span>Windows Toast Notifications</span></label>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Exposed Entities (Home Assistant)</span>
+          <div>
+            <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">All</button>
+            <span style="color:var(--border)">|</span>
+            <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
+          </div>
+        </div>
+
+        <div class="subgroup">
+          <div class="subgroup-head"><span class="subgroup-title">Hardware & System Telemetry</span></div>
+          <div class="toggle-grid">
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Storage Drives</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>Uptime</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Battery & Power</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-theme"><span>Windows Theme</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
+          </div>
+        </div>
+
+        <div class="subgroup" style="margin-top:4px;">
+          <div class="subgroup-head"><span class="subgroup-title">Peripherals, Session & Network</span></div>
+          <div class="toggle-grid">
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock State</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Active</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Active</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Output Device</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi / Network SSID</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display Power & Controls</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Gaming</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Program</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
+          </div>
+        </div>
+
+        <div class="subgroup" style="margin-top:4px;">
+          <div class="subgroup-head"><span class="subgroup-title">Controls & Notifications</span></div>
+          <div class="toggle-grid">
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Player</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Remote Lock Action</span></label>
+            <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Toast Notifications</span></label>
+          </div>
         </div>
       </div>
 
-      <div class="toggle-group">
-        <span class="toggle-title">JSON Telemetry Snapshot API (/json)</span>
-        <div class="field" style="margin-top: 8px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">JSON Telemetry Snapshot API (/json)</span>
+        </div>
+        <div class="field">
           <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable /json Snapshot Endpoint</span></label>
         </div>
-        <div class="field" style="margin-top: 8px;">
+        <div class="field">
           <label for="api_key">API Key (or header X-API-Key)</label>
           <input class="mono" id="api_key" placeholder="Leave empty to auto-generate" autocomplete="off">
         </div>
-        <div class="field-row" style="margin-top: 8px;">
+        <div class="field-row">
           <div class="field">
             <label for="bind_address">Bind Address</label>
             <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
@@ -468,19 +629,21 @@ button{
         </div>
       </div>
 
-      <div class="toggle-group">
-        <span class="toggle-title">Log Webhooks</span>
-        <div class="field" style="margin-top: 8px;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Log Webhooks</span>
+        </div>
+        <div class="field">
           <label class="toggle-item"><input type="checkbox" id="webhook_enabled"><span>Enable Webhook Log Pushing</span></label>
         </div>
-        <div class="field" style="margin-top: 8px;">
+        <div class="field">
           <label for="webhook_url">Webhook URL</label>
           <input class="mono" id="webhook_url" placeholder="https://discord.com/api/webhooks/... or https://..." autocomplete="off">
         </div>
-        <div class="field-row" style="margin-top: 8px;">
+        <div class="field-row">
           <div class="field">
             <label for="webhook_min_level">Minimum Log Level</label>
-            <select id="webhook_min_level" class="mono" style="background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px 10px;width:100%;">
+            <select id="webhook_min_level" class="mono">
               <option value="info">Info (All operational events)</option>
               <option value="warn">Warn (Warnings and errors only)</option>
               <option value="error">Error (Errors only)</option>
@@ -500,7 +663,7 @@ button{
       </div>
       <div class="msg-area" id="msg-area"></div>
     </form>
-  </section>
+  </main>
 </div>
 
 <script>
@@ -514,6 +677,47 @@ async function authFetch(url, options = {}) {
     options.headers['X-API-Token'] = apiToken;
   }
   return fetch(url, options);
+}
+
+function switchTab(tab) {
+  const isDash = tab === 'dashboard';
+  $('panel-dashboard').className = 'panel' + (isDash ? '' : ' hidden');
+  $('panel-settings').className = 'panel' + (isDash ? ' hidden' : '');
+  $('tab-dash').className = 'tab-btn' + (isDash ? ' active' : '');
+  $('tab-set').className = 'tab-btn' + (isDash ? '' : ' active');
+}
+
+function bulkToggleEntities(checked) {
+  document.querySelectorAll('.exp-chk').forEach(el => {
+    el.checked = checked;
+  });
+}
+
+async function triggerAction(actionName) {
+  const msgArea = $('action-msg-area');
+  msgArea.className = 'msg-area mono';
+  msgArea.innerText = 'Executing action...';
+  try {
+    const res = await authFetch('/api/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: actionName })
+    });
+    const result = await res.json();
+    if (result.success) {
+      msgArea.className = 'msg-area msg-ok mono';
+      msgArea.innerText = 'Action executed successfully';
+    } else {
+      msgArea.className = 'msg-area msg-err mono';
+      msgArea.innerText = 'Action failed: ' + result.error;
+    }
+  } catch (err) {
+    msgArea.className = 'msg-area msg-err mono';
+    msgArea.innerText = 'Error: ' + err.message;
+  }
+  setTimeout(() => {
+    msgArea.innerText = '';
+  }, 4000);
 }
 
 let activePollTimeout = null;
@@ -552,55 +756,53 @@ function updateRowVisibility(expose, hasBattery) {
   $('row-presence').className = 'metric-row' + (expose.user_presence ? '' : ' hidden');
   $('row-lock').className = 'metric-row' + (expose.session_lock ? '' : ' hidden');
   $('row-mic').className = 'metric-row' + (expose.microphone ? '' : ' hidden');
+  $('row-webcam').className = 'metric-row' + (expose.webcam ? '' : ' hidden');
+  $('row-audio-output').className = 'metric-row' + (expose.audio_output ? '' : ' hidden');
+  $('row-wifi').className = 'metric-row' + (expose.wifi ? '' : ' hidden');
+  $('row-display').className = 'metric-row' + (expose.display_state ? '' : ' hidden');
   $('row-fullscreen').className = 'metric-row' + (expose.fullscreen ? '' : ' hidden');
   $('row-theme').className = 'metric-row' + (expose.windows_theme ? '' : ' hidden');
   $('row-window').className = 'metric-row' + (expose.active_window ? '' : ' hidden');
   $('row-title').className = 'metric-row' + (expose.window_title ? '' : ' hidden');
   $('row-reboot').className = 'metric-row' + (expose.update_pending ? '' : ' hidden');
-  $('row-webcam').className = 'metric-row' + (expose.webcam ? '' : ' hidden');
-  $('row-audio-output').className = 'metric-row' + (expose.audio_output ? '' : ' hidden');
-  $('row-wifi').className = 'metric-row' + (expose.wifi ? '' : ' hidden');
-  $('row-display').className = 'metric-row' + (expose.display_state ? '' : ' hidden');
-
-  if (!hasBattery) {
-    $('row-battery').className = 'metric-row hidden';
-    $('item-battery').style.display = 'none';
-  } else {
-    $('row-battery').className = 'metric-row' + (expose.battery ? '' : ' hidden');
-    $('item-battery').style.display = 'flex';
-  }
+  $('row-media').className = 'metric-row' + (expose.media_control ? '' : ' hidden');
+  $('row-battery').className = 'metric-row' + (expose.battery && hasBattery ? '' : ' hidden');
 }
 
 async function poll() {
   try {
-    const res = await authFetch('/api/status', { cache: 'no-store' });
+    const res = await authFetch('/api/status');
     if (!res.ok) {
       setStaleUI();
-      scheduleNextPoll();
+      activePollTimeout = setTimeout(poll, currentIntervalMs);
       return;
     }
     const data = await res.json();
     setStatusBadge(data.mqtt_status);
 
-    if (data.telemetry) {
-      const t = data.telemetry;
+    const t = data.telemetry;
+    if (t) {
       updateRowVisibility(currentExpose, t.has_battery);
 
       if (t.cpu_percent !== undefined) {
         $('val-cpu').innerText = t.cpu_percent.toFixed(1) + ' %';
+        $('meter-cpu').style.width = Math.min(100, Math.max(0, t.cpu_percent)) + '%';
       }
       if (t.memory_used_gb !== undefined) {
         $('val-mem').innerText = t.memory_used_gb.toFixed(1) + ' / ' + t.memory_total_gb.toFixed(1) + ' GB';
         $('val-mem-sub').innerText = '(' + t.memory_percent.toFixed(1) + ' %)';
+        $('meter-mem').style.width = Math.min(100, Math.max(0, t.memory_percent)) + '%';
       }
 
-      // Render drives dynamically
       const drivesDiv = $('drives-container');
       if (currentExpose.storage && t.drives && t.drives.length > 0) {
         drivesDiv.innerHTML = t.drives.map(d => `
           <div class="metric-row">
             <dt class="metric-label">Storage (${d.mount})</dt>
-            <dd class="metric-value mono">${d.used_gb.toFixed(1)} / ${d.total_gb.toFixed(1)} GB <span class="metric-sub">(${d.used_percent.toFixed(1)} %)</span></dd>
+            <dd class="metric-right">
+              <div class="meter"><div class="meter-fill" style="width:${Math.min(100, Math.max(0, d.used_percent))}%"></div></div>
+              <span class="metric-value mono">${d.used_gb.toFixed(1)} / ${d.total_gb.toFixed(1)} GB <span class="metric-sub">(${d.used_percent.toFixed(1)} %)</span></span>
+            </dd>
           </div>
         `).join('');
       } else {
@@ -672,6 +874,14 @@ async function poll() {
       if (t.wifi_ssid) {
         const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent} %)` : '';
         $('val-wifi').innerText = `${t.wifi_ssid}${sig}`;
+        if (t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null) {
+          $('meter-wifi-wrap').style.display = 'block';
+          $('meter-wifi').style.width = Math.min(100, Math.max(0, t.wifi_signal_percent)) + '%';
+        } else {
+          $('meter-wifi-wrap').style.display = 'none';
+        }
+      } else {
+        $('meter-wifi-wrap').style.display = 'none';
       }
       if (t.display_powered !== undefined) {
         $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby / Asleep';
@@ -679,41 +889,31 @@ async function poll() {
     }
   } catch (err) {
     setStaleUI();
-  } finally {
-    scheduleNextPoll();
   }
-}
-
-function scheduleNextPoll() {
-  clearTimeout(activePollTimeout);
   activePollTimeout = setTimeout(poll, currentIntervalMs);
 }
 
 async function loadConfig() {
   try {
     const res = await authFetch('/api/config');
-    if (!res.ok) return;
     const cfg = await res.json();
-
     $('node_id').value = cfg.node_id || '';
-    $('broker').value = cfg.mqtt.broker || '';
-    $('insecure_tls').checked = cfg.mqtt && cfg.mqtt.insecure_tls === true;
-    $('user').value = cfg.mqtt.username || '';
-    $('prefix').value = cfg.mqtt.topic_prefix || 'satellite';
-    const intervalSec = cfg.interval_sec || 5;
-    $('interval').value = intervalSec;
-    currentIntervalMs = Math.max(1, intervalSec) * 1000;
-
-    $('json_enabled').checked = cfg.json_enabled === true;
-    $('api_key').value = cfg.api_key || '';
+    $('broker').value = cfg.mqtt ? cfg.mqtt.broker : '';
+    $('user').value = cfg.mqtt ? cfg.mqtt.username : '';
+    $('prefix').value = cfg.mqtt ? cfg.mqtt.topic_prefix : '';
+    $('insecure_tls').checked = cfg.mqtt ? !!cfg.mqtt.insecure_tls : false;
+    $('interval').value = cfg.interval_sec || 5;
+    currentIntervalMs = Math.max(1, cfg.interval_sec || 5) * 1000;
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
     $('port').value = cfg.port || cfg.webui_port || '';
-
-    const wh = cfg.webhook || {};
-    $('webhook_enabled').checked = wh.enabled === true;
-    $('webhook_url').value = wh.url || '';
-    $('webhook_min_level').value = wh.min_level || 'info';
-    $('webhook_secret').value = wh.secret || '';
+    $('json_enabled').checked = !!cfg.json_enabled;
+    $('api_key').value = cfg.api_key || '';
+    if (cfg.webhook) {
+      $('webhook_enabled').checked = !!cfg.webhook.enabled;
+      $('webhook_url').value = cfg.webhook.url || '';
+      $('webhook_min_level').value = cfg.webhook.min_level || 'info';
+      $('webhook_secret').value = cfg.webhook.secret || '';
+    }
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
