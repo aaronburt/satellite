@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.10.0"
+const Version = "0.11.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -43,6 +43,7 @@ type ExposeConfig struct {
 	AudioOutput   bool `json:"audio_output"`
 	Wifi          bool `json:"wifi"`
 	DisplayState  bool `json:"display_state"`
+	Notifications bool `json:"notifications"`
 }
 
 type WebhookConfig struct {
@@ -103,6 +104,7 @@ func DefaultExpose() ExposeConfig {
 		AudioOutput:   true,
 		Wifi:          true,
 		DisplayState:  true,
+		Notifications: true,
 	}
 }
 

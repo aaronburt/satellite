@@ -443,6 +443,7 @@ button{
           <label class="toggle-item"><input type="checkbox" id="exp-audio-output"><span>Audio Output Device</span></label>
           <label class="toggle-item"><input type="checkbox" id="exp-wifi"><span>Wi-Fi / Network SSID</span></label>
           <label class="toggle-item"><input type="checkbox" id="exp-display"><span>Display Power & Controls</span></label>
+          <label class="toggle-item"><input type="checkbox" id="exp-notifications"><span>Windows Toast Notifications</span></label>
         </div>
       </div>
 
@@ -736,6 +737,7 @@ async function loadConfig() {
     $('exp-audio-output').checked = currentExpose.audio_output !== false;
     $('exp-wifi').checked = currentExpose.wifi !== false;
     $('exp-display').checked = currentExpose.display_state !== false;
+    $('exp-notifications').checked = currentExpose.notifications !== false;
   } catch (err) {
   }
 }
@@ -812,6 +814,7 @@ $('cfg-form').onsubmit = async (e) => {
     audio_output: $('exp-audio-output').checked,
     wifi: $('exp-wifi').checked,
     display_state: $('exp-display').checked,
+    notifications: $('exp-notifications').checked,
   };
 
   const payload = {

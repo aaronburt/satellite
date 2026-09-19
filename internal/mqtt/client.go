@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/telemetry"
+	"satellite/internal/toast"
 
 	"github.com/eclipse/paho.golang/paho"
 )
@@ -38,13 +40,15 @@ type Client struct {
 	lastSentTime time.Time
 	hasBattery   bool
 	registry     *actions.Registry
+	notifyChan   chan toast.Notification
 }
 
 func NewClient() *Client {
 	reg := actions.NewRegistry()
 	c := &Client{
-		status:   StatusDisconnected,
-		registry: reg,
+		status:     StatusDisconnected,
+		registry:   reg,
+		notifyChan: make(chan toast.Notification, 5),
 	}
 	reg.SetStatusProvider(func() string {
 		c.mu.RLock()
@@ -88,6 +92,7 @@ func (c *Client) Start(cfg config.Config) {
 	c.status = StatusConnecting
 	c.mu.Unlock()
 
+	go c.notifyWorker(ctx)
 	go c.runLoop(ctx)
 }
 
@@ -204,6 +209,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	}
 	statusTopic := fmt.Sprintf("%s/%s/status", prefix, cfg.NodeID)
 	commandTopic := fmt.Sprintf("%s/%s/command", prefix, cfg.NodeID)
+	notifyTopic := fmt.Sprintf("%s/%s/notify", prefix, cfg.NodeID)
 
 	router := paho.NewStandardRouter()
 	router.RegisterHandler(commandTopic, func(p *paho.Publish) {
@@ -217,6 +223,9 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 		}
 
 		_ = reg.ExecutePayload(p.Payload)
+	})
+	router.RegisterHandler(notifyTopic, func(p *paho.Publish) {
+		c.handleNotify(p.Payload)
 	})
 
 	pClient := paho.NewClient(paho.ClientConfig{
@@ -279,15 +288,24 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	})
 	pubCancel()
 
+	var subscriptions []paho.SubscribeOptions
 	if cfg.Expose.RemoteLock || cfg.Expose.MediaControl {
+		subscriptions = append(subscriptions, paho.SubscribeOptions{
+			Topic: commandTopic,
+			QoS:   1,
+		})
+	}
+	if cfg.Expose.Notifications {
+		subscriptions = append(subscriptions, paho.SubscribeOptions{
+			Topic: notifyTopic,
+			QoS:   1,
+		})
+	}
+
+	if len(subscriptions) > 0 {
 		subCtx, subCancel := context.WithTimeout(ctx, 5*time.Second)
 		_, _ = pClient.Subscribe(subCtx, &paho.Subscribe{
-			Subscriptions: []paho.SubscribeOptions{
-				{
-					Topic: commandTopic,
-					QoS:   1,
-				},
-			},
+			Subscriptions: subscriptions,
 		})
 		subCancel()
 	}
@@ -441,3 +459,59 @@ func TestConnection(cfg config.MQTTConfig) error {
 	_ = pClient.Disconnect(&paho.Disconnect{ReasonCode: 0})
 	return nil
 }
+
+func (c *Client) notifyWorker(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case n := <-c.notifyChan:
+			if err := toast.Show(n); err != nil {
+				logger.Error("toast", fmt.Sprintf("Failed to show toast notification: %v", err))
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(1 * time.Second):
+			}
+		}
+	}
+}
+
+func (c *Client) handleNotify(payload []byte) {
+	c.mu.RLock()
+	allowed := c.cfg.Expose.Notifications
+	nodeID := c.cfg.NodeID
+	c.mu.RUnlock()
+
+	if !allowed {
+		return
+	}
+
+	var n toast.Notification
+	if err := json.Unmarshal(payload, &n); err != nil {
+		logger.Error("mqtt", fmt.Sprintf("Invalid JSON notification payload: %v", err))
+		return
+	}
+
+	if strings.TrimSpace(n.Message) == "" {
+		logger.Warn("mqtt", "Ignoring toast notification: empty message body")
+		return
+	}
+
+	if n.Title == "" {
+		host, err := os.Hostname()
+		if err != nil || host == "" {
+			host = nodeID
+		}
+		n.Title = host
+	}
+
+	select {
+	case c.notifyChan <- n:
+		logger.Info("mqtt", fmt.Sprintf("Queued toast notification: %s", n.Title))
+	default:
+		logger.Warn("mqtt", fmt.Sprintf("Dropping toast notification '%s': queue full", n.Title))
+	}
+}
+

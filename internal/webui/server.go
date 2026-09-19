@@ -213,12 +213,12 @@ func (s *Server) Start(preferredPort int) (int, error) {
 
 	logger.Info("api", fmt.Sprintf("HTTP server listening on %s:%d", bindHost, s.port))
 
-	go func() {
-		_ = httpSrv.Serve(s.listener)
+	go func(l net.Listener) {
+		_ = httpSrv.Serve(l)
 		s.mu.Lock()
 		s.running = false
 		s.mu.Unlock()
-	}()
+	}(ln)
 
 	return s.port, nil
 }
