@@ -658,6 +658,11 @@ input:focus,select:focus{
               <td><span class="item-badge active">Committed</span></td>
               <td class="mono" style="text-align:right;padding-right:20px;" id="val-mem">0 / 0 GB</td>
             </tr>
+            <tr class="data-row" id="row-gpu">
+              <td><div class="item-title-cell"><span id="lbl-gpu">Graphics Processor</span></div></td>
+              <td><span class="item-badge active" id="badge-gpu">Hardware</span></td>
+              <td class="mono" style="text-align:right;padding-right:20px;" id="val-gpu">--</td>
+            </tr>
             <tr class="data-row" id="row-network">
               <td><div class="item-title-cell"><span>Network Adapter</span></div></td>
               <td><span class="item-badge" id="badge-ip">Connected</span></td>
@@ -781,6 +786,21 @@ input:focus,select:focus{
             </svg>
             <span class="perf-sub mono" id="top-net-sub">Throughput</span>
           </div>
+
+          <div class="perf-card" id="perf-gpu-card">
+            <div class="perf-card-header">
+              <span class="perf-title" id="perf-gpu-title">GPU</span>
+              <span class="perf-val mono" id="top-gpu">0%</span>
+            </div>
+            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
+              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
+              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
+              <polygon class="sparkline-area" id="poly-gpu" points="0,40 100,40"/>
+              <polyline class="sparkline-line" id="line-gpu" points="0,40 100,40"/>
+            </svg>
+            <span class="perf-sub mono" id="top-gpu-sub">Dedicated graphics</span>
+          </div>
         </div>
       </div>
     </section>
@@ -840,6 +860,7 @@ input:focus,select:focus{
             <div class="toggle-grid">
               <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
               <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
               <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
               <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
               <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
@@ -976,6 +997,7 @@ const MAX_HISTORY = 20;
 const historyCPU = [];
 const historyMem = [];
 const historyNet = [];
+const historyGPU = [];
 
 function pushHistory(arr, val) {
   arr.push(val);
@@ -1036,6 +1058,9 @@ function setStaleUI() {
 function updateRowVisibility(expose, hasBattery) {
   $('row-cpu').className = 'data-row' + (expose.cpu ? '' : ' hidden');
   $('row-memory').className = 'data-row' + (expose.memory ? '' : ' hidden');
+  $('row-gpu').className = 'data-row' + (expose.gpu !== false ? '' : ' hidden');
+  const perfGPU = $('perf-gpu-card');
+  if (perfGPU) perfGPU.className = 'perf-card' + (expose.gpu !== false ? '' : ' hidden');
   $('row-network').className = 'data-row' + (expose.network ? '' : ' hidden');
   $('row-local-ip').className = 'data-row' + (expose.local_ip ? '' : ' hidden');
   $('row-uptime').className = 'data-row' + (expose.uptime ? '' : ' hidden');
@@ -1145,6 +1170,36 @@ async function poll() {
         renderSparkline('poly-mem', 'line-mem', historyMem, 100);
       }
 
+      if (t.gpus && t.gpus.length > 0) {
+        const g = t.gpus[0];
+        const gpuName = g.name || 'Dedicated GPU';
+        if ($('lbl-gpu')) $('lbl-gpu').innerText = gpuName;
+        if ($('badge-gpu')) $('badge-gpu').innerText = g.vendor || 'Hardware';
+        if ($('perf-gpu-title')) $('perf-gpu-title').innerText = gpuName.length > 18 ? gpuName.substring(0, 16) + '...' : gpuName;
+
+        const valParts = [];
+        let loadVal = 0;
+        if (g.core_usage_percent !== undefined && g.core_usage_percent !== null) {
+          loadVal = g.core_usage_percent;
+          valParts.push(`${g.core_usage_percent.toFixed(1)}%`);
+        }
+        if (g.memory_used_mb !== undefined && g.memory_used_mb !== null && g.memory_total_mb !== undefined && g.memory_total_mb !== null) {
+          const usedGB = (g.memory_used_mb / 1024).toFixed(1);
+          const totGB = (g.memory_total_mb / 1024).toFixed(1);
+          const pct = g.memory_percent !== undefined && g.memory_percent !== null ? ` (${g.memory_percent.toFixed(0)}%)` : '';
+          valParts.push(`VRAM ${usedGB} / ${totGB} GB${pct}`);
+        }
+        if (g.temperature_c !== undefined && g.temperature_c !== null) {
+          valParts.push(`${Math.round(g.temperature_c)}°C`);
+        }
+        if ($('val-gpu')) $('val-gpu').innerText = valParts.join(' | ') || 'Active';
+        if ($('top-gpu')) $('top-gpu').innerText = `${loadVal.toFixed(1)}%`;
+        if ($('top-gpu-sub')) $('top-gpu-sub').innerText = valParts.slice(1).join(' | ') || 'Graphics Load';
+
+        pushHistory(historyGPU, loadVal);
+        renderSparkline('poly-gpu', 'line-gpu', historyGPU, 100);
+      }
+
       if (t.network_rx_kbs !== undefined) {
         const netStr = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
         if ($('val-net')) $('val-net').innerText = netStr;
@@ -1251,6 +1306,7 @@ async function loadConfig() {
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
+    $('exp-gpu').checked = currentExpose.gpu !== false;
     $('exp-storage').checked = currentExpose.storage !== false;
     $('exp-net').checked = currentExpose.network !== false;
     $('exp-local-ip').checked = currentExpose.local_ip !== false;
@@ -1311,6 +1367,7 @@ $('cfg-form').onsubmit = async (e) => {
   const newExpose = {
     cpu: $('exp-cpu').checked,
     memory: $('exp-mem').checked,
+    gpu: $('exp-gpu').checked,
     storage: $('exp-storage').checked,
     network: $('exp-net').checked,
     local_ip: $('exp-local-ip').checked,

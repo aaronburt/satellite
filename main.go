@@ -56,6 +56,28 @@ func runCLI(collector *telemetry.Collector, cfg config.Config, updaterInstance *
 			if snap.MemoryUsedGB != nil && snap.MemoryTotalGB != nil && snap.MemoryPercent != nil {
 				fmt.Printf(" Memory (RAM) : %6.2f / %6.2f GB (%5.1f %%)\n", *snap.MemoryUsedGB, *snap.MemoryTotalGB, *snap.MemoryPercent)
 			}
+			for _, g := range snap.GPUs {
+				gpuStr := ""
+				if g.CoreUsagePercent != nil {
+					gpuStr += fmt.Sprintf("%5.1f %%", *g.CoreUsagePercent)
+				}
+				if g.MemoryUsedMB != nil && g.MemoryTotalMB != nil {
+					usedGB := *g.MemoryUsedMB / 1024
+					totGB := *g.MemoryTotalMB / 1024
+					gpuStr += fmt.Sprintf(" | VRAM: %4.1f / %4.1f GB", usedGB, totGB)
+					if g.MemoryPercent != nil {
+						gpuStr += fmt.Sprintf(" (%4.1f %%)", *g.MemoryPercent)
+					}
+				}
+				if g.TemperatureC != nil {
+					gpuStr += fmt.Sprintf(" | %2.0f °C", *g.TemperatureC)
+				}
+				name := g.Name
+				if name == "" {
+					name = fmt.Sprintf("GPU %d", g.Index)
+				}
+				fmt.Printf(" GPU (%s) : %s\n", name, gpuStr)
+			}
 			for _, d := range snap.Drives {
 				fmt.Printf(" Storage (%s) : %6.1f / %6.1f GB (%5.1f %%)\n", d.Mount, d.UsedGB, d.TotalGB, d.UsedPercent)
 			}
