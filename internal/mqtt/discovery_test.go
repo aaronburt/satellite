@@ -55,6 +55,7 @@ func TestDiscoveryExposeToggles(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Expose.Webcam = false
 	cfg.Expose.DisplayState = false
+	cfg.Expose.GPU = false
 
 	items := GetAllDiscoveryItems(cfg, false)
 	for _, item := range items {
@@ -66,6 +67,9 @@ func TestDiscoveryExposeToggles(t *testing.T) {
 		}
 		if item.Key == "display_sleep" && item.ShouldRun {
 			t.Errorf("expected display_sleep discovery ShouldRun to be false")
+		}
+		if (item.Key == "gpu_0_usage" || item.Key == "gpu_0_mem_pct") && item.ShouldRun {
+			t.Errorf("expected gpu discovery to not run when Expose.GPU is false")
 		}
 	}
 }

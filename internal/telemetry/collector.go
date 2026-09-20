@@ -52,6 +52,7 @@ type Snapshot struct {
 	WifiSSID          string     `json:"wifi_ssid,omitempty"`
 	WifiSignalPercent *int       `json:"wifi_signal_percent,omitempty"`
 	DisplayPowered    *bool      `json:"display_powered,omitempty"`
+	GPUs              []GPUInfo  `json:"gpus,omitempty"`
 	Timestamp         int64      `json:"timestamp"`
 }
 
@@ -214,6 +215,10 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 		snap.DisplayPowered = &powered
 	}
 
+	if expose.GPU {
+		snap.GPUs = GetGPUInfo()
+	}
+
 	c.lastSnapshot = snap
 	return snap
 }
@@ -326,6 +331,31 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 			prev.Media.Title != curr.Media.Title ||
 			prev.Media.Artist != curr.Media.Artist ||
 			prev.Media.AppID != curr.Media.AppID {
+			return true
+		}
+	}
+	if len(prev.GPUs) != len(curr.GPUs) {
+		return true
+	}
+	for i := range curr.GPUs {
+		prevG := prev.GPUs[i]
+		currG := curr.GPUs[i]
+		if (prevG.CoreUsagePercent == nil) != (currG.CoreUsagePercent == nil) {
+			return true
+		}
+		if prevG.CoreUsagePercent != nil && currG.CoreUsagePercent != nil && math.Abs(*prevG.CoreUsagePercent-*currG.CoreUsagePercent) >= 1.0 {
+			return true
+		}
+		if (prevG.MemoryPercent == nil) != (currG.MemoryPercent == nil) {
+			return true
+		}
+		if prevG.MemoryPercent != nil && currG.MemoryPercent != nil && math.Abs(*prevG.MemoryPercent-*currG.MemoryPercent) >= 1.0 {
+			return true
+		}
+		if (prevG.TemperatureC == nil) != (currG.TemperatureC == nil) {
+			return true
+		}
+		if prevG.TemperatureC != nil && currG.TemperatureC != nil && math.Abs(*prevG.TemperatureC-*currG.TemperatureC) >= 1.0 {
 			return true
 		}
 	}

@@ -16,13 +16,19 @@ import (
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
+	"satellite/internal/toast"
 	"satellite/internal/tray"
+	"satellite/internal/updater"
 	"satellite/internal/webui"
 )
 
-func runCLI(collector *telemetry.Collector, cfg config.Config) {
+func runCLI(collector *telemetry.Collector, cfg config.Config, updaterInstance *updater.Checker) {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+
+	if cfg.CheckUpdates && updaterInstance != nil {
+		updaterInstance.StartBackground(ctx, updater.DefaultCheckInterval)
+	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -39,6 +45,11 @@ func runCLI(collector *telemetry.Collector, cfg config.Config) {
 			fmt.Printf("========================================\n")
 			fmt.Printf("       SATELLITE AGENT (v%s CLI)       \n", config.Version)
 			fmt.Printf("========================================\n")
+			if updaterInstance != nil {
+				if updateStatus := updaterInstance.Status(); updateStatus.Available {
+					fmt.Printf(" Update       : v%s available! (%s)\n", updateStatus.LatestVersion, updateStatus.ReleaseURL)
+				}
+			}
 			if snap.CPUPercent != nil {
 				fmt.Printf(" Processor    : %6.1f %%\n", *snap.CPUPercent)
 			}
@@ -170,8 +181,17 @@ func main() {
 
 	collector := telemetry.NewCollector()
 
+	updaterInstance := updater.NewChecker(cfg.UpdateRepo, config.Version, func(status updater.CheckStatus) {
+		_ = toast.Show(toast.Notification{
+			Title:   "Satellite Update Available",
+			Message: fmt.Sprintf("Version %s is available. Click to download.", status.LatestVersion),
+			URL:     status.ReleaseURL,
+		})
+	})
+	updaterInstance.SetEnabled(cfg.CheckUpdates)
+
 	if *cliMode {
-		runCLI(collector, cfg)
+		runCLI(collector, cfg, updaterInstance)
 		return
 	}
 
@@ -183,6 +203,7 @@ func main() {
 	mqttClient.Start(cfg)
 
 	server := webui.NewServer(collector, mqttClient)
+	server.SetUpdater(updaterInstance)
 	server.SetWebUIEnabled(*debugMode)
 	if *debugMode {
 		port, err := server.Start(cfg.GetPort())
@@ -199,6 +220,9 @@ func main() {
 		server.SetAPIKey(cfg.APIKey)
 		_, _ = server.Start(cfg.GetPort())
 	}
+
+	updaterCtx, cancelUpdater := context.WithCancel(context.Background())
+	updaterInstance.StartBackground(updaterCtx, updater.DefaultCheckInterval)
 
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go func() {
@@ -223,6 +247,7 @@ func main() {
 
 	onExit := func() {
 		logger.Info("system", "Satellite agent shutting down")
+		cancelUpdater()
 		cancelTicker()
 		mqttClient.Stop()
 		server.Stop()
@@ -236,6 +261,6 @@ func main() {
 		return
 	}
 
-	t := tray.NewTray(server, mqttClient, onExit)
+	t := tray.NewTray(server, mqttClient, updaterInstance, onExit)
 	t.Run()
 }

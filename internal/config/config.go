@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.14.0"
+const Version = "0.15.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -44,6 +44,7 @@ type ExposeConfig struct {
 	Wifi          bool `json:"wifi"`
 	DisplayState  bool `json:"display_state"`
 	Notifications bool `json:"notifications"`
+	GPU           bool `json:"gpu"`
 }
 
 type WebhookConfig struct {
@@ -61,9 +62,11 @@ type Config struct {
 	Port        int           `json:"port,omitempty"`
 	WebUIPort   int           `json:"webui_port"`
 	BindAddress string        `json:"bind_address,omitempty"`
-	JSONEnabled bool          `json:"json_enabled"`
-	APIKey      string        `json:"api_key"`
-	Webhook     WebhookConfig `json:"webhook"`
+	JSONEnabled  bool          `json:"json_enabled"`
+	APIKey       string        `json:"api_key"`
+	Webhook      WebhookConfig `json:"webhook"`
+	CheckUpdates bool          `json:"check_updates"`
+	UpdateRepo   string        `json:"update_repo,omitempty"`
 }
 
 func (c Config) GetPort() int {
@@ -105,6 +108,7 @@ func DefaultExpose() ExposeConfig {
 		Wifi:          true,
 		DisplayState:  true,
 		Notifications: true,
+		GPU:           true,
 	}
 }
 
@@ -149,6 +153,8 @@ func DefaultConfig() Config {
 			MinLevel: "info",
 			Secret:   "",
 		},
+		CheckUpdates: true,
+		UpdateRepo:   "aaronburt/satellite",
 	}
 }
 

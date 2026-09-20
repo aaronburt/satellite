@@ -622,5 +622,128 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		}
 	}
 
+	if cfg.Expose.GPU {
+		gpus := telemetry.GetGPUInfo()
+		for _, g := range gpus {
+			gpuKey := fmt.Sprintf("gpu_%d", g.Index)
+			namePrefix := fmt.Sprintf("GPU %d", g.Index)
+			if len(gpus) == 1 && g.Name != "" {
+				namePrefix = g.Name
+			}
+
+			usageTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_usage/config", nodeID, nodeID, gpuKey)
+			usagePayload := EntityDiscoveryPayload{
+				Component:         "sensor",
+				Name:              fmt.Sprintf("%s Usage", namePrefix),
+				StateTopic:        stateTopic,
+				ValueTemplate:     fmt.Sprintf("{{ (value_json.gpus | selectattr('index', 'equalto', %d) | map(attribute='core_usage_percent') | first) if value_json.gpus is defined else None }}", g.Index),
+				UniqueID:          fmt.Sprintf("%s_%s_usage", nodeID, gpuKey),
+				Device:            device,
+				AvailabilityTopic: availTopic,
+				UnitOfMeasurement: "%",
+				StateClass:        "measurement",
+				Icon:              "mdi:expansion-card",
+			}
+			bUsage, _ := json.Marshal(usagePayload)
+			items = append(items, DiscoveryItem{
+				Key:       gpuKey + "_usage",
+				Topic:     usageTopic,
+				Payload:   bUsage,
+				ShouldRun: true,
+			})
+
+			memPctTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_pct/config", nodeID, nodeID, gpuKey)
+			memPctPayload := EntityDiscoveryPayload{
+				Component:         "sensor",
+				Name:              fmt.Sprintf("%s Memory Usage", namePrefix),
+				StateTopic:        stateTopic,
+				ValueTemplate:     fmt.Sprintf("{{ (value_json.gpus | selectattr('index', 'equalto', %d) | map(attribute='memory_percent') | first) if value_json.gpus is defined else None }}", g.Index),
+				UniqueID:          fmt.Sprintf("%s_%s_mem_pct", nodeID, gpuKey),
+				Device:            device,
+				AvailabilityTopic: availTopic,
+				UnitOfMeasurement: "%",
+				StateClass:        "measurement",
+				Icon:              "mdi:memory",
+			}
+			bMemPct, _ := json.Marshal(memPctPayload)
+			items = append(items, DiscoveryItem{
+				Key:       gpuKey + "_mem_pct",
+				Topic:     memPctTopic,
+				Payload:   bMemPct,
+				ShouldRun: true,
+			})
+
+			memUsedTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_used/config", nodeID, nodeID, gpuKey)
+			memUsedPayload := EntityDiscoveryPayload{
+				Component:         "sensor",
+				Name:              fmt.Sprintf("%s Memory Used", namePrefix),
+				StateTopic:        stateTopic,
+				ValueTemplate:     fmt.Sprintf("{{ (value_json.gpus | selectattr('index', 'equalto', %d) | map(attribute='memory_used_mb') | first) if value_json.gpus is defined else None }}", g.Index),
+				UniqueID:          fmt.Sprintf("%s_%s_mem_used", nodeID, gpuKey),
+				Device:            device,
+				AvailabilityTopic: availTopic,
+				UnitOfMeasurement: "MB",
+				DeviceClass:       "data_size",
+				StateClass:        "measurement",
+				Icon:              "mdi:memory",
+			}
+			bMemUsed, _ := json.Marshal(memUsedPayload)
+			items = append(items, DiscoveryItem{
+				Key:       gpuKey + "_mem_used",
+				Topic:     memUsedTopic,
+				Payload:   bMemUsed,
+				ShouldRun: true,
+			})
+
+			if g.TemperatureC != nil {
+				tempTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_temp/config", nodeID, nodeID, gpuKey)
+				tempPayload := EntityDiscoveryPayload{
+					Component:         "sensor",
+					Name:              fmt.Sprintf("%s Temperature", namePrefix),
+					StateTopic:        stateTopic,
+					ValueTemplate:     fmt.Sprintf("{{ (value_json.gpus | selectattr('index', 'equalto', %d) | map(attribute='temperature_c') | first) if value_json.gpus is defined else None }}", g.Index),
+					UniqueID:          fmt.Sprintf("%s_%s_temp", nodeID, gpuKey),
+					Device:            device,
+					AvailabilityTopic: availTopic,
+					UnitOfMeasurement: "°C",
+					DeviceClass:       "temperature",
+					StateClass:        "measurement",
+					Icon:              "mdi:thermometer",
+				}
+				bTemp, _ := json.Marshal(tempPayload)
+				items = append(items, DiscoveryItem{
+					Key:       gpuKey + "_temp",
+					Topic:     tempTopic,
+					Payload:   bTemp,
+					ShouldRun: true,
+				})
+			}
+
+			if g.PowerWatts != nil {
+				powerTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_power/config", nodeID, nodeID, gpuKey)
+				powerPayload := EntityDiscoveryPayload{
+					Component:         "sensor",
+					Name:              fmt.Sprintf("%s Power", namePrefix),
+					StateTopic:        stateTopic,
+					ValueTemplate:     fmt.Sprintf("{{ (value_json.gpus | selectattr('index', 'equalto', %d) | map(attribute='power_watts') | first) if value_json.gpus is defined else None }}", g.Index),
+					UniqueID:          fmt.Sprintf("%s_%s_power", nodeID, gpuKey),
+					Device:            device,
+					AvailabilityTopic: availTopic,
+					UnitOfMeasurement: "W",
+					DeviceClass:       "power",
+					StateClass:        "measurement",
+					Icon:              "mdi:flash",
+				}
+				bPower, _ := json.Marshal(powerPayload)
+				items = append(items, DiscoveryItem{
+					Key:       gpuKey + "_power",
+					Topic:     powerTopic,
+					Payload:   bPower,
+					ShouldRun: true,
+				})
+			}
+		}
+	}
+
 	return items
 }

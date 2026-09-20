@@ -18,6 +18,7 @@ import (
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
+	"satellite/internal/updater"
 )
 
 //go:embed static/index.html
@@ -31,6 +32,7 @@ type Server struct {
 	token        string
 	collector    *telemetry.Collector
 	mqttClient   *mqtt.Client
+	updater      *updater.Checker
 	running      bool
 	webUIEnabled bool
 	jsonEnabled  bool
@@ -43,6 +45,12 @@ func NewServer(collector *telemetry.Collector, mqttClient *mqtt.Client) *Server 
 		mqttClient:   mqttClient,
 		webUIEnabled: true,
 	}
+}
+
+func (s *Server) SetUpdater(u *updater.Checker) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.updater = u
 }
 
 func generateSecureToken() string {
@@ -211,6 +219,8 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	mux.HandleFunc("/api/action", webUIMiddleware(authMiddleware(s.handleAction)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
 	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
+	mux.HandleFunc("/api/update", webUIMiddleware(authMiddleware(s.handleUpdateStatus)))
+	mux.HandleFunc("/api/update/check", webUIMiddleware(authMiddleware(s.handleUpdateCheck)))
 	mux.HandleFunc("/json", s.handleJSON)
 	mux.HandleFunc("/json/", s.handleJSON)
 
@@ -290,13 +300,74 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	snap := s.collector.Last()
 	mqttStatus := string(s.mqttClient.Status())
 
+	s.mu.Lock()
+	u := s.updater
+	s.mu.Unlock()
+
+	var updateStatus interface{}
+	if u != nil {
+		updateStatus = u.Status()
+	}
+
 	resp := map[string]interface{}{
-		"mqtt_status": mqttStatus,
-		"telemetry":   snap,
+		"mqtt_status":   mqttStatus,
+		"telemetry":     snap,
+		"update_status": updateStatus,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (s *Server) handleUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	s.mu.Lock()
+	u := s.updater
+	s.mu.Unlock()
+
+	if u == nil {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"available":       false,
+			"current_version": config.Version,
+		})
+		return
+	}
+
+	status := u.Status()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(status)
+}
+
+func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	s.mu.Lock()
+	u := s.updater
+	s.mu.Unlock()
+
+	if u == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"error": "Update checker is not configured",
+		})
+		return
+	}
+
+	status, err := u.Check(r.Context())
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	_ = json.NewEncoder(w).Encode(status)
 }
 
 func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
@@ -346,10 +417,21 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			incoming.WebUIPort = 0
 		}
 
+		if incoming.UpdateRepo == "" {
+			incoming.UpdateRepo = current.UpdateRepo
+		}
+
 		if err := config.Save(incoming); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
 			return
+		}
+
+		s.mu.Lock()
+		u := s.updater
+		s.mu.Unlock()
+		if u != nil {
+			u.SetEnabled(incoming.CheckUpdates)
 		}
 
 		s.SetJSONEnabled(incoming.JSONEnabled)

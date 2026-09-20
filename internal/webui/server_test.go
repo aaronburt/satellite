@@ -1,6 +1,7 @@
 package webui
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
+	"satellite/internal/updater"
 )
 
 func TestAuthMiddlewareAndEndpoints(t *testing.T) {
@@ -73,5 +75,47 @@ func TestAuthMiddlewareAndEndpoints(t *testing.T) {
 	}
 	if !cfgResp.Expose.Webcam {
 		t.Errorf("expected webcam expose to be true")
+	}
+
+	reqUpdate, _ := http.NewRequest("GET", "/api/update?token="+token, nil)
+	rrUpdate := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrUpdate, reqUpdate)
+	if rrUpdate.Code != http.StatusOK {
+		t.Errorf("expected 200 OK for /api/update, got %d", rrUpdate.Code)
+	}
+
+	var updateResp map[string]interface{}
+	if err := json.Unmarshal(rrUpdate.Body.Bytes(), &updateResp); err != nil {
+		t.Fatalf("failed to decode update response: %v", err)
+	}
+	if _, ok := updateResp["available"]; !ok {
+		t.Errorf("expected available field in update response")
+	}
+
+	checker := updater.NewChecker("aaronburt/satellite", "0.14.0", nil)
+	server.SetUpdater(checker)
+	if !checker.IsEnabled() {
+		t.Errorf("expected checker to be enabled by default")
+	}
+
+	cfgResp.CheckUpdates = false
+	bodyBytes, _ := json.Marshal(cfgResp)
+	reqSave, _ := http.NewRequest("POST", "/api/config?token="+token, bytes.NewReader(bodyBytes))
+	rrSave := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrSave, reqSave)
+	if rrSave.Code != http.StatusOK {
+		t.Errorf("expected 200 OK for POST /api/config, got %d", rrSave.Code)
+	}
+
+	if checker.IsEnabled() {
+		t.Errorf("expected checker to be disabled after saving config with CheckUpdates: false")
+	}
+
+	savedCfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("failed to load saved config: %v", err)
+	}
+	if savedCfg.CheckUpdates {
+		t.Errorf("expected saved config CheckUpdates to be false")
 	}
 }

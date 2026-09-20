@@ -12,6 +12,8 @@ import (
 
 	"satellite/internal/config"
 	"satellite/internal/mqtt"
+	"satellite/internal/toast"
+	"satellite/internal/updater"
 	"satellite/internal/webui"
 
 	"github.com/getlantern/systray"
@@ -21,22 +23,26 @@ import (
 var iconData []byte
 
 type Tray struct {
-	server     *webui.Server
-	mqttClient *mqtt.Client
-	statusItem *systray.MenuItem
-	openItem   *systray.MenuItem
-	toggleItem *systray.MenuItem
-	quitItem   *systray.MenuItem
-	onExit     func()
-	cancel     context.CancelFunc
-	mu         sync.Mutex
+	server          *webui.Server
+	mqttClient      *mqtt.Client
+	updaterInstance *updater.Checker
+	statusItem      *systray.MenuItem
+	updateItem      *systray.MenuItem
+	checkUpdateItem *systray.MenuItem
+	openItem        *systray.MenuItem
+	toggleItem      *systray.MenuItem
+	quitItem        *systray.MenuItem
+	onExit          func()
+	cancel          context.CancelFunc
+	mu              sync.Mutex
 }
 
-func NewTray(server *webui.Server, mqttClient *mqtt.Client, onExit func()) *Tray {
+func NewTray(server *webui.Server, mqttClient *mqtt.Client, updaterInstance *updater.Checker, onExit func()) *Tray {
 	return &Tray{
-		server:     server,
-		mqttClient: mqttClient,
-		onExit:     onExit,
+		server:          server,
+		mqttClient:      mqttClient,
+		updaterInstance: updaterInstance,
+		onExit:          onExit,
 	}
 }
 
@@ -52,11 +58,15 @@ func (t *Tray) onReady() {
 	t.statusItem = systray.AddMenuItem("Status: Checking...", "MQTT Connection Status")
 	t.statusItem.Disable()
 
+	t.updateItem = systray.AddMenuItem("Update Available", "Click to view release on GitHub")
+	t.updateItem.Hide()
+
 	systray.AddSeparator()
 
 	t.openItem = systray.AddMenuItem("Open WebUI", "Open WebUI configuration in browser")
 	t.openItem.Disable()
 	t.toggleItem = systray.AddMenuItem("WebUI: Disabled (Click to Enable)", "Enable or disable embedded WebUI HTTP server")
+	t.checkUpdateItem = systray.AddMenuItem("Check for Updates", "Check GitHub for newer versions")
 
 	systray.AddSeparator()
 	t.quitItem = systray.AddMenuItem("Exit", "Exit Satellite Agent")
@@ -105,6 +115,16 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 				t.openItem.Disable()
 				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
 			}
+
+			if t.updaterInstance != nil {
+				updateStatus := t.updaterInstance.Status()
+				if updateStatus.Available {
+					t.updateItem.SetTitle(fmt.Sprintf("Update Available: %s (Click to View)", updateStatus.LatestVersion))
+					t.updateItem.Show()
+				} else {
+					t.updateItem.Hide()
+				}
+			}
 		}
 	}
 }
@@ -112,6 +132,15 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 func (t *Tray) eventLoop() {
 	for {
 		select {
+		case <-t.updateItem.ClickedCh:
+			if t.updaterInstance != nil {
+				status := t.updaterInstance.Status()
+				if status.ReleaseURL != "" {
+					_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", status.ReleaseURL).Start()
+				}
+			}
+		case <-t.checkUpdateItem.ClickedCh:
+			go t.manualCheckUpdate()
 		case <-t.openItem.ClickedCh:
 			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
 				url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", t.server.Port(), t.server.Token())
@@ -139,5 +168,35 @@ func (t *Tray) eventLoop() {
 			systray.Quit()
 			return
 		}
+	}
+}
+
+func (t *Tray) manualCheckUpdate() {
+	if t.updaterInstance == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	status, err := t.updaterInstance.Check(ctx)
+	if err != nil {
+		_ = toast.Show(toast.Notification{
+			Title:   "Satellite Update",
+			Message: fmt.Sprintf("Update check failed: %v", err),
+		})
+		return
+	}
+
+	if status.Available {
+		_ = toast.Show(toast.Notification{
+			Title:   "Satellite Update Available",
+			Message: fmt.Sprintf("Version %s is available. Click to download.", status.LatestVersion),
+			URL:     status.ReleaseURL,
+		})
+	} else {
+		_ = toast.Show(toast.Notification{
+			Title:   "Satellite Up to Date",
+			Message: fmt.Sprintf("Satellite is up to date (%s).", config.Version),
+		})
 	}
 }

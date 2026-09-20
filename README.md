@@ -6,7 +6,7 @@ Lightweight Windows telemetry agent and remote controller for Home Assistant ove
 
 ## Features
 
-- **Telemetry:** CPU, RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
+- **Telemetry:** CPU, GPU (Core Load, VRAM, Temperature, Power), RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
 - **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, Windows Dark/Light Theme, Pending Reboot.
 - **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls.
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.

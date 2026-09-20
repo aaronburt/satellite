@@ -57,6 +57,16 @@ func TestHasSignificantDelta(t *testing.T) {
 	if !HasSignificantDelta(prev, curr) {
 		t.Errorf("expected delta when display power changes")
 	}
+
+	prev.DisplayPowered = &dispOn
+	curr.DisplayPowered = &dispOn
+	usage1 := 10.0
+	usage2 := 20.0
+	prev.GPUs = []GPUInfo{{Index: 0, CoreUsagePercent: &usage1}}
+	curr.GPUs = []GPUInfo{{Index: 0, CoreUsagePercent: &usage2}}
+	if !HasSignificantDelta(prev, curr) {
+		t.Errorf("expected delta when GPU usage changes")
+	}
 }
 
 func TestTelemetryWin32Functions(t *testing.T) {
@@ -109,5 +119,22 @@ func TestCollectorCollect(t *testing.T) {
 	last := c.Last()
 	if last.Timestamp != snap.Timestamp {
 		t.Errorf("expected Last() timestamp to match collected snapshot")
+	}
+}
+
+func TestGPUInfo(t *testing.T) {
+	gpus := GetGPUInfo()
+	t.Logf("Detected %d GPU(s)", len(gpus))
+	for _, g := range gpus {
+		t.Logf("GPU [%d]: %s (Vendor: %s)", g.Index, g.Name, g.Vendor)
+		if g.CoreUsagePercent != nil {
+			t.Logf("  Core: %.1f%%", *g.CoreUsagePercent)
+		}
+		if g.MemoryUsedMB != nil && g.MemoryTotalMB != nil {
+			t.Logf("  VRAM: %.0f / %.0f MB", *g.MemoryUsedMB, *g.MemoryTotalMB)
+		}
+		if g.TemperatureC != nil {
+			t.Logf("  Temp: %.0f C", *g.TemperatureC)
+		}
 	}
 }

@@ -215,6 +215,49 @@ body{
 .status-dot.connecting{background:#facc15}
 .status-dot.offline{background:#f87171}
 
+.update-banner{
+  background:rgba(0,120,212,0.15);
+  border-bottom:1px solid var(--accent);
+  padding:10px 20px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+  color:var(--text);
+  user-select:none;
+}
+.update-banner-left{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.update-icon{
+  background:var(--accent);
+  color:#fff;
+  border-radius:50%;
+  width:20px;
+  height:20px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:12px;
+}
+.update-banner-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.update-btn{
+  background:var(--accent) !important;
+  color:#fff !important;
+  text-decoration:none;
+  font-weight:500;
+}
+.update-btn:hover{
+  background:var(--accent-hover) !important;
+}
+
 .content-panel{
   flex:1;
   display:flex;
@@ -569,6 +612,7 @@ input:focus,select:focus{
         <span class="page-title" id="page-title">Processes</span>
       </div>
       <div class="command-actions">
+        <button type="button" class="cmd-btn" id="btn-check-updates" onclick="checkUpdatesManual()">Check for Updates</button>
         <button type="button" class="cmd-btn" onclick="triggerAction('test_toast')">Run Test Toast</button>
         <button type="button" class="cmd-btn" onclick="triggerAction('lock')">Lock Workstation</button>
         <button type="button" class="cmd-btn" onclick="triggerAction('mute')">Mute Audio</button>
@@ -579,6 +623,18 @@ input:focus,select:focus{
         </div>
       </div>
     </header>
+
+    <!-- Update Alert Banner -->
+    <div id="update-banner" class="update-banner" style="display:none;">
+      <div class="update-banner-left">
+        <span class="update-icon">&#x2191;</span>
+        <span id="update-banner-text">A new version of Satellite is available!</span>
+      </div>
+      <div class="update-banner-actions">
+        <a id="update-banner-link" href="#" target="_blank" rel="noopener noreferrer" class="cmd-btn update-btn">View Release</a>
+        <button type="button" class="cmd-btn" id="update-dismiss-btn" onclick="dismissUpdateBanner()">Dismiss</button>
+      </div>
+    </div>
 
     <!-- TAB 1: PROCESSES / TELEMETRY TABLE -->
     <section id="panel-processes" class="content-panel">
@@ -841,6 +897,15 @@ input:focus,select:focus{
             </div>
           </div>
 
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">Software Updates</span>
+            </div>
+            <div class="field">
+              <label class="toggle-item"><input type="checkbox" id="check_updates"><span>Automatically check GitHub for updates</span></label>
+            </div>
+          </div>
+
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
             <div style="display:flex;gap:6px;">
               <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
@@ -987,6 +1052,65 @@ function updateRowVisibility(expose, hasBattery) {
   $('row-battery').className = 'data-row' + ((expose.battery && hasBattery) ? '' : ' hidden');
 }
 
+let updateDismissed = false;
+
+function dismissUpdateBanner() {
+  updateDismissed = true;
+  const banner = $('update-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+}
+
+function handleUpdateStatus(status) {
+  const banner = $('update-banner');
+  if (!banner) return;
+  if (!status || !status.available || updateDismissed) {
+    if (!status || !status.available) {
+      banner.style.display = 'none';
+    }
+    return;
+  }
+  const text = $('update-banner-text');
+  const link = $('update-banner-link');
+  if (text) {
+    text.textContent = `A new version of Satellite (${status.latest_version}) is available!`;
+  }
+  if (link) {
+    link.href = status.release_url || 'https://github.com/aaronburt/satellite/releases';
+  }
+  banner.style.display = 'flex';
+}
+
+async function checkUpdatesManual() {
+  const btn = $('btn-check-updates');
+  const origText = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Checking...';
+  }
+  try {
+    const res = await authFetch('/api/update/check', { method: 'POST' });
+    const data = await res.json();
+    if (data.available) {
+      updateDismissed = false;
+      handleUpdateStatus(data);
+      alert(`Update available: ${data.latest_version}! See banner above to view release.`);
+    } else if (data.error) {
+      alert(`Update check failed: ${data.error}`);
+    } else {
+      alert(`Satellite is up to date (${data.current_version || '{{VERSION}}'}).`);
+    }
+  } catch (err) {
+    alert(`Failed to check for updates: ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+}
+
 async function poll() {
   try {
     const res = await authFetch('/api/status');
@@ -997,6 +1121,9 @@ async function poll() {
     }
     const data = await res.json();
     setStatusBadge(data.mqtt_status);
+    if (data.update_status) {
+      handleUpdateStatus(data.update_status);
+    }
 
     const t = data.telemetry;
     if (t) {
@@ -1119,6 +1246,7 @@ async function loadConfig() {
     $('port').value = cfg.port || cfg.webui_port || '';
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
+    $('check_updates').checked = cfg.check_updates !== false;
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -1221,6 +1349,7 @@ $('cfg-form').onsubmit = async (e) => {
     webui_port: parseInt($('port').value, 10) || 0,
     json_enabled: $('json_enabled').checked,
     api_key: $('api_key').value.trim(),
+    check_updates: $('check_updates').checked,
     webhook: {
       enabled: false,
       url: '',

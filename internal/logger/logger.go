@@ -28,16 +28,10 @@ var (
 	minLevel   string
 	secret     string
 	nodeID     string
-	queue      chan Event
-	once       sync.Once
 	httpClient = &http.Client{Timeout: 5 * time.Second}
 )
 
 func Init(cfg config.WebhookConfig, id string) {
-	once.Do(func() {
-		queue = make(chan Event, 100)
-		go worker()
-	})
 	UpdateConfig(cfg, id)
 }
 
@@ -83,6 +77,8 @@ func Log(level, category, message string) {
 
 	mu.RLock()
 	id := nodeID
+	targetURL := url
+	targetSecret := secret
 	mu.RUnlock()
 
 	event := Event{
@@ -94,10 +90,9 @@ func Log(level, category, message string) {
 		Message:   message,
 	}
 
-	select {
-	case queue <- event:
-	default:
-	}
+	go func() {
+		_ = postEvent(targetURL, targetSecret, event)
+	}()
 }
 
 func Info(category, message string) {
@@ -151,21 +146,6 @@ func postEvent(targetURL, targetSecret string, event Event) error {
 		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
 	return nil
-}
-
-func worker() {
-	for event := range queue {
-		mu.RLock()
-		targetURL := url
-		targetSecret := secret
-		mu.RUnlock()
-
-		if targetURL == "" {
-			continue
-		}
-
-		_ = postEvent(targetURL, targetSecret, event)
-	}
 }
 
 func SendTestWebhook(cfg config.WebhookConfig, id string) error {
