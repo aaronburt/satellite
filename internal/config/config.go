@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.16.0"
+const Version = "0.17.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -31,7 +31,7 @@ type ExposeConfig struct {
 	SessionLock   bool `json:"session_lock"`
 	Microphone    bool `json:"microphone"`
 	Fullscreen    bool `json:"fullscreen"`
-	WindowsTheme  bool `json:"windows_theme"`
+	SystemTheme   bool `json:"system_theme"`
 	LocalIP       bool `json:"local_ip"`
 	Battery       bool `json:"battery"`
 	ActiveWindow  bool `json:"active_window"`
@@ -45,6 +45,7 @@ type ExposeConfig struct {
 	DisplayState  bool `json:"display_state"`
 	Notifications bool `json:"notifications"`
 	GPU           bool `json:"gpu"`
+	NvidiaNVML    bool `json:"nvidia_nvml"`
 }
 
 type WebhookConfig struct {
@@ -88,36 +89,37 @@ func DefaultExpose() ExposeConfig {
 	return ExposeConfig{
 		CPU:           true,
 		Memory:        true,
-		Storage:       true,
+		Storage:       false,
 		Network:       true,
-		Uptime:        true,
-		UserPresence:  true,
-		SessionLock:   true,
-		Microphone:    true,
-		Fullscreen:    true,
-		WindowsTheme:  true,
-		LocalIP:       true,
-		Battery:       true,
-		ActiveWindow:  true,
-		WindowTitle:   true,
-		UpdatePending: true,
-		MediaControl:  true,
-		RemoteLock:    true,
-		Webcam:        true,
-		AudioOutput:   true,
-		Wifi:          true,
-		DisplayState:  true,
-		Notifications: true,
-		GPU:           true,
+		Uptime:        false,
+		UserPresence:  false,
+		SessionLock:   false,
+		Microphone:    false,
+		Fullscreen:    false,
+		SystemTheme:   false,
+		LocalIP:       false,
+		Battery:       false,
+		ActiveWindow:  false,
+		WindowTitle:   false,
+		UpdatePending: false,
+		MediaControl:  false,
+		RemoteLock:    false,
+		Webcam:        false,
+		AudioOutput:   false,
+		Wifi:          false,
+		DisplayState:  false,
+		Notifications: false,
+		GPU:           false,
+		NvidiaNVML:    false,
 	}
 }
 
 func ConfigDir() string {
-	appData := os.Getenv("APPDATA")
-	if appData == "" {
-		appData = "."
+	dir, err := os.UserConfigDir()
+	if err != nil || dir == "" {
+		dir = "."
 	}
-	return filepath.Join(appData, "satellite")
+	return filepath.Join(dir, "satellite")
 }
 
 func ConfigFilePath() string {
@@ -153,7 +155,7 @@ func DefaultConfig() Config {
 			MinLevel: "info",
 			Secret:   "",
 		},
-		CheckUpdates: true,
+		CheckUpdates: false,
 		UpdateRepo:   "aaronburt/satellite",
 	}
 }

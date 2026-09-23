@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build !windows && !linux
 
 package telemetry
 
@@ -46,7 +46,7 @@ func IsFullscreenActive() bool {
 	return false
 }
 
-func GetWindowsTheme() string {
+func GetSystemTheme() string {
 	return "dark"
 }
 

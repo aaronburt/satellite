@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"satellite/internal/actions"
+	"satellite/internal/capabilities"
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/telemetry"
@@ -39,6 +40,7 @@ type Client struct {
 	lastSnapshot telemetry.Snapshot
 	lastSentTime time.Time
 	hasBattery   bool
+	caps         capabilities.PlatformCapabilities
 	registry     *actions.Registry
 	notifyChan   chan toast.Notification
 }
@@ -48,6 +50,7 @@ func NewClient() *Client {
 	c := &Client{
 		status:     StatusDisconnected,
 		registry:   reg,
+		caps:       capabilities.Detect(),
 		notifyChan: make(chan toast.Notification, 5),
 	}
 	reg.SetStatusProvider(func() string {
@@ -59,6 +62,12 @@ func NewClient() *Client {
 		return ""
 	})
 	return c
+}
+
+func (c *Client) SetCapabilities(caps capabilities.PlatformCapabilities) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.caps = caps
 }
 
 func (c *Client) SetHasBattery(hasBattery bool) {
@@ -314,7 +323,10 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 		subCancel()
 	}
 
-	discoveryItems := GetAllDiscoveryItems(cfg, hasBattery)
+	c.mu.RLock()
+	caps := c.caps
+	c.mu.RUnlock()
+	discoveryItems := GetAllDiscoveryItems(cfg, hasBattery, caps)
 	for _, item := range discoveryItems {
 		dCtx, dCancel := context.WithTimeout(ctx, 3*time.Second)
 		payload := item.Payload

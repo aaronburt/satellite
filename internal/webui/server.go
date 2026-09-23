@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 
+	"satellite/internal/capabilities"
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
@@ -33,6 +34,7 @@ type Server struct {
 	collector    *telemetry.Collector
 	mqttClient   *mqtt.Client
 	updater      *updater.Checker
+	caps         capabilities.PlatformCapabilities
 	running      bool
 	webUIEnabled bool
 	jsonEnabled  bool
@@ -43,8 +45,15 @@ func NewServer(collector *telemetry.Collector, mqttClient *mqtt.Client) *Server 
 	return &Server{
 		collector:    collector,
 		mqttClient:   mqttClient,
+		caps:         capabilities.Detect(),
 		webUIEnabled: true,
 	}
+}
+
+func (s *Server) SetCapabilities(caps capabilities.PlatformCapabilities) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.caps = caps
 }
 
 func (s *Server) SetUpdater(u *updater.Checker) {
@@ -215,6 +224,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	}))
 
 	mux.HandleFunc("/api/status", webUIMiddleware(authMiddleware(s.handleStatus)))
+	mux.HandleFunc("/api/capabilities", webUIMiddleware(authMiddleware(s.handleCapabilities)))
 	mux.HandleFunc("/api/config", webUIMiddleware(authMiddleware(s.handleConfig)))
 	mux.HandleFunc("/api/action", webUIMiddleware(authMiddleware(s.handleAction)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
@@ -317,6 +327,15 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	caps := s.caps
+	s.mu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(caps)
 }
 
 func (s *Server) handleUpdateStatus(w http.ResponseWriter, r *http.Request) {

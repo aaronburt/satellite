@@ -14,18 +14,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-type GPUInfo struct {
-	Index            int      `json:"index"`
-	Name             string   `json:"name"`
-	Vendor           string   `json:"vendor"`
-	CoreUsagePercent *float64 `json:"core_usage_percent,omitempty"`
-	MemoryUsedMB     *float64 `json:"memory_used_mb,omitempty"`
-	MemoryTotalMB    *float64 `json:"memory_total_mb,omitempty"`
-	MemoryPercent    *float64 `json:"memory_percent,omitempty"`
-	TemperatureC     *float64 `json:"temperature_c,omitempty"`
-	PowerWatts       *float64 `json:"power_watts,omitempty"`
-	FanSpeedPercent  *float64 `json:"fan_speed_percent,omitempty"`
-}
 
 type dxgiAdapterInfo struct {
 	index     int
@@ -394,13 +382,20 @@ func (n *nvmlCollector) getStats() []nvmlDeviceStats {
 	return results
 }
 
-func GetGPUInfo() []GPUInfo {
+func GetGPUInfo(enableNVML ...bool) []GPUInfo {
+	withNVML := false
+	if len(enableNVML) > 0 {
+		withNVML = enableNVML[0]
+	}
+
 	globalPdhOnce.Do(func() {
 		globalPdhGpu = initPDHGpuCollector()
 	})
-	globalNvmlOnce.Do(func() {
-		globalNvml = initNVMLCollector()
-	})
+	if withNVML {
+		globalNvmlOnce.Do(func() {
+			globalNvml = initNVMLCollector()
+		})
+	}
 
 	adapters := getDXGIAdapters()
 	if len(adapters) == 0 {
@@ -419,7 +414,7 @@ func GetGPUInfo() []GPUInfo {
 	}
 
 	var nvmlStats []nvmlDeviceStats
-	if globalNvml != nil {
+	if withNVML && globalNvml != nil {
 		nvmlStats = globalNvml.getStats()
 	}
 

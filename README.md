@@ -1,42 +1,57 @@
 # Satellite
 
-Lightweight Windows telemetry agent and remote controller for Home Assistant over MQTT.
+Lightweight Windows & Linux telemetry agent and remote controller for Home Assistant over MQTT.
 
 ---
 
 ## Features
 
 - **Telemetry:** CPU, GPU (Core Load, VRAM, Temperature, Power), RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
-- **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, Windows Dark/Light Theme, Pending Reboot.
-- **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls.
+- **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, System Dark/Light Theme, Pending Reboot.
+- **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls or Linux MPRIS D-Bus.
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
-- **Toast Notifications:** Native Windows 10/11 toast alerts with titles, messages, clickable URLs, and silent chime option.
-- **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons.
-- **Tray & Web UI:** Runs in system tray with a local Web UI for setup.
+- **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
+- **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
+- **Tray, Web UI & Headless:** Runs in system tray on desktop, provides a local Web UI for setup, or runs headless (`--headless`) as a background systemd daemon.
 
 ---
 
 ## Quick Start
 
 ### 1. Build
-- **Standalone Binary:**
-  ```bash
+- **Windows Binary:**
+  ```powershell
   go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
+  ```
+- **Linux Binary:**
+  ```bash
+  go build -s -w -o satellite .
   ```
 - **Windows Installer (Inno Setup):**
   ```powershell
   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer.iss
   ```
-  The compiled installer is output to `dist/Satellite-Setup-v0.13.0.exe`.
 
 ### 2. Run
-- **Tray Mode:** Double-click `satellite.exe` (runs in system tray).
-- **CLI Mode:** Run `.\satellite.exe --cli` for interactive terminal dashboard.
+- **Tray Mode (Windows / Linux Desktop):** Run `satellite.exe` or `./satellite`.
+- **Headless Mode (Linux Server / Background Service):** Run `./satellite --headless`.
+- **CLI Mode:** Run `./satellite --cli` for interactive terminal dashboard.
+- **Systemd User Service (Linux):**
+  ```bash
+  mkdir -p ~/.config/systemd/user
+  cp satellite.service ~/.config/systemd/user/
+  systemctl --user daemon-reload
+  systemctl --user enable --now satellite
+  ```
 
 ### 3. Configure
-Right-click the tray icon and select **WebUI: Disabled (Click to Enable)**, then click **Open Web UI** to configure your MQTT broker connection, toggle exposed sensors, configure the `/json` snapshot endpoint, or enable webhook log pushing.
+Right-click the tray icon and select **Open Web UI** (or launch Satellite in debug/headless mode to configure via browser) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, or enable webhook log pushing.
 
-Config is saved at `%APPDATA%\satellite\config.json`.
+The WebUI automatically probes your operating system and hardware on boot and only displays sensor toggles that are actually supported on your current machine.
+
+Config is saved at:
+- **Windows:** `%APPDATA%\satellite\config.json`
+- **Linux:** `~/.config/satellite/config.json`
 
 ---
 

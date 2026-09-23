@@ -858,27 +858,34 @@ input:focus,select:focus{
               </div>
             </div>
             <div class="toggle-grid">
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-theme"><span>Windows Theme</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+              <label class="toggle-item" data-cap="cpu"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
+              <label class="toggle-item" data-cap="memory"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+              <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
+              <label class="toggle-item" data-cap="gpu" style="flex-direction:column;align-items:flex-start;gap:2px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" class="exp-chk" id="exp-nvidia-nvml">
+                  <span>NVIDIA NVML (Temps & Power)</span>
+                </div>
+                <span style="font-size:11px;color:#eab308;margin-left:23px;">⚠️ Loads nvml.dll (~20–25 MB RAM)</span>
+              </label>
+              <label class="toggle-item" data-cap="storage"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
+              <label class="toggle-item" data-cap="network"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
+              <label class="toggle-item" data-cap="local_ip"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
+              <label class="toggle-item" data-cap="uptime"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
+              <label class="toggle-item" data-cap="battery"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
+              <label class="toggle-item" data-cap="system_theme"><input type="checkbox" class="exp-chk" id="exp-theme"><span id="lbl-theme">System Theme</span></label>
+              <label class="toggle-item" data-cap="update_pending"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
+              <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
+              <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
+              <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
+              <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
+              <label class="toggle-item" data-cap="wifi"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
+              <label class="toggle-item" data-cap="display_state"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
+              <label class="toggle-item" data-cap="fullscreen"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
+              <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
+              <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
             </div>
           </div>
 
@@ -890,8 +897,8 @@ input:focus,select:focus{
               Elevated permissions allow remote MQTT subscribers to execute actions and display unprompted interactive alerts on this workstation.
             </div>
             <div class="toggle-grid">
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
-              <label class="toggle-item"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
+              <label class="toggle-item" data-cap="remote_lock"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
+              <label class="toggle-item" data-cap="notifications"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
             </div>
           </div>
 
@@ -1301,32 +1308,50 @@ async function loadConfig() {
     $('port').value = cfg.port || cfg.webui_port || '';
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
-    $('check_updates').checked = cfg.check_updates !== false;
+    $('check_updates').checked = !!cfg.check_updates;
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
-    $('exp-gpu').checked = currentExpose.gpu !== false;
-    $('exp-storage').checked = currentExpose.storage !== false;
     $('exp-net').checked = currentExpose.network !== false;
-    $('exp-local-ip').checked = currentExpose.local_ip !== false;
-    $('exp-uptime').checked = currentExpose.uptime !== false;
-    $('exp-presence').checked = currentExpose.user_presence !== false;
-    $('exp-lock').checked = currentExpose.session_lock !== false;
-    $('exp-mic').checked = currentExpose.microphone !== false;
-    $('exp-fullscreen').checked = currentExpose.fullscreen !== false;
-    $('exp-theme').checked = currentExpose.windows_theme !== false;
-    $('exp-battery').checked = currentExpose.battery !== false;
-    $('exp-window').checked = currentExpose.active_window !== false;
-    $('exp-title').checked = currentExpose.window_title !== false;
-    $('exp-reboot').checked = currentExpose.update_pending !== false;
-    $('exp-media').checked = currentExpose.media_control !== false;
-    $('exp-remote-lock').checked = currentExpose.remote_lock !== false;
-    $('exp-webcam').checked = currentExpose.webcam !== false;
-    $('exp-audio-output').checked = currentExpose.audio_output !== false;
-    $('exp-wifi').checked = currentExpose.wifi !== false;
-    $('exp-display').checked = currentExpose.display_state !== false;
-    $('exp-notifications').checked = currentExpose.notifications !== false;
+    $('exp-gpu').checked = !!currentExpose.gpu;
+    $('exp-nvidia-nvml').checked = !!currentExpose.nvidia_nvml;
+    $('exp-storage').checked = !!currentExpose.storage;
+    $('exp-local-ip').checked = !!currentExpose.local_ip;
+    $('exp-uptime').checked = !!currentExpose.uptime;
+    $('exp-presence').checked = !!currentExpose.user_presence;
+    $('exp-lock').checked = !!currentExpose.session_lock;
+    $('exp-mic').checked = !!currentExpose.microphone;
+    $('exp-fullscreen').checked = !!currentExpose.fullscreen;
+    $('exp-theme').checked = !!(currentExpose.system_theme || currentExpose.windows_theme);
+    $('exp-battery').checked = !!currentExpose.battery;
+    $('exp-window').checked = !!currentExpose.active_window;
+    $('exp-title').checked = !!currentExpose.window_title;
+    $('exp-reboot').checked = !!currentExpose.update_pending;
+    $('exp-media').checked = !!currentExpose.media_control;
+    $('exp-remote-lock').checked = !!currentExpose.remote_lock;
+    $('exp-webcam').checked = !!currentExpose.webcam;
+    $('exp-audio-output').checked = !!currentExpose.audio_output;
+    $('exp-wifi').checked = !!currentExpose.wifi;
+    $('exp-display').checked = !!currentExpose.display_state;
+    $('exp-notifications').checked = !!currentExpose.notifications;
+
+    try {
+      const capRes = await authFetch('/api/capabilities');
+      if (capRes.ok) {
+        const caps = await capRes.json();
+        document.querySelectorAll('[data-cap]').forEach(el => {
+          const capKey = el.getAttribute('data-cap');
+          if (caps[capKey] === false) {
+            el.style.display = 'none';
+          }
+        });
+        if (caps.os === 'linux') {
+          const lblTheme = $('lbl-theme');
+          if (lblTheme) lblTheme.innerText = 'Desktop Theme';
+        }
+      }
+    } catch (e) {}
   } catch (err) {
   }
 }
@@ -1368,6 +1393,7 @@ $('cfg-form').onsubmit = async (e) => {
     cpu: $('exp-cpu').checked,
     memory: $('exp-mem').checked,
     gpu: $('exp-gpu').checked,
+    nvidia_nvml: $('exp-nvidia-nvml').checked,
     storage: $('exp-storage').checked,
     network: $('exp-net').checked,
     local_ip: $('exp-local-ip').checked,
@@ -1376,7 +1402,7 @@ $('cfg-form').onsubmit = async (e) => {
     session_lock: $('exp-lock').checked,
     microphone: $('exp-mic').checked,
     fullscreen: $('exp-fullscreen').checked,
-    windows_theme: $('exp-theme').checked,
+    system_theme: $('exp-theme').checked,
     battery: $('exp-battery').checked,
     active_window: $('exp-window').checked,
     window_title: $('exp-title').checked,

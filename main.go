@@ -1,5 +1,3 @@
-//go:build windows
-
 package main
 
 import (
@@ -12,12 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"satellite/internal/capabilities"
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
-	"satellite/internal/tray"
 	"satellite/internal/updater"
 	"satellite/internal/webui"
 )
@@ -128,8 +126,8 @@ func runCLI(collector *telemetry.Collector, cfg config.Config, updaterInstance *
 				}
 				fmt.Printf(" Fullscreen   : %s\n", fsStr)
 			}
-			if snap.WindowsTheme != "" {
-				fmt.Printf(" Theme        : %s\n", snap.WindowsTheme)
+			if snap.SystemTheme != "" {
+				fmt.Printf(" Theme        : %s\n", snap.SystemTheme)
 			}
 			if snap.AudioOutputName != "" {
 				fmt.Printf(" Audio Output : %s\n", snap.AudioOutputName)
@@ -190,6 +188,7 @@ func main() {
 
 	cliMode := flag.Bool("cli", false, "Run in terminal CLI/TUI mode")
 	debugMode := flag.Bool("debug", false, "Run in debug mode (enables WebUI automatically with hot reload from disk)")
+	headlessMode := flag.Bool("headless", false, "Run in headless background mode without system tray")
 	flag.Parse()
 
 	cfg, err := config.Load()
@@ -201,6 +200,7 @@ func main() {
 	logger.Init(cfg.Webhook, cfg.NodeID)
 	logger.Info("system", fmt.Sprintf("Satellite agent v%s started on %s", config.Version, cfg.NodeID))
 
+	caps := capabilities.Detect()
 	collector := telemetry.NewCollector()
 
 	updaterInstance := updater.NewChecker(cfg.UpdateRepo, config.Version, func(status updater.CheckStatus) {
@@ -221,10 +221,12 @@ func main() {
 	telemetry.TrimWorkingSet()
 
 	mqttClient := mqtt.NewClient()
+	mqttClient.SetCapabilities(caps)
 	mqttClient.SetHasBattery(initialSnap.HasBattery)
 	mqttClient.Start(cfg)
 
 	server := webui.NewServer(collector, mqttClient)
+	server.SetCapabilities(caps)
 	server.SetUpdater(updaterInstance)
 	server.SetWebUIEnabled(*debugMode)
 	if *debugMode {
@@ -255,14 +257,19 @@ func main() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
+		var tickCount uint64
 		for {
 			select {
 			case <-tickerCtx.Done():
 				return
 			case <-ticker.C:
+				tickCount++
 				currentCfg := config.Get()
 				snap := collector.Collect(currentCfg.Expose)
 				_ = mqttClient.PublishTelemetry(snap)
+				if tickCount%12 == 0 {
+					telemetry.TrimWorkingSet()
+				}
 			}
 		}
 	}()
@@ -275,7 +282,7 @@ func main() {
 		server.Stop()
 	}
 
-	if *debugMode {
+	if *debugMode || *headlessMode {
 		sigCtx, sigCancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer sigCancel()
 		<-sigCtx.Done()
@@ -283,6 +290,5 @@ func main() {
 		return
 	}
 
-	t := tray.NewTray(server, mqttClient, updaterInstance, onExit)
-	t.Run()
+	runTray(server, mqttClient, updaterInstance, onExit)
 }

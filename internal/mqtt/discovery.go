@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"satellite/internal/capabilities"
 	"satellite/internal/config"
 	"satellite/internal/telemetry"
 )
@@ -49,7 +50,16 @@ type DiscoveryItem struct {
 	ShouldRun bool
 }
 
-func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
+func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...capabilities.PlatformCapabilities) []DiscoveryItem {
+	var caps capabilities.PlatformCapabilities
+	if len(platformCaps) > 0 {
+		caps = platformCaps[0]
+	} else {
+		caps = capabilities.Detect()
+	}
+	isCap := func(f string) bool {
+		return caps.IsSupported(f)
+	}
 	nodeID := cfg.NodeID
 	topicPrefix := cfg.MQTT.TopicPrefix
 	if topicPrefix == "" {
@@ -75,7 +85,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 	}{
 		{
 			Key:       "cpu",
-			ShouldRun: cfg.Expose.CPU,
+			ShouldRun: cfg.Expose.CPU && isCap("cpu"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "CPU Usage",
@@ -91,7 +101,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "memory_percent",
-			ShouldRun: cfg.Expose.Memory,
+			ShouldRun: cfg.Expose.Memory && isCap("memory"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Memory Usage",
@@ -107,7 +117,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "memory_used",
-			ShouldRun: cfg.Expose.Memory,
+			ShouldRun: cfg.Expose.Memory && isCap("memory"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Memory Used",
@@ -124,7 +134,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "network_rx",
-			ShouldRun: cfg.Expose.Network,
+			ShouldRun: cfg.Expose.Network && isCap("network"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Network Download",
@@ -141,7 +151,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "network_tx",
-			ShouldRun: cfg.Expose.Network,
+			ShouldRun: cfg.Expose.Network && isCap("network"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Network Upload",
@@ -158,7 +168,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "uptime",
-			ShouldRun: cfg.Expose.Uptime,
+			ShouldRun: cfg.Expose.Uptime && isCap("uptime"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Uptime",
@@ -175,7 +185,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "user_idle",
-			ShouldRun: cfg.Expose.UserPresence,
+			ShouldRun: cfg.Expose.UserPresence && isCap("user_presence"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "User Idle Time",
@@ -192,7 +202,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "user_active",
-			ShouldRun: cfg.Expose.UserPresence,
+			ShouldRun: cfg.Expose.UserPresence && isCap("user_presence"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "User Active",
@@ -209,7 +219,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "session_locked",
-			ShouldRun: cfg.Expose.SessionLock,
+			ShouldRun: cfg.Expose.SessionLock && isCap("session_lock"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Workstation Locked",
@@ -226,7 +236,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "microphone",
-			ShouldRun: cfg.Expose.Microphone,
+			ShouldRun: cfg.Expose.Microphone && isCap("microphone"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Microphone Active",
@@ -243,7 +253,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "fullscreen",
-			ShouldRun: cfg.Expose.Fullscreen,
+			ShouldRun: cfg.Expose.Fullscreen && isCap("fullscreen"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Fullscreen Active",
@@ -259,13 +269,13 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 			},
 		},
 		{
-			Key:       "windows_theme",
-			ShouldRun: cfg.Expose.WindowsTheme,
+			Key:       "system_theme",
+			ShouldRun: cfg.Expose.SystemTheme && isCap("system_theme"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
-				Name:              "Windows Theme",
+				Name:              "System Theme",
 				StateTopic:        stateTopic,
-				ValueTemplate:     "{{ value_json.windows_theme }}",
+				ValueTemplate:     "{{ value_json.system_theme }}",
 				UniqueID:          nodeID + "_theme",
 				Device:            device,
 				AvailabilityTopic: availTopic,
@@ -274,7 +284,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "local_ip",
-			ShouldRun: cfg.Expose.LocalIP,
+			ShouldRun: cfg.Expose.LocalIP && isCap("local_ip"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Local IP",
@@ -288,7 +298,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "battery",
-			ShouldRun: cfg.Expose.Battery && hasBattery,
+			ShouldRun: cfg.Expose.Battery && hasBattery && isCap("battery"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Battery Level",
@@ -304,7 +314,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "power_plugged",
-			ShouldRun: cfg.Expose.Battery && hasBattery,
+			ShouldRun: cfg.Expose.Battery && hasBattery && isCap("battery"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Power Connected",
@@ -320,7 +330,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "active_window",
-			ShouldRun: cfg.Expose.ActiveWindow,
+			ShouldRun: cfg.Expose.ActiveWindow && isCap("active_window"),
 			Payload: EntityDiscoveryPayload{
 				Component:              "sensor",
 				Name:                   "Active Window",
@@ -334,7 +344,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "window_title",
-			ShouldRun: cfg.Expose.WindowTitle,
+			ShouldRun: cfg.Expose.WindowTitle && isCap("active_window"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Window Title",
@@ -348,7 +358,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "update_pending",
-			ShouldRun: cfg.Expose.UpdatePending,
+			ShouldRun: cfg.Expose.UpdatePending && isCap("update_pending"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Reboot Pending",
@@ -365,7 +375,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "media_player",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:              "media_player",
 				Name:                   "Media Player",
@@ -387,7 +397,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "media_play_pause",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Play / Pause",
@@ -401,7 +411,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "media_next",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Next Track",
@@ -415,7 +425,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "media_prev",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Previous Track",
@@ -429,7 +439,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "volume_mute",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Mute / Unmute",
@@ -443,7 +453,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "volume_up",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Volume Up",
@@ -457,7 +467,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "volume_down",
-			ShouldRun: cfg.Expose.MediaControl,
+			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Volume Down",
@@ -471,7 +481,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "remote_lock",
-			ShouldRun: cfg.Expose.RemoteLock,
+			ShouldRun: cfg.Expose.RemoteLock && isCap("remote_lock"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Lock Workstation",
@@ -485,7 +495,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "webcam",
-			ShouldRun: cfg.Expose.Webcam,
+			ShouldRun: cfg.Expose.Webcam && isCap("webcam"),
 			Payload: EntityDiscoveryPayload{
 				Component:              "binary_sensor",
 				Name:                   "Webcam Active",
@@ -504,7 +514,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "audio_output",
-			ShouldRun: cfg.Expose.AudioOutput,
+			ShouldRun: cfg.Expose.AudioOutput && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Audio Output Device",
@@ -518,7 +528,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "wifi_ssid",
-			ShouldRun: cfg.Expose.Wifi,
+			ShouldRun: cfg.Expose.Wifi && isCap("wifi"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Network SSID",
@@ -532,7 +542,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "wifi_signal",
-			ShouldRun: cfg.Expose.Wifi,
+			ShouldRun: cfg.Expose.Wifi && isCap("wifi"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              "Wi-Fi Signal Strength",
@@ -549,7 +559,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "display_state",
-			ShouldRun: cfg.Expose.DisplayState,
+			ShouldRun: cfg.Expose.DisplayState && isCap("display_state"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "binary_sensor",
 				Name:              "Display Power",
@@ -566,7 +576,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		},
 		{
 			Key:       "display_sleep",
-			ShouldRun: cfg.Expose.DisplayState,
+			ShouldRun: cfg.Expose.DisplayState && isCap("display_state"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Sleep Displays",
@@ -595,7 +605,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		})
 	}
 
-	if cfg.Expose.Storage {
+	if cfg.Expose.Storage && isCap("storage") {
 		drives := telemetry.GetAllDrives()
 		for _, d := range drives {
 			cleanMount := strings.ToLower(strings.Trim(d.Mount, ":"))
@@ -622,8 +632,8 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool) []DiscoveryItem {
 		}
 	}
 
-	if cfg.Expose.GPU {
-		gpus := telemetry.GetGPUInfo()
+	if cfg.Expose.GPU && isCap("gpu") {
+		gpus := telemetry.GetGPUInfo(cfg.Expose.NvidiaNVML)
 		for _, g := range gpus {
 			gpuKey := fmt.Sprintf("gpu_%d", g.Index)
 			namePrefix := fmt.Sprintf("GPU %d", g.Index)

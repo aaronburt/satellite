@@ -381,7 +381,7 @@ func IsMicrophoneInUse() bool {
 	return false
 }
 
-func GetWindowsTheme() string {
+func GetSystemTheme() string {
 	k, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`, registry.QUERY_VALUE)
 	if err == nil {
 		defer k.Close()

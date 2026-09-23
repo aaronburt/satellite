@@ -62,10 +62,24 @@ func TestExecutePayload(t *testing.T) {
 	if actionTriggered != "display_sleep" {
 		t.Errorf("expected display_sleep, got %s", actionTriggered)
 	}
+
+	if err := reg.ExecutePayload([]byte("")); err == nil {
+		t.Errorf("expected error for empty payload")
+	}
+	if err := reg.ExecutePayload([]byte("   ")); err == nil {
+		t.Errorf("expected error for whitespace payload")
+	}
+
+	rawFallbackPayload := []byte(`{"other": "field"}`)
+	_ = reg.ExecutePayload(rawFallbackPayload)
 }
 
 func TestStatusProvider(t *testing.T) {
 	reg := NewRegistry()
+	if reg.getStatus() != "" {
+		t.Errorf("expected empty string when no provider is set")
+	}
+
 	reg.SetStatusProvider(func() string {
 		return "playing"
 	})
@@ -73,4 +87,42 @@ func TestStatusProvider(t *testing.T) {
 	if reg.getStatus() != "playing" {
 		t.Errorf("expected 'playing', got %q", reg.getStatus())
 	}
+}
+
+func TestBuiltinActions(t *testing.T) {
+	reg := NewRegistry()
+	reg.SetStatusProvider(func() string {
+		return "paused"
+	})
+
+	actionsToTest := []string{
+		"media_play_pause",
+		"media_play",
+		"media_pause",
+		"media_next",
+		"media_prev",
+		"media_stop",
+		"volume_mute",
+		"volume_up",
+		"volume_down",
+	}
+
+	for _, act := range actionsToTest {
+		if err := reg.Execute(act); err != nil {
+			t.Errorf("unexpected error for action %s: %v", act, err)
+		}
+	}
+
+	reg.SetStatusProvider(func() string {
+		return "playing"
+	})
+	_ = reg.Execute("media_play")
+	_ = reg.Execute("media_pause")
+
+	reg.Register("lock", func() error { return nil })
+	_ = reg.Execute("lock")
+	_ = reg.Execute("lock_workstation")
+
+	reg.Register("display_sleep", func() error { return nil })
+	_ = reg.Execute("display_sleep")
 }
