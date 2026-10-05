@@ -225,6 +225,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	statusTopic := fmt.Sprintf("%s/%s/status", prefix, cfg.NodeID)
 	commandTopic := fmt.Sprintf("%s/%s/command", prefix, cfg.NodeID)
 	notifyTopic := fmt.Sprintf("%s/%s/notify", prefix, cfg.NodeID)
+	broadcastNotifyTopic := fmt.Sprintf("%s/all/notify", prefix)
 
 	router := paho.NewStandardRouter()
 	router.RegisterHandler(commandTopic, func(p *paho.Publish) {
@@ -242,6 +243,11 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	router.RegisterHandler(notifyTopic, func(p *paho.Publish) {
 		c.handleNotify(p.Payload)
 	})
+	if cfg.NodeID != "all" {
+		router.RegisterHandler(broadcastNotifyTopic, func(p *paho.Publish) {
+			c.handleNotify(p.Payload)
+		})
+	}
 
 	pClient := paho.NewClient(paho.ClientConfig{
 		Conn:   conn,
@@ -317,6 +323,12 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 			Topic: notifyTopic,
 			QoS:   1,
 		})
+		if cfg.NodeID != "all" {
+			subscriptions = append(subscriptions, paho.SubscribeOptions{
+				Topic: broadcastNotifyTopic,
+				QoS:   1,
+			})
+		}
 	}
 
 	if len(subscriptions) > 0 {
