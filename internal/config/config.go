@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.19.0"
+const Version = "0.19.1"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
