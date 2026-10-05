@@ -205,7 +205,7 @@ func Save(cfg Config) error {
 	defer cfgLock.Unlock()
 
 	dir := ConfigDir()
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 
@@ -216,13 +216,13 @@ func Save(cfg Config) error {
 
 	filePath := ConfigFilePath()
 	tmpPath := filePath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return err
 	}
 
 	if err := os.Rename(tmpPath, filePath); err != nil {
 		os.Remove(tmpPath)
-		return os.WriteFile(filePath, data, 0644)
+		return os.WriteFile(filePath, data, 0600)
 	}
 
 	current = cfg

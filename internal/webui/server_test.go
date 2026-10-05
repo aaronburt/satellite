@@ -391,3 +391,78 @@ func TestConfigBadRequestsAndPortChange(t *testing.T) {
 		t.Fatalf("expected 200 for saving config with defaults")
 	}
 }
+
+func TestConfigExportAndImport(t *testing.T) {
+	collector := telemetry.NewCollector()
+	client := mqtt.NewClient()
+	server := NewServer(collector, client)
+	_, _ = server.Start(0)
+	defer server.Stop()
+	token := server.Token()
+
+	reqBadMethodExport, _ := http.NewRequest("GET", "/api/config/export?token="+token, nil)
+	rrBadMethodExport := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrBadMethodExport, reqBadMethodExport)
+	if rrBadMethodExport.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405 for GET /api/config/export")
+	}
+
+	reqBadMethodImport, _ := http.NewRequest("GET", "/api/config/import?token="+token, nil)
+	rrBadMethodImport := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrBadMethodImport, reqBadMethodImport)
+	if rrBadMethodImport.Code != http.StatusMethodNotAllowed {
+		t.Errorf("expected 405 for GET /api/config/import")
+	}
+
+	exportReqBody, _ := json.Marshal(map[string]string{"passphrase": "my-secret-pass"})
+	reqExport, _ := http.NewRequest("POST", "/api/config/export?token="+token, bytes.NewReader(exportReqBody))
+	rrExport := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrExport, reqExport)
+	if rrExport.Code != http.StatusOK {
+		t.Fatalf("expected 200 for export, got %d", rrExport.Code)
+	}
+
+	exportedEncrypted := rrExport.Body.Bytes()
+
+	badPassReq, _ := json.Marshal(map[string]interface{}{
+		"content":       string(exportedEncrypted),
+		"passphrase":    "wrong-pass",
+		"reset_node_id": true,
+	})
+	reqImportBadPass, _ := http.NewRequest("POST", "/api/config/import?token="+token, bytes.NewReader(badPassReq))
+	rrImportBadPass := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrImportBadPass, reqImportBadPass)
+	if rrImportBadPass.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 for wrong passphrase, got %d", rrImportBadPass.Code)
+	}
+
+	goodPassReq, _ := json.Marshal(map[string]interface{}{
+		"content":       string(exportedEncrypted),
+		"passphrase":    "my-secret-pass",
+		"reset_node_id": true,
+	})
+	reqImportGood, _ := http.NewRequest("POST", "/api/config/import?token="+token, bytes.NewReader(goodPassReq))
+	rrImportGood := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrImportGood, reqImportGood)
+	if rrImportGood.Code != http.StatusOK {
+		t.Fatalf("expected 200 for good import, got %d", rrImportGood.Code)
+	}
+
+	reqPlainExport, _ := http.NewRequest("POST", "/api/config/export?token="+token, bytes.NewReader([]byte("{}")))
+	rrPlainExport := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrPlainExport, reqPlainExport)
+	if rrPlainExport.Code != http.StatusOK {
+		t.Fatalf("expected 200 for plaintext export, got %d", rrPlainExport.Code)
+	}
+
+	importPlainReq, _ := json.Marshal(map[string]interface{}{
+		"content":       rrPlainExport.Body.String(),
+		"reset_node_id": false,
+	})
+	reqImportPlain, _ := http.NewRequest("POST", "/api/config/import?token="+token, bytes.NewReader(importPlainReq))
+	rrImportPlain := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rrImportPlain, reqImportPlain)
+	if rrImportPlain.Code != http.StatusOK {
+		t.Fatalf("expected 200 for plain import, got %d", rrImportPlain.Code)
+	}
+}

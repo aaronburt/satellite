@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -226,6 +227,8 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	mux.HandleFunc("/api/status", webUIMiddleware(authMiddleware(s.handleStatus)))
 	mux.HandleFunc("/api/capabilities", webUIMiddleware(authMiddleware(s.handleCapabilities)))
 	mux.HandleFunc("/api/config", webUIMiddleware(authMiddleware(s.handleConfig)))
+	mux.HandleFunc("/api/config/export", webUIMiddleware(authMiddleware(s.handleConfigExport)))
+	mux.HandleFunc("/api/config/import", webUIMiddleware(authMiddleware(s.handleConfigImport)))
 	mux.HandleFunc("/api/action", webUIMiddleware(authMiddleware(s.handleAction)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
 	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
@@ -474,6 +477,145 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+func (s *Server) handleConfigExport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Passphrase string `json:"passphrase"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	cfg := config.Get()
+	data, err := config.ExportConfig(cfg, req.Passphrase)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	filename := fmt.Sprintf("satellite-config-%s.satconfig", cfg.NodeID)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
+
+func (s *Server) handleConfigImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Content     string `json:"content"`
+		Passphrase  string `json:"passphrase"`
+		ResetNodeID bool   `json:"reset_node_id"`
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	var rawData []byte
+	var passphrase string
+	resetNodeID := true
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "failed to parse multipart form"})
+			return
+		}
+		file, _, err := r.FormFile("file")
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": "missing file in upload"})
+			return
+		}
+		defer file.Close()
+		buf := new(bytes.Buffer)
+		_, _ = buf.ReadFrom(file)
+		rawData = buf.Bytes()
+		passphrase = r.FormValue("passphrase")
+		if r.FormValue("reset_node_id") == "false" {
+			resetNodeID = false
+		}
+	} else {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+			return
+		}
+		rawData = []byte(req.Content)
+		passphrase = req.Passphrase
+		resetNodeID = req.ResetNodeID
+	}
+
+	res, err := config.ImportConfig(rawData, config.ImportOptions{
+		Passphrase:  passphrase,
+		ResetNodeID: resetNodeID,
+	})
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		status := http.StatusBadRequest
+		if errors.Is(err, config.ErrInvalidPassphrase) || errors.Is(err, config.ErrPassphraseRequired) {
+			status = http.StatusUnauthorized
+		}
+		w.WriteHeader(status)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	current := config.Get()
+	if err := config.Save(res.Config); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	s.mu.Lock()
+	u := s.updater
+	s.mu.Unlock()
+	if u != nil {
+		u.SetEnabled(res.Config.CheckUpdates)
+	}
+
+	s.SetJSONEnabled(res.Config.JSONEnabled)
+	s.SetAPIKey(res.Config.APIKey)
+	logger.UpdateConfig(res.Config.Webhook, res.Config.NodeID)
+	logger.Info("config", fmt.Sprintf("Imported configuration from Satellite v%s (ResetNodeID=%v)", res.SourceAppVersion, resetNodeID))
+
+	portChanged := res.Config.GetPort() != current.GetPort()
+	if portChanged && s.IsRunning() {
+		s.Stop()
+		_, _ = s.Start(res.Config.GetPort())
+	} else if res.Config.JSONEnabled && !s.IsRunning() {
+		_, _ = s.Start(res.Config.GetPort())
+	} else if !res.Config.JSONEnabled && !s.IsWebUIEnabled() && s.IsRunning() {
+		s.Stop()
+	}
+
+	if s.mqttClient != nil {
+		s.mqttClient.UpdateConfigAndRestart(res.Config)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":            true,
+		"source_app_version": res.SourceAppVersion,
+		"is_newer_version":   res.IsNewerVersion,
+		"node_id":            res.Config.NodeID,
+	})
 }
 
 func (s *Server) handleTestConnection(w http.ResponseWriter, r *http.Request) {
