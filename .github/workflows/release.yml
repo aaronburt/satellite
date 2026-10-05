@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,19 +12,30 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 15
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
 
-      - name: Extract Version
+      - name: Extract and Validate Version
         id: get_version
         shell: pwsh
         run: |
           $content = Get-Content -Path "internal/config/config.go" -Raw
           if ($content -match 'const\s+Version\s*=\s*"([^"]+)"') {
             $version = $matches[1]
+            if ($version -notmatch '^\d+\.\d+\.\d+$') {
+              Write-Error "Version '$version' is not semver (expected X.Y.Z)"
+              exit 1
+            }
             Write-Host "Found version: $version"
             "version=$version" >> $env:GITHUB_OUTPUT
             "tag=v$version" >> $env:GITHUB_OUTPUT
@@ -40,6 +52,10 @@ jobs:
         run: |
           $tag = "${{ steps.get_version.outputs.tag }}"
           $existing = gh release list --limit 1000 --json tagName --jq '.[].tagName'
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "gh release list failed (exit $LASTEXITCODE)"
+            exit 1
+          }
           if (($existing -split "`r?`n") -contains $tag) {
             Write-Host "Release $tag already exists. Skipping release build."
             "exists=true" >> $env:GITHUB_OUTPUT
@@ -47,11 +63,10 @@ jobs:
             Write-Host "Release $tag does not exist. Proceeding with build."
             "exists=false" >> $env:GITHUB_OUTPUT
           }
-          $global:LASTEXITCODE = 0
 
       - name: Set up Go
         if: steps.check_release.outputs.exists == 'false'
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: 'go.mod'
           cache: true
@@ -59,39 +74,56 @@ jobs:
       - name: Install Inno Setup
         if: steps.check_release.outputs.exists == 'false'
         shell: pwsh
-        run: choco install innosetup --no-progress -y
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") -and
+              -not (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y --skip-if-installed
+          }
 
-      - name: Build Windows Binary
-        if: steps.check_release.outputs.exists == 'false'
-        shell: pwsh
-        run: go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
-
-      - name: Build Linux Binary
+      - name: Build Binaries
         if: steps.check_release.outputs.exists == 'false'
         shell: pwsh
         run: |
+          go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
           $env:GOOS = "linux"
           $env:GOARCH = "amd64"
           $env:CGO_ENABLED = "0"
           go build -ldflags="-s -w" -o satellite-linux-amd64 .
           $env:GOOS = "windows"
 
+      - name: Smoke Test Binaries
+        if: steps.check_release.outputs.exists == 'false'
+        shell: pwsh
+        run: |
+          foreach ($f in @("satellite.exe", "satellite-linux-amd64")) {
+            if (-not (Test-Path $f)) { Write-Error "$f missing"; exit 1 }
+            $size = (Get-Item $f).Length
+            if ($size -lt 1MB) {
+              Write-Error "$f suspiciously small ($size bytes)"
+              exit 1
+            }
+            Write-Host "$f OK ($([math]::Round($size/1MB,1)) MB)"
+          }
+
       - name: Build Inno Setup Installer
         if: steps.check_release.outputs.exists == 'false'
         shell: pwsh
         run: |
+          $iscc = $null
           if (Get-Command iscc -ErrorAction SilentlyContinue) {
-            iscc installer.iss
+            $iscc = "iscc"
           } elseif (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
-            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           } elseif (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe") {
-            & "C:\Program Files\Inno Setup 6\ISCC.exe" installer.iss
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
           } elseif (Test-Path "C:\ProgramData\chocolatey\bin\iscc.exe") {
-            & "C:\ProgramData\chocolatey\bin\iscc.exe" installer.iss
+            $iscc = "C:\ProgramData\chocolatey\bin\iscc.exe"
           } else {
             Write-Error "Could not find Inno Setup compiler ISCC.exe"
             exit 1
           }
+          & $iscc installer.iss
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
@@ -99,10 +131,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          $version = "${{ steps.get_version.outputs.version }}"
-          $tag = "${{ steps.get_version.outputs.tag }}"
+          $version   = "${{ steps.get_version.outputs.version }}"
+          $tag       = "${{ steps.get_version.outputs.tag }}"
           $installer = "dist/Satellite-Setup-v$version.exe"
+
+          if (-not (Test-Path $installer)) {
+            Write-Error "Installer not found at $installer"
+            exit 1
+          }
 
           gh release create $tag satellite.exe $installer satellite-linux-amd64 `
             --title "$tag" `
             --generate-notes
+
+          "## Released $tag" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "**Assets:**" >> $env:GITHUB_STEP_SUMMARY
+          "- ``satellite.exe``" >> $env:GITHUB_STEP_SUMMARY
+          "- ``satellite-linux-amd64``" >> $env:GITHUB_STEP_SUMMARY
+          "- ``$installer``" >> $env:GITHUB_STEP_SUMMARY
