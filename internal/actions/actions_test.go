@@ -2,6 +2,7 @@ package actions
 
 import (
 	"errors"
+	"sync"
 	"testing"
 )
 
@@ -89,8 +90,48 @@ func TestStatusProvider(t *testing.T) {
 	}
 }
 
+type mockExecutor struct {
+	mu     sync.Mutex
+	calls  map[string]int
+	failOn map[string]bool
+}
+
+func newMockExecutor() *mockExecutor {
+	return &mockExecutor{
+		calls:  make(map[string]int),
+		failOn: make(map[string]bool),
+	}
+}
+
+func (m *mockExecutor) inc(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.calls[name]++
+	if m.failOn[name] {
+		return errors.New("mock failure")
+	}
+	return nil
+}
+
+func (m *mockExecutor) getCalls(name string) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.calls[name]
+}
+
+func (m *mockExecutor) LockWorkstation() error { return m.inc("lock") }
+func (m *mockExecutor) TogglePlayPause() error { return m.inc("play_pause") }
+func (m *mockExecutor) NextTrack() error       { return m.inc("next") }
+func (m *mockExecutor) PreviousTrack() error   { return m.inc("prev") }
+func (m *mockExecutor) Stop() error            { return m.inc("stop") }
+func (m *mockExecutor) ToggleMute() error      { return m.inc("mute") }
+func (m *mockExecutor) VolumeUp() error        { return m.inc("vol_up") }
+func (m *mockExecutor) VolumeDown() error      { return m.inc("vol_down") }
+func (m *mockExecutor) SleepDisplays() error   { return m.inc("display_sleep") }
+
 func TestBuiltinActions(t *testing.T) {
-	reg := NewRegistry()
+	mock := newMockExecutor()
+	reg := NewRegistryWithExecutor(mock)
 	reg.SetStatusProvider(func() string {
 		return "paused"
 	})
@@ -105,6 +146,11 @@ func TestBuiltinActions(t *testing.T) {
 		"volume_mute",
 		"volume_up",
 		"volume_down",
+		"lock",
+		"lock_workstation",
+		"display_sleep",
+		"sleep_displays",
+		"monitor_off",
 	}
 
 	for _, act := range actionsToTest {
@@ -113,16 +159,31 @@ func TestBuiltinActions(t *testing.T) {
 		}
 	}
 
+	if mock.getCalls("lock") != 2 {
+		t.Errorf("expected 2 lock calls, got %d", mock.getCalls("lock"))
+	}
+	if mock.getCalls("display_sleep") != 3 {
+		t.Errorf("expected 3 display_sleep calls, got %d", mock.getCalls("display_sleep"))
+	}
+
 	reg.SetStatusProvider(func() string {
 		return "playing"
 	})
 	_ = reg.Execute("media_play")
 	_ = reg.Execute("media_pause")
 
-	reg.Register("lock", func() error { return nil })
-	_ = reg.Execute("lock")
-	_ = reg.Execute("lock_workstation")
+	mock.failOn["lock"] = true
+	if err := reg.Execute("lock"); err == nil {
+		t.Errorf("expected error when executor fails")
+	}
 
-	reg.Register("display_sleep", func() error { return nil })
-	_ = reg.Execute("display_sleep")
+	fallbackReg := NewRegistryWithExecutor(nil)
+	if fallbackReg.getExecutor() == nil {
+		t.Errorf("expected non-nil executor for fallback")
+	}
+
+	emptyReg := &Registry{}
+	if emptyReg.getExecutor() == nil {
+		t.Errorf("expected non-nil executor for empty struct")
+	}
 }
