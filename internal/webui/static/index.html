@@ -731,6 +731,76 @@ input:focus,select:focus{
   grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:8px;
 }
+.sensor-tier{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:12px 14px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid var(--border-subtle);
+  border-radius:6px;
+}
+.sensor-tier.tier-critical{
+  border-color:rgba(239,68,68,0.25);
+  background:rgba(239,68,68,0.02);
+}
+.sensor-tier-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.tier-title-wrap{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.tier-title{
+  font-size:12.5px;
+  font-weight:600;
+  color:var(--text);
+}
+.tier-desc{
+  font-size:11.5px;
+  color:var(--muted);
+}
+.tier-badge{
+  font-size:11px;
+  padding:2px 7px;
+  border-radius:3px;
+  font-weight:500;
+  white-space:nowrap;
+}
+.tier-badge.tier-low{
+  color:var(--success);
+  background:rgba(34,197,94,0.1);
+  border:1px solid rgba(34,197,94,0.25);
+}
+.tier-badge.tier-mod{
+  color:#38bdf8;
+  background:rgba(56,189,248,0.1);
+  border:1px solid rgba(56,189,248,0.25);
+}
+.tier-badge.tier-high{
+  color:var(--warning);
+  background:rgba(245,158,11,0.1);
+  border:1px solid rgba(245,158,11,0.25);
+}
+.tier-badge.tier-crit{
+  color:var(--danger);
+  background:rgba(239,68,68,0.12);
+  border:1px solid rgba(239,68,68,0.3);
+}
+.nvml-tag{
+  font-size:10.5px;
+  color:#eab308;
+  background:rgba(234,179,8,0.1);
+  border:1px solid rgba(234,179,8,0.25);
+  padding:1px 5px;
+  border-radius:3px;
+  margin-left:4px;
+}
 .toggle-item{
   display:flex;
   align-items:center;
@@ -1247,35 +1317,75 @@ input:focus,select:focus{
                 <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
               </div>
             </div>
-            <div class="toggle-grid">
-              <label class="toggle-item" data-cap="cpu"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
-              <label class="toggle-item" data-cap="memory"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
-              <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
-              <label class="toggle-item" data-cap="gpu" style="flex-direction:column;align-items:flex-start;gap:2px;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <input type="checkbox" class="exp-chk" id="exp-nvidia-nvml">
-                  <span>NVIDIA NVML (Temps & Power)</span>
+
+            <div class="sensor-tier">
+              <div class="sensor-tier-head">
+                <div class="tier-title-wrap">
+                  <span class="tier-title">Hardware & System Telemetry</span>
+                  <span class="tier-badge tier-low">Low Privacy Risk</span>
                 </div>
-                <span style="font-size:11px;color:#eab308;margin-left:23px;">⚠️ Loads nvml.dll (~20–25 MB RAM)</span>
-              </label>
-              <label class="toggle-item" data-cap="storage"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
-              <label class="toggle-item" data-cap="network"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
-              <label class="toggle-item" data-cap="local_ip"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
-              <label class="toggle-item" data-cap="uptime"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
-              <label class="toggle-item" data-cap="battery"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
-              <label class="toggle-item" data-cap="system_theme"><input type="checkbox" class="exp-chk" id="exp-theme"><span id="lbl-theme">System Theme</span></label>
-              <label class="toggle-item" data-cap="update_pending"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
-              <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
-              <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
-              <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
-              <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
-              <label class="toggle-item" data-cap="wifi"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
-              <label class="toggle-item" data-cap="display_state"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
-              <label class="toggle-item" data-cap="fullscreen"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
-              <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
-              <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+                <span class="tier-desc">Core hardware health counters and non-identifying diagnostics</span>
+              </div>
+              <div class="toggle-grid">
+                <label class="toggle-item" data-cap="cpu"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
+                <label class="toggle-item" data-cap="memory"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+                <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
+                <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-nvidia-nvml"><span>NVIDIA NVML (Temps & Power)</span><span class="nvml-tag">~25MB</span></label>
+                <label class="toggle-item" data-cap="storage"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
+                <label class="toggle-item" data-cap="network"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
+                <label class="toggle-item" data-cap="uptime"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
+                <label class="toggle-item" data-cap="battery"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
+                <label class="toggle-item" data-cap="system_theme"><input type="checkbox" class="exp-chk" id="exp-theme"><span id="lbl-theme">System Theme</span></label>
+                <label class="toggle-item" data-cap="update_pending"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
+              </div>
+            </div>
+
+            <div class="sensor-tier">
+              <div class="sensor-tier-head">
+                <div class="tier-title-wrap">
+                  <span class="tier-title">Network & Peripheral Context</span>
+                  <span class="tier-badge tier-mod">Moderate Privacy Risk</span>
+                </div>
+                <span class="tier-desc">Local network identity, audio endpoint, and display state</span>
+              </div>
+              <div class="toggle-grid">
+                <label class="toggle-item" data-cap="local_ip"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
+                <label class="toggle-item" data-cap="wifi"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
+                <label class="toggle-item" data-cap="audio_output"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
+                <label class="toggle-item" data-cap="display_state"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
+                <label class="toggle-item" data-cap="fullscreen"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
+              </div>
+            </div>
+
+            <div class="sensor-tier">
+              <div class="sensor-tier-head">
+                <div class="tier-title-wrap">
+                  <span class="tier-title">User Presence & Application Activity</span>
+                  <span class="tier-badge tier-high">High Privacy Risk</span>
+                </div>
+                <span class="tier-desc">Discloses user session activity, idle timing, music, and running app names</span>
+              </div>
+              <div class="toggle-grid">
+                <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
+                <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
+                <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+                <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
+              </div>
+            </div>
+
+            <div class="sensor-tier tier-critical">
+              <div class="sensor-tier-head">
+                <div class="tier-title-wrap">
+                  <span class="tier-title">Sensitive Content & Surveillance</span>
+                  <span class="tier-badge tier-crit">Critical Privacy Risk</span>
+                </div>
+                <span class="tier-desc">Exposes exact window/document titles, microphone capture, and webcam usage</span>
+              </div>
+              <div class="toggle-grid">
+                <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
+                <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
+                <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+              </div>
             </div>
           </div>
 
