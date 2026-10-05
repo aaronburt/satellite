@@ -315,3 +315,93 @@ func TestRunLoopCancel(t *testing.T) {
 		t.Fatal("expected runLoop to exit")
 	}
 }
+
+func TestBroadcastNotificationHandling(t *testing.T) {
+	c := NewClient()
+	c.cfg.Expose.Notifications = true
+	c.cfg.NodeID = "my-pc"
+
+	c.handleNotify([]byte(`{"title": "Broadcast Alert", "message": "Global announcement"}`))
+
+	select {
+	case n := <-c.notifyChan:
+		if n.Title != "Broadcast Alert" || n.Message != "Global announcement" {
+			t.Fatalf("unexpected notification: %+v", n)
+		}
+	default:
+		t.Fatal("expected broadcast notification in queue")
+	}
+}
+
+func TestConnectWithNodeIDAll(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer ln.Close()
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go func(c net.Conn) {
+				defer c.Close()
+				buf := make([]byte, 4096)
+				for {
+					n, err := c.Read(buf)
+					if err != nil {
+						return
+					}
+					if n == 0 {
+						continue
+					}
+					packetType := buf[0] >> 4
+					switch packetType {
+					case 1:
+						_, _ = c.Write([]byte{0x20, 0x03, 0x00, 0x00, 0x00})
+					case 3:
+						qos := (buf[0] >> 1) & 0x03
+						if qos == 1 && n >= 4 {
+							_, _ = c.Write([]byte{0x40, 0x03, 0x00, 0x01, 0x00})
+						}
+					case 8:
+						_, _ = c.Write([]byte{0x90, 0x04, 0x00, 0x01, 0x00, 0x00})
+					case 14:
+						return
+					}
+				}
+			}(conn)
+		}
+	}()
+
+	cfg := config.DefaultConfig()
+	cfg.NodeID = "all"
+	cfg.MQTT.Broker = ln.Addr().String()
+	cfg.Expose.Notifications = true
+
+	c := NewClient()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	c.mu.Lock()
+	c.cfg = cfg
+	c.mu.Unlock()
+
+	go func() {
+		_ = c.connectAndServe(ctx)
+	}()
+
+	time.Sleep(150 * time.Millisecond)
+
+	c.mu.RLock()
+	st := c.status
+	c.mu.RUnlock()
+
+	if st != StatusConnected {
+		t.Fatalf("expected status connected when NodeID is 'all', got %s", st)
+	}
+
+	c.Stop()
+}

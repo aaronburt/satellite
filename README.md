@@ -76,7 +76,9 @@ Publish plain text or JSON `{"action": "<command>"}` to `satellite/<node_id>/com
  
 ## Toast Notifications
  
-Send native Windows toast alerts from Home Assistant by publishing JSON to `satellite/<node_id>/notify`:
+Send native Windows toast alerts from Home Assistant by publishing JSON to:
+- **Targeted Machine**: `satellite/<node_id>/notify` (e.g. `satellite/my-pc/notify`)
+- **All Machines (Broadcast)**: `satellite/all/notify` (delivered to all connected Satellite agents simultaneously)
  
 ```json
 {
@@ -92,8 +94,22 @@ Send native Windows toast alerts from Home Assistant by publishing JSON to `sate
 - `url` *(optional)*: Clicking the notification launches this URL in your default browser.
 - `silent` *(optional)*: Set to `true` to suppress audio chime.
  
-### Home Assistant Automation Example
- 
+### Home Assistant Automation Examples
+
+**Broadcast to All PCs:**
+```yaml
+action: mqtt.publish
+data:
+  topic: satellite/all/notify
+  payload: >
+    {
+      "title": "Doorbell",
+      "message": "Someone is at the front door.",
+      "url": "https://homeassistant.local:8123/dashboard-cameras"
+    }
+```
+
+**Targeted to a Specific PC:**
 ```yaml
 action: mqtt.publish
 data:
