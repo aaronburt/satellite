@@ -37,9 +37,10 @@ type Client struct {
 	netConn      net.Conn
 	status       Status
 	cancelLoop   context.CancelFunc
-	lastSnapshot telemetry.Snapshot
-	lastSentTime time.Time
-	hasBattery   bool
+	lastSnapshot     telemetry.Snapshot
+	lastSentTime     time.Time
+	forcePublishNext bool
+	hasBattery       bool
 	caps         capabilities.PlatformCapabilities
 	registry     *actions.Registry
 	notifyChan   chan toast.Notification
@@ -48,10 +49,11 @@ type Client struct {
 func NewClient() *Client {
 	reg := actions.NewRegistry()
 	c := &Client{
-		status:     StatusDisconnected,
-		registry:   reg,
-		caps:       capabilities.Detect(),
-		notifyChan: make(chan toast.Notification, 5),
+		status:           StatusDisconnected,
+		registry:         reg,
+		caps:             capabilities.Detect(),
+		notifyChan:       make(chan toast.Notification, 5),
+		forcePublishNext: true,
 	}
 	reg.SetStatusProvider(func() string {
 		c.mu.RLock()
@@ -288,6 +290,8 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	c.netConn = conn
 	c.pahoClient = pClient
 	c.status = StatusConnected
+	c.forcePublishNext = true
+	c.lastSentTime = time.Time{}
 	connAssigned = true
 	c.mu.Unlock()
 	logger.Info("mqtt", fmt.Sprintf("Connected to MQTT broker: %s", brokerURL))
@@ -368,8 +372,14 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		return nil
 	}
 
+	heartbeatSec := c.cfg.HeartbeatSec
+	if heartbeatSec <= 0 {
+		heartbeatSec = 60
+	}
+	heartbeatDuration := time.Duration(heartbeatSec) * time.Second
+
 	now := time.Now()
-	isHeartbeat := now.Sub(c.lastSentTime) >= 60*time.Second
+	isHeartbeat := c.forcePublishNext || c.lastSentTime.IsZero() || now.Sub(c.lastSentTime) >= heartbeatDuration
 	if !isHeartbeat && !telemetry.HasSignificantDelta(c.lastSnapshot, snap) {
 		c.mu.Unlock()
 		return nil
@@ -401,6 +411,7 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		c.mu.Lock()
 		c.lastSnapshot = snap
 		c.lastSentTime = now
+		c.forcePublishNext = false
 		c.mu.Unlock()
 	}
 	return err

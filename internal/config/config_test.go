@@ -42,6 +42,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.IntervalSec != 5 {
 		t.Errorf("expected default IntervalSec to be 5, got %d", cfg.IntervalSec)
 	}
+	if cfg.HeartbeatSec != 60 {
+		t.Errorf("expected default HeartbeatSec to be 60, got %d", cfg.HeartbeatSec)
+	}
 }
 
 func TestConfigSerialization(t *testing.T) {

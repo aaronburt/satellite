@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.19.1"
+const Version = "0.20.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -59,7 +59,8 @@ type Config struct {
 	NodeID      string        `json:"node_id"`
 	MQTT        MQTTConfig    `json:"mqtt"`
 	Expose      ExposeConfig  `json:"expose"`
-	IntervalSec int           `json:"interval_sec"`
+	IntervalSec  int           `json:"interval_sec"`
+	HeartbeatSec int           `json:"heartbeat_sec,omitempty"`
 	Port        int           `json:"port,omitempty"`
 	WebUIPort   int           `json:"webui_port"`
 	BindAddress string        `json:"bind_address,omitempty"`
@@ -142,8 +143,9 @@ func DefaultConfig() Config {
 			ClientID:    "satellite-" + hostname,
 			TopicPrefix: "satellite",
 		},
-		Expose:      DefaultExpose(),
-		IntervalSec: 5,
+		Expose:       DefaultExpose(),
+		IntervalSec:  5,
+		HeartbeatSec: 60,
 		Port:        0,
 		WebUIPort:   0,
 		BindAddress: "127.0.0.1",

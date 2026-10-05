@@ -219,15 +219,43 @@ func TestMockMQTTServerFullLifecycle(t *testing.T) {
 	c.mu.RUnlock()
 
 	if st == StatusConnected {
+		c.mu.RLock()
+		initialForce := c.forcePublishNext
+		c.mu.RUnlock()
+		if !initialForce {
+			t.Errorf("expected forcePublishNext to be true after connect")
+		}
+
 		cpuVal := 25.5
 		snap := telemetry.Snapshot{
 			CPUPercent: &cpuVal,
 		}
 		_ = c.PublishTelemetry(snap)
+
+		c.mu.RLock()
+		afterPublishForce := c.forcePublishNext
+		c.mu.RUnlock()
+		if afterPublishForce {
+			t.Errorf("expected forcePublishNext to be false after successful publish")
+		}
+
 		_ = c.PublishTelemetry(snap)
 
-		c.lastSentTime = time.Now().Add(-100 * time.Second)
+		c.mu.Lock()
+		c.cfg.HeartbeatSec = 10
+		c.lastSentTime = time.Now().Add(-15 * time.Second)
+		c.mu.Unlock()
 		_ = c.PublishTelemetry(snap)
+
+		c.mu.Lock()
+		c.forcePublishNext = true
+		c.mu.Unlock()
+		_ = c.PublishTelemetry(snap)
+		c.mu.RLock()
+		if c.forcePublishNext {
+			t.Errorf("expected forcePublishNext to reset to false")
+		}
+		c.mu.RUnlock()
 	}
 
 	c.Stop()

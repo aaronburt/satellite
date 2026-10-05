@@ -236,6 +236,15 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 	if prev.LocalIP != curr.LocalIP {
 		return true
 	}
+	if prev.HasBattery != curr.HasBattery {
+		return true
+	}
+	if (prev.BatteryPercent == nil) != (curr.BatteryPercent == nil) {
+		return true
+	}
+	if (prev.BatteryPercent != nil && curr.BatteryPercent != nil) && *prev.BatteryPercent != *curr.BatteryPercent {
+		return true
+	}
 	if (prev.PowerPlugged == nil) != (curr.PowerPlugged == nil) {
 		return true
 	}
@@ -269,6 +278,12 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 	if prev.WifiSSID != curr.WifiSSID {
 		return true
 	}
+	if (prev.WifiSignalPercent == nil) != (curr.WifiSignalPercent == nil) {
+		return true
+	}
+	if (prev.WifiSignalPercent != nil && curr.WifiSignalPercent != nil) && math.Abs(float64(*prev.WifiSignalPercent-*curr.WifiSignalPercent)) >= 5.0 {
+		return true
+	}
 	if (prev.DisplayPowered == nil) != (curr.DisplayPowered == nil) {
 		return true
 	}
@@ -282,7 +297,19 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 		if prev.Media.Status != curr.Media.Status ||
 			prev.Media.Title != curr.Media.Title ||
 			prev.Media.Artist != curr.Media.Artist ||
+			prev.Media.Album != curr.Media.Album ||
 			prev.Media.AppID != curr.Media.AppID {
+			return true
+		}
+	}
+	if len(prev.Drives) != len(curr.Drives) {
+		return true
+	}
+	for i := range curr.Drives {
+		if prev.Drives[i].Mount != curr.Drives[i].Mount {
+			return true
+		}
+		if math.Abs(prev.Drives[i].UsedPercent-curr.Drives[i].UsedPercent) >= 1.0 {
 			return true
 		}
 	}
@@ -292,6 +319,9 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 	for i := range curr.GPUs {
 		prevG := prev.GPUs[i]
 		currG := curr.GPUs[i]
+		if prevG.Index != currG.Index || prevG.Name != currG.Name {
+			return true
+		}
 		if (prevG.CoreUsagePercent == nil) != (currG.CoreUsagePercent == nil) {
 			return true
 		}
@@ -308,6 +338,18 @@ func HasSignificantDelta(prev, curr Snapshot) bool {
 			return true
 		}
 		if prevG.TemperatureC != nil && currG.TemperatureC != nil && math.Abs(*prevG.TemperatureC-*currG.TemperatureC) >= 1.0 {
+			return true
+		}
+		if (prevG.PowerWatts == nil) != (currG.PowerWatts == nil) {
+			return true
+		}
+		if prevG.PowerWatts != nil && currG.PowerWatts != nil && math.Abs(*prevG.PowerWatts-*currG.PowerWatts) >= 5.0 {
+			return true
+		}
+		if (prevG.FanSpeedPercent == nil) != (currG.FanSpeedPercent == nil) {
+			return true
+		}
+		if prevG.FanSpeedPercent != nil && currG.FanSpeedPercent != nil && math.Abs(*prevG.FanSpeedPercent-*currG.FanSpeedPercent) >= 2.0 {
 			return true
 		}
 	}
