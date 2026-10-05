@@ -72,7 +72,8 @@ jobs:
         run: |
           $env:GOOS = "linux"
           $env:GOARCH = "amd64"
-          go build -s -w -o satellite-linux-amd64 .
+          $env:CGO_ENABLED = "0"
+          go build -ldflags="-s -w" -o satellite-linux-amd64 .
           $env:GOOS = "windows"
 
       - name: Build Inno Setup Installer
