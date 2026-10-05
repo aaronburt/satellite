@@ -1,5 +1,5 @@
 #define MyAppName "Satellite"
-#define MyAppVersion "0.19.1"
+#define MyAppVersion "0.20.0"
 #define MyAppPublisher "Antigravity"
 #define MyAppURL "https://github.com/aaronburt/satellite"
 #define MyAppExeName "satellite.exe"

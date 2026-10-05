@@ -210,6 +210,83 @@ func TestHasSignificantDelta(t *testing.T) {
 	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{TemperatureC: &gTemp1}}}, Snapshot{GPUs: []GPUInfo{{}}}) {
 		t.Errorf("expected delta when GPU TemperatureC presence changes")
 	}
+
+	bat1 := 80
+	bat2 := 79
+	if !HasSignificantDelta(Snapshot{BatteryPercent: &bat1}, Snapshot{BatteryPercent: &bat2}) {
+		t.Errorf("expected delta when BatteryPercent changes")
+	}
+	if !HasSignificantDelta(Snapshot{BatteryPercent: &bat1}, Snapshot{}) {
+		t.Errorf("expected delta when BatteryPercent presence changes")
+	}
+	if !HasSignificantDelta(Snapshot{HasBattery: true}, Snapshot{HasBattery: false}) {
+		t.Errorf("expected delta when HasBattery changes")
+	}
+
+	sig1 := 70
+	sig2 := 73
+	sig3 := 76
+	if HasSignificantDelta(Snapshot{WifiSignalPercent: &sig1}, Snapshot{WifiSignalPercent: &sig2}) {
+		t.Errorf("expected no delta when WifiSignalPercent changes by less than 5%%")
+	}
+	if !HasSignificantDelta(Snapshot{WifiSignalPercent: &sig1}, Snapshot{WifiSignalPercent: &sig3}) {
+		t.Errorf("expected delta when WifiSignalPercent changes by >= 5%%")
+	}
+	if !HasSignificantDelta(Snapshot{WifiSignalPercent: &sig1}, Snapshot{}) {
+		t.Errorf("expected delta when WifiSignalPercent presence changes")
+	}
+
+	albumMed1 := MediaInfo{Status: "Playing", Title: "Song", Album: "Album A"}
+	albumMed2 := MediaInfo{Status: "Playing", Title: "Song", Album: "Album B"}
+	if !HasSignificantDelta(Snapshot{Media: &albumMed1}, Snapshot{Media: &albumMed2}) {
+		t.Errorf("expected delta when Media Album changes")
+	}
+
+	drvA := []DiskInfo{{Mount: "C:", UsedPercent: 50.0}}
+	drvB := []DiskInfo{{Mount: "C:", UsedPercent: 50.5}}
+	drvC := []DiskInfo{{Mount: "C:", UsedPercent: 51.5}}
+	drvD := []DiskInfo{{Mount: "D:", UsedPercent: 50.0}}
+	if HasSignificantDelta(Snapshot{Drives: drvA}, Snapshot{Drives: drvB}) {
+		t.Errorf("expected no delta when drive UsedPercent changes by < 1%%")
+	}
+	if !HasSignificantDelta(Snapshot{Drives: drvA}, Snapshot{Drives: drvC}) {
+		t.Errorf("expected delta when drive UsedPercent changes by >= 1%%")
+	}
+	if !HasSignificantDelta(Snapshot{Drives: drvA}, Snapshot{Drives: drvD}) {
+		t.Errorf("expected delta when drive Mount changes")
+	}
+	if !HasSignificantDelta(Snapshot{Drives: drvA}, Snapshot{Drives: append(drvA, DiskInfo{Mount: "E:"})}) {
+		t.Errorf("expected delta when drive count changes")
+	}
+
+	pw1 := 100.0
+	pw2 := 103.0
+	pw3 := 106.0
+	if HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{PowerWatts: &pw1}}}, Snapshot{GPUs: []GPUInfo{{PowerWatts: &pw2}}}) {
+		t.Errorf("expected no delta when GPU PowerWatts changes by < 5W")
+	}
+	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{PowerWatts: &pw1}}}, Snapshot{GPUs: []GPUInfo{{PowerWatts: &pw3}}}) {
+		t.Errorf("expected delta when GPU PowerWatts changes by >= 5W")
+	}
+	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{PowerWatts: &pw1}}}, Snapshot{GPUs: []GPUInfo{{}}}) {
+		t.Errorf("expected delta when GPU PowerWatts presence changes")
+	}
+
+	fan1 := 50.0
+	fan2 := 51.0
+	fan3 := 53.0
+	if HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{FanSpeedPercent: &fan1}}}, Snapshot{GPUs: []GPUInfo{{FanSpeedPercent: &fan2}}}) {
+		t.Errorf("expected no delta when GPU FanSpeedPercent changes by < 2%%")
+	}
+	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{FanSpeedPercent: &fan1}}}, Snapshot{GPUs: []GPUInfo{{FanSpeedPercent: &fan3}}}) {
+		t.Errorf("expected delta when GPU FanSpeedPercent changes by >= 2%%")
+	}
+	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{FanSpeedPercent: &fan1}}}, Snapshot{GPUs: []GPUInfo{{}}}) {
+		t.Errorf("expected delta when GPU FanSpeedPercent presence changes")
+	}
+	if !HasSignificantDelta(Snapshot{GPUs: []GPUInfo{{Name: "GPU1"}}}, Snapshot{GPUs: []GPUInfo{{Name: "GPU2"}}}) {
+		t.Errorf("expected delta when GPU Name changes")
+	}
 }
 
 func TestTelemetryWin32Functions(t *testing.T) {
