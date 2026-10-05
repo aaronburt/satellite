@@ -7,34 +7,34 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  color-scheme: dark;
-  --bg:#1f1f1f;
-  --sidebar-bg:#181818;
-  --topbar-bg:#202020;
-  --content-bg:#191919;
-  --surface:#202020;
-  --surface-alt:#2b2b2b;
-  --row-hover:#2d2d2d;
-  --row-active:#26354a;
-  --row-active-border:#0078d4;
-  --border:#2d2d2d;
+  color-scheme:dark;
+  --bg:#1a1a1a;
+  --sidebar-bg:#141414;
+  --topbar-bg:#1e1e1e;
+  --content-bg:#181818;
+  --surface:#212121;
+  --surface-alt:#292929;
+  --row-hover:#2a2a2a;
+  --row-active:#213147;
+  --border:#2e2e2e;
   --border-subtle:#262626;
   --border-focus:#0078d4;
   --text:#ffffff;
   --text-dim:#cccccc;
   --muted:#8c8c8c;
-  --faint:#616161;
+  --faint:#5c5c5c;
   --accent:#0078d4;
   --accent-hover:#106ebe;
-  --heat-low:#107c41;
-  --heat-mid:#d83b01;
-  --heat-high:#e81123;
+  --accent-subtle:rgba(0,120,212,0.15);
+  --success:#22c55e;
+  --warning:#f59e0b;
+  --danger:#ef4444;
 }
 body{
   background:var(--bg);
   color:var(--text);
   font-family:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,sans-serif;
-  font-size:14px;
+  font-size:13.5px;
   line-height:1.45;
   margin:0;
   padding:0;
@@ -50,19 +50,19 @@ body{
 .app-window{
   width:100%;
   height:100%;
-  max-width:none;
-  min-height:0;
-  background:var(--bg);
-  border:none;
-  border-radius:0;
-  box-shadow:none;
   display:flex;
   overflow:hidden;
+  position:relative;
 }
-
-/* Windows 11 Sidebar */
+.sidebar-backdrop{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  z-index:40;
+}
 .sidebar{
-  width:190px;
+  width:210px;
   background:var(--sidebar-bg);
   border-right:1px solid var(--border-subtle);
   display:flex;
@@ -70,27 +70,42 @@ body{
   justify-content:space-between;
   flex-shrink:0;
   user-select:none;
+  z-index:50;
+  transition:transform 0.2s ease;
 }
 .sidebar-top{
   display:flex;
   flex-direction:column;
 }
 .sidebar-brand{
-  padding:16px 18px;
+  padding:14px 18px;
   display:flex;
-  flex-direction:column;
-  gap:3px;
+  align-items:center;
+  gap:10px;
   border-bottom:1px solid rgba(255,255,255,0.04);
 }
+.brand-icon{
+  width:24px;
+  height:24px;
+  color:var(--accent);
+  flex-shrink:0;
+}
+.brand-text{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
 .sidebar-title{
-  font-size:14px;
+  font-size:13.5px;
   font-weight:600;
   color:var(--text);
   letter-spacing:-0.01em;
+  white-space:nowrap;
 }
 .sidebar-ver{
-  font-size:12px;
+  font-size:11.5px;
   color:var(--muted);
+  white-space:nowrap;
 }
 .nav-list{
   display:flex;
@@ -101,7 +116,7 @@ body{
 .nav-item{
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:12px;
   padding:9px 12px;
   border-radius:4px;
   background:transparent;
@@ -112,10 +127,10 @@ body{
   cursor:pointer;
   text-align:left;
   width:100%;
-  transition:background 0.1s;
+  transition:background 0.1s,color 0.1s;
 }
 .nav-item:hover{
-  background:rgba(255,255,255,0.04);
+  background:rgba(255,255,255,0.05);
   color:var(--text);
 }
 .nav-item.active{
@@ -134,57 +149,137 @@ body{
   background:var(--accent);
   border-radius:2px;
 }
+.nav-icon{
+  width:18px;
+  height:18px;
+  flex-shrink:0;
+  opacity:0.85;
+}
+.nav-item.active .nav-icon{
+  opacity:1;
+  color:var(--accent);
+}
 .sidebar-bottom{
   padding:10px 8px;
   border-top:1px solid rgba(255,255,255,0.04);
 }
-
-/* Main Content Area */
 .main-stage{
   flex:1;
   display:flex;
   flex-direction:column;
   background:var(--content-bg);
   min-width:0;
+  position:relative;
+  overflow:hidden;
 }
-
-/* Windows 11 Command Bar Header */
 .command-bar{
   background:var(--topbar-bg);
-  padding:12px 20px;
+  padding:10px 18px;
   display:flex;
   justify-content:space-between;
   align-items:center;
   border-bottom:1px solid var(--border);
   user-select:none;
+  gap:12px;
+  flex-wrap:nowrap;
 }
 .command-left{
   display:flex;
   align-items:center;
   gap:12px;
+  min-width:0;
+}
+.menu-btn{
+  display:none;
+  background:transparent;
+  border:none;
+  color:var(--text-dim);
+  padding:4px;
+  cursor:pointer;
+  border-radius:4px;
+}
+.menu-btn:hover{
+  background:rgba(255,255,255,0.08);
+  color:var(--text);
 }
 .page-title{
   font-size:15px;
   font-weight:600;
   color:var(--text);
+  white-space:nowrap;
+}
+.table-filter-box{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+.table-filter-input{
+  background:#141414;
+  border:1px solid var(--border);
+  border-radius:4px;
+  color:var(--text);
+  font-size:12.5px;
+  padding:5px 8px 5px 26px;
+  width:160px;
+  outline:none;
+  transition:border-color 0.15s,width 0.15s;
+}
+.table-filter-input:focus{
+  border-color:var(--border-focus);
+  width:200px;
+}
+.table-filter-icon{
+  position:absolute;
+  left:7px;
+  width:14px;
+  height:14px;
+  color:var(--muted);
+  pointer-events:none;
 }
 .command-actions{
   display:flex;
   align-items:center;
   gap:8px;
+  flex-shrink:0;
+}
+.rate-ctrl{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border);
+  border-radius:4px;
+  padding:2px 6px;
+}
+.rate-label{
+  font-size:11.5px;
+  color:var(--muted);
+}
+.rate-select{
+  background:transparent;
+  border:none;
+  color:var(--text);
+  font-size:12px;
+  outline:none;
+  cursor:pointer;
+  padding:2px;
+}
+.rate-select option{
+  background:#1c1c1c;
+  color:#ffffff;
 }
 .cmd-btn{
   background:transparent;
   border:1px solid transparent;
   color:var(--text-dim);
-  font-size:13px;
-  padding:6px 12px;
+  font-size:12.5px;
+  padding:5px 10px;
   border-radius:4px;
   cursor:pointer;
   display:inline-flex;
   align-items:center;
   gap:6px;
-  transition:background 0.1s, border-color 0.1s;
+  transition:background 0.1s,border-color 0.1s,color 0.1s;
 }
 .cmd-btn:hover{
   background:rgba(255,255,255,0.06);
@@ -193,6 +288,55 @@ body{
 }
 .cmd-btn:active{
   background:rgba(255,255,255,0.1);
+}
+.btn-icon{
+  width:14px;
+  height:14px;
+}
+.popover-anchor{
+  position:relative;
+}
+.actions-popover{
+  display:none;
+  position:absolute;
+  top:calc(100% + 6px);
+  right:0;
+  width:220px;
+  background:#202020;
+  border:1px solid #333333;
+  border-radius:6px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.5);
+  padding:6px;
+  z-index:100;
+  flex-direction:column;
+  gap:2px;
+}
+.actions-popover.open{
+  display:flex;
+}
+.popover-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  padding:8px 10px;
+  background:transparent;
+  border:none;
+  border-radius:4px;
+  color:var(--text-dim);
+  font-size:12.5px;
+  cursor:pointer;
+  text-align:left;
+  transition:background 0.1s,color 0.1s;
+}
+.popover-item:hover{
+  background:rgba(255,255,255,0.08);
+  color:#ffffff;
+}
+.popover-divider{
+  height:1px;
+  background:rgba(255,255,255,0.08);
+  margin:4px 0;
 }
 .status-pill{
   display:inline-flex;
@@ -211,18 +355,17 @@ body{
   border-radius:50%;
   background:var(--muted);
 }
-.status-dot.online{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,0.5)}
-.status-dot.connecting{background:#facc15}
-.status-dot.offline{background:#f87171}
-
+.status-dot.online{background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)}
+.status-dot.connecting{background:var(--warning)}
+.status-dot.offline{background:var(--danger)}
 .update-banner{
-  background:rgba(0,120,212,0.15);
+  background:var(--accent-subtle);
   border-bottom:1px solid var(--accent);
-  padding:10px 20px;
+  padding:9px 18px;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  font-size:13px;
+  font-size:12.5px;
   color:var(--text);
   user-select:none;
 }
@@ -235,18 +378,13 @@ body{
   background:var(--accent);
   color:#fff;
   border-radius:50%;
-  width:20px;
-  height:20px;
+  width:18px;
+  height:18px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
   font-weight:bold;
-  font-size:12px;
-}
-.update-banner-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
+  font-size:11px;
 }
 .update-btn{
   background:var(--accent) !important;
@@ -254,10 +392,6 @@ body{
   text-decoration:none;
   font-weight:500;
 }
-.update-btn:hover{
-  background:var(--accent-hover) !important;
-}
-
 .content-panel{
   flex:1;
   display:flex;
@@ -267,12 +401,10 @@ body{
 .content-panel.hidden{
   display:none;
 }
-
-/* Process View Table */
 .tm-table-wrap{
   width:100%;
   border-collapse:collapse;
-  font-size:13.5px;
+  font-size:13px;
   text-align:left;
 }
 .tm-table{
@@ -289,7 +421,7 @@ body{
 }
 .tm-table th{
   padding:8px 16px;
-  font-size:13px;
+  font-size:12.5px;
   font-weight:600;
   color:var(--text-dim);
   border-right:1px solid var(--border-subtle);
@@ -298,26 +430,6 @@ body{
 .tm-table th:last-child{
   border-right:none;
 }
-.tm-table th.num-col{
-  text-align:right;
-  width:85px;
-}
-.th-val{
-  font-size:11px;
-  color:var(--muted);
-  display:block;
-  font-weight:400;
-}
-.group-header-row td{
-  background:#1e1e1e;
-  padding:8px 16px;
-  font-size:12.5px;
-  font-weight:600;
-  color:var(--muted);
-  border-bottom:1px solid var(--border-subtle);
-  text-transform:uppercase;
-  letter-spacing:0.02em;
-}
 .tm-table tbody tr.data-row{
   border-bottom:1px solid rgba(255,255,255,0.03);
   transition:background 0.08s;
@@ -325,9 +437,6 @@ body{
 }
 .tm-table tbody tr.data-row:hover{
   background:var(--row-hover);
-}
-.tm-table tbody tr.data-row.active-row{
-  background:var(--row-active);
 }
 .tm-table tbody tr.data-row.hidden{
   display:none;
@@ -338,22 +447,20 @@ body{
   vertical-align:middle;
   border-right:1px solid rgba(255,255,255,0.02);
   white-space:nowrap;
-  font-size:13.5px;
 }
 .tm-table td:last-child{
   border-right:none;
-}
-.tm-table td.num-col{
-  text-align:right;
-  color:var(--text-dim);
-}
-.heat-cell{
-  background:rgba(255,255,255,0.02);
 }
 .item-title-cell{
   display:flex;
   align-items:center;
   gap:10px;
+}
+.cell-icon{
+  width:16px;
+  height:16px;
+  color:var(--muted);
+  flex-shrink:0;
 }
 .item-badge{
   font-size:11px;
@@ -364,26 +471,97 @@ body{
   border:1px solid rgba(255,255,255,0.05);
 }
 .item-badge.active{
-  color:#4ade80;
-  background:rgba(74,222,128,0.1);
-  border-color:rgba(74,222,128,0.2);
+  color:var(--success);
+  background:rgba(34,197,94,0.1);
+  border-color:rgba(34,197,94,0.25);
 }
 .item-badge.warn{
-  color:#fb923c;
-  background:rgba(251,146,60,0.1);
-  border-color:rgba(251,146,60,0.2);
+  color:var(--warning);
+  background:rgba(245,158,11,0.1);
+  border-color:rgba(245,158,11,0.25);
 }
-
-/* Performance Tab (Gauges & Sparklines) */
+.val-cell{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+}
+.val-text{
+  min-width:70px;
+  text-align:right;
+}
+.heat-track{
+  width:90px;
+  height:7px;
+  background:rgba(255,255,255,0.08);
+  border-radius:4px;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.heat-fill{
+  height:100%;
+  width:0%;
+  background:var(--success);
+  border-radius:4px;
+  transition:width 0.3s ease,background 0.3s ease;
+}
+.heat-fill.mid{
+  background:var(--warning);
+}
+.heat-fill.high{
+  background:var(--danger);
+}
+.inline-media-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.inline-media-track{
+  max-width:260px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--text-dim);
+}
+.media-ctrl-btn{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--text-dim);
+  padding:3px 6px;
+  border-radius:3px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.media-ctrl-btn:hover{
+  background:rgba(255,255,255,0.1);
+  color:#fff;
+}
+.copy-btn{
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  padding:2px 4px;
+  border-radius:3px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+.copy-btn:hover{
+  color:var(--text);
+  background:rgba(255,255,255,0.08);
+}
 .perf-container{
   padding:20px;
   display:flex;
   flex-direction:column;
-  gap:18px;
+  gap:16px;
 }
 .gauges-grid{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
   gap:14px;
 }
 .perf-card{
@@ -406,6 +584,9 @@ body{
   font-weight:600;
   color:var(--muted);
   text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:6px;
 }
 .perf-val{
   font-size:17px;
@@ -414,11 +595,11 @@ body{
 }
 .perf-sub{
   font-size:12px;
-  color:var(--faint);
+  color:var(--muted);
 }
 .sparkline-svg{
   width:100%;
-  height:60px;
+  height:56px;
   display:block;
 }
 .sparkline-grid{
@@ -435,14 +616,20 @@ body{
   stroke-width:1.5;
   stroke-linejoin:round;
 }
-
-/* Settings Form */
+.perf-disk-bar{
+  width:100%;
+  height:8px;
+  background:rgba(255,255,255,0.08);
+  border-radius:4px;
+  overflow:hidden;
+  margin-top:8px;
+}
 .config-container{
   padding:20px;
   display:flex;
   flex-direction:column;
   gap:14px;
-  max-width:920px;
+  max-width:940px;
 }
 .config-card{
   background:var(--surface);
@@ -454,8 +641,8 @@ body{
   gap:10px;
 }
 .config-card.card-danger{
-  border-color:rgba(232,17,35,0.4);
-  background:rgba(232,17,35,0.03);
+  border-color:rgba(239,68,68,0.35);
+  background:rgba(239,68,68,0.03);
 }
 .card-head{
   display:flex;
@@ -465,7 +652,7 @@ body{
   border-bottom:1px solid var(--border-subtle);
 }
 .card-head.head-danger{
-  border-bottom-color:rgba(232,17,35,0.25);
+  border-bottom-color:rgba(239,68,68,0.2);
 }
 .card-title{
   font-size:12px;
@@ -475,17 +662,15 @@ body{
   letter-spacing:0.03em;
 }
 .card-title.title-danger{
-  color:#f87171;
-  font-weight:700;
+  color:var(--danger);
 }
 .danger-warning{
   font-size:12px;
   color:#fca5a5;
-  background:rgba(232,17,35,0.08);
-  border:1px solid rgba(232,17,35,0.2);
+  background:rgba(239,68,68,0.08);
+  border:1px solid rgba(239,68,68,0.2);
   border-radius:4px;
   padding:8px 12px;
-  line-height:1.4;
 }
 .field{
   display:flex;
@@ -502,6 +687,11 @@ label{
   color:var(--muted);
   font-weight:500;
 }
+.input-with-action{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
 input,select{
   width:100%;
   appearance:none;
@@ -513,12 +703,32 @@ input,select{
   font-size:13px;
   outline:none;
 }
+.input-with-action input{
+  padding-right:32px;
+}
+.input-btn{
+  position:absolute;
+  right:6px;
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  cursor:pointer;
+  padding:4px;
+  border-radius:3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.input-btn:hover{
+  color:var(--text);
+  background:rgba(255,255,255,0.08);
+}
 input:focus,select:focus{
   border-color:var(--border-focus);
 }
 .toggle-grid{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:8px;
 }
 .toggle-item{
@@ -575,48 +785,204 @@ input:focus,select:focus{
 .msg-area{
   font-size:12px;
 }
-.msg-ok{color:#4ade80}
-.msg-err{color:#f87171}
+.msg-ok{color:var(--success)}
+.msg-err{color:var(--danger)}
+.toast-container{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  z-index:9999;
+  pointer-events:none;
+}
+.toast-card{
+  pointer-events:auto;
+  background:#262626;
+  border:1px solid #3a3a3a;
+  box-shadow:0 8px 24px rgba(0,0,0,0.6);
+  border-radius:6px;
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  color:#fff;
+  min-width:240px;
+  max-width:360px;
+  transform:translateY(20px);
+  opacity:0;
+  transition:transform 0.2s ease,opacity 0.2s ease;
+}
+.toast-card.show{
+  transform:translateY(0);
+  opacity:1;
+}
+.toast-card.toast-err{
+  border-left:4px solid var(--danger);
+}
+.toast-card.toast-ok{
+  border-left:4px solid var(--success);
+}
+@media (max-width:768px){
+  .menu-btn{
+    display:inline-flex;
+  }
+  .sidebar{
+    position:fixed;
+    top:0;
+    bottom:0;
+    left:0;
+    transform:translateX(-100%);
+  }
+  .sidebar.open{
+    transform:translateX(0);
+  }
+  .sidebar-backdrop.open{
+    display:block;
+  }
+  .command-bar{
+    padding:8px 12px;
+  }
+  .table-filter-input{
+    width:110px;
+  }
+  .table-filter-input:focus{
+    width:140px;
+  }
+  .rate-label{
+    display:none;
+  }
+}
 </style>
 </head>
 <body>
 <div class="app-window">
-  <!-- Left Navigation Sidebar -->
-  <aside class="sidebar">
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+  <aside id="sidebar" class="sidebar">
     <div class="sidebar-top">
       <div class="sidebar-brand">
-        <span class="sidebar-title">Task Manager</span>
-        <span class="sidebar-ver mono">satellite v{{VERSION}}</span>
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 3a9 9 0 0 1 9 9M3 12a9 9 0 0 1 9-9M12 21a9 9 0 0 1-9-9M21 12a9 9 0 0 1-9 9"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <div class="brand-text">
+          <span class="sidebar-title">Task Manager</span>
+          <span class="sidebar-ver mono">satellite v{{VERSION}}</span>
+        </div>
       </div>
       <nav class="nav-list">
         <button type="button" class="nav-item active" id="nav-proc" onclick="switchNav('processes')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
           <span>Processes</span>
         </button>
         <button type="button" class="nav-item" id="nav-perf" onclick="switchNav('performance')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
           <span>Performance</span>
         </button>
       </nav>
     </div>
     <div class="sidebar-bottom">
       <button type="button" class="nav-item" id="nav-settings" onclick="switchNav('settings')">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
         <span>Settings</span>
       </button>
     </div>
   </aside>
 
-  <!-- Right Main Stage -->
   <div class="main-stage">
-    <!-- Windows 11 Command Bar Header -->
     <header class="command-bar">
       <div class="command-left">
+        <button type="button" class="menu-btn" onclick="toggleSidebar(true)" aria-label="Open menu">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
         <span class="page-title" id="page-title">Processes</span>
+        <div class="table-filter-box" id="filter-wrapper">
+          <svg class="table-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="search" id="filter-input" class="table-filter-input" placeholder="Filter sensors..." oninput="filterSensors(this.value)">
+        </div>
       </div>
       <div class="command-actions">
-        <button type="button" class="cmd-btn" id="btn-check-updates" onclick="checkUpdatesManual()">Check for Updates</button>
-        <button type="button" class="cmd-btn" onclick="triggerAction('test_toast')">Run Test Toast</button>
-        <button type="button" class="cmd-btn" onclick="triggerAction('lock')">Lock Workstation</button>
-        <button type="button" class="cmd-btn" onclick="triggerAction('mute')">Mute Audio</button>
-        <button type="button" class="cmd-btn" onclick="triggerAction('play_pause')">Play / Pause</button>
+        <div class="rate-ctrl">
+          <span class="rate-label">Refresh:</span>
+          <select id="rate-select" class="rate-select" onchange="onRateChange(this.value)">
+            <option value="1000">1s</option>
+            <option value="2000" selected>2s</option>
+            <option value="5000">5s</option>
+            <option value="0">Paused</option>
+          </select>
+          <button type="button" class="cmd-btn" style="padding:2px 4px;" onclick="poll(true)" title="Refresh Now">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="popover-anchor">
+          <button type="button" class="cmd-btn" id="btn-quick-actions" onclick="toggleActionsPopover()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span>Quick Actions</span>
+            <svg class="btn-icon" style="width:10px;height:10px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div id="actions-popover" class="actions-popover">
+            <button type="button" class="popover-item" onclick="triggerAction('lock')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Lock Workstation</span>
+            </button>
+            <button type="button" class="popover-item" onclick="triggerAction('display_sleep')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+              <span>Sleep Displays</span>
+            </button>
+            <button type="button" class="popover-item" onclick="triggerAction('test_toast')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span>Run Test Toast</span>
+            </button>
+            <div class="popover-divider"></div>
+            <button type="button" class="popover-item" onclick="triggerAction('volume_up')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <span>Volume Up</span>
+            </button>
+            <button type="button" class="popover-item" onclick="triggerAction('volume_down')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <span>Volume Down</span>
+            </button>
+            <button type="button" class="popover-item" onclick="triggerAction('volume_mute')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              <span>Toggle Mute</span>
+            </button>
+            <div class="popover-divider"></div>
+            <button type="button" class="popover-item" onclick="checkUpdatesManual()">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Check for Updates</span>
+            </button>
+          </div>
+        </div>
+
         <div class="status-pill">
           <span id="dot" class="status-dot"></span>
           <span id="status-text" class="mono">offline</span>
@@ -624,128 +990,141 @@ input:focus,select:focus{
       </div>
     </header>
 
-    <!-- Update Alert Banner -->
     <div id="update-banner" class="update-banner" style="display:none;">
       <div class="update-banner-left">
         <span class="update-icon">&#x2191;</span>
         <span id="update-banner-text">A new version of Satellite is available!</span>
       </div>
-      <div class="update-banner-actions">
+      <div class="command-actions">
         <a id="update-banner-link" href="#" target="_blank" rel="noopener noreferrer" class="cmd-btn update-btn">View Release</a>
-        <button type="button" class="cmd-btn" id="update-dismiss-btn" onclick="dismissUpdateBanner()">Dismiss</button>
+        <button type="button" class="cmd-btn" onclick="dismissUpdateBanner()">Dismiss</button>
       </div>
     </div>
 
-    <!-- TAB 1: PROCESSES / TELEMETRY TABLE -->
     <section id="panel-processes" class="content-panel">
       <div class="tm-table-wrap">
         <table class="tm-table">
           <thead>
             <tr>
-              <th style="width:40%;">Sensor / Component</th>
-              <th style="width:20%;">Status</th>
-              <th style="width:40%;text-align:right;padding-right:20px;">Current Value</th>
+              <th style="width:38%;">Sensor / Component</th>
+              <th style="width:18%;">Status</th>
+              <th style="width:44%;text-align:right;padding-right:20px;">Current Value</th>
             </tr>
           </thead>
-          <tbody>
-            <tr class="data-row" id="row-cpu">
-              <td><div class="item-title-cell"><span>Processor</span></div></td>
+          <tbody id="proc-tbody">
+            <tr class="data-row" id="row-cpu" data-filter="processor cpu load hardware">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg><span>Processor (CPU)</span></div></td>
               <td><span class="item-badge active">Hardware</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;" id="val-cpu">0%</td>
+              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-cpu"></div></div><span class="mono val-text" id="val-cpu">0.0%</span></div></td>
             </tr>
-            <tr class="data-row" id="row-memory">
-              <td><div class="item-title-cell"><span>Memory (RAM)</span></div></td>
+            <tr class="data-row" id="row-memory" data-filter="memory ram committed memory">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="6" y2="12.01"/><line x1="10" y1="12" x2="10" y2="12.01"/><line x1="14" y1="12" x2="14" y2="12.01"/><line x1="18" y1="12" x2="18" y2="12.01"/></svg><span>Memory (RAM)</span></div></td>
               <td><span class="item-badge active">Committed</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;" id="val-mem">0 / 0 GB</td>
+              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-mem"></div></div><span class="mono val-text" id="val-mem">0 / 0 GB (0%)</span></div></td>
             </tr>
-            <tr class="data-row" id="row-gpu">
-              <td><div class="item-title-cell"><span id="lbl-gpu">Graphics Processor</span></div></td>
+            <tr class="data-row" id="row-gpu" data-filter="gpu graphics display adapter vram">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/></svg><span id="lbl-gpu">Graphics Processor</span></div></td>
               <td><span class="item-badge active" id="badge-gpu">Hardware</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;" id="val-gpu">--</td>
+              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-gpu"></div></div><span class="mono val-text" id="val-gpu">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-network">
-              <td><div class="item-title-cell"><span>Network Adapter</span></div></td>
+            <tbody id="drives-tbody"></tbody>
+            <tr class="data-row" id="row-network" data-filter="network adapter ethernet traffic bandwidth">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg><span>Network Adapter</span></div></td>
               <td><span class="item-badge" id="badge-ip">Connected</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;" id="val-net">0 kB/s</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-net">0 kB/s</span></div></td>
             </tr>
-            <tr class="data-row" id="row-local-ip">
-              <td><div class="item-title-cell"><span>IPv4 Address</span></div></td>
+            <tr class="data-row" id="row-local-ip" data-filter="ipv4 local ip address connection">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>IPv4 Address</span></div></td>
               <td><span class="item-badge">Configured</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-ip">--</td>
+              <td><div class="val-cell"><button type="button" class="copy-btn" onclick="copyText($('val-ip').innerText)" title="Copy IP"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><span class="mono val-text" id="val-ip">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-wifi">
-              <td><div class="item-title-cell"><span>Wi-Fi SSID</span></div></td>
+            <tr class="data-row" id="row-wifi" data-filter="wifi ssid wireless wlan">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>Wi-Fi Connection</span></div></td>
               <td><span class="item-badge" id="badge-wifi">WLAN</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-wifi">--</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-wifi">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-uptime">
-              <td><div class="item-title-cell"><span>System Uptime</span></div></td>
+            <tr class="data-row" id="row-uptime" data-filter="system uptime boot time runtime">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>System Uptime</span></div></td>
               <td><span class="item-badge">Online</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-uptime">--</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-uptime">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-window">
-              <td><div class="item-title-cell"><span>Foreground App</span></div></td>
+            <tr class="data-row" id="row-window" data-filter="foreground app active application process window">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Foreground App</span></div></td>
               <td><span class="item-badge" id="badge-fullscreen">Normal</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-window">--</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-window">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-title">
-              <td><div class="item-title-cell"><span>Focus Window Title</span></div></td>
+            <tr class="data-row" id="row-title" data-filter="focus window title caption">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg><span>Focus Window Title</span></div></td>
               <td><span class="item-badge">Focus</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);max-width:350px;overflow:hidden;text-overflow:ellipsis;" id="val-title">--</td>
+              <td><div class="val-cell"><span class="mono val-text" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;" id="val-title">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-presence">
-              <td><div class="item-title-cell"><span>User Session</span></div></td>
+            <tr class="data-row" id="row-presence" data-filter="user session presence idle active lock">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>User Session</span></div></td>
               <td><span class="item-badge" id="badge-lock">Active</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-presence">--</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-presence">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-mic">
-              <td><div class="item-title-cell"><span>Microphone Capture</span></div></td>
+            <tr class="data-row" id="row-theme" data-filter="system theme dark light mode color">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>System Theme</span></div></td>
+              <td><span class="item-badge" id="badge-theme">OS</span></td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-theme">--</span></div></td>
+            </tr>
+            <tr class="data-row" id="row-mic" data-filter="microphone audio input capture privacy">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Microphone Capture</span></div></td>
               <td><span class="item-badge" id="badge-mic">Idle</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-mic">Inactive</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-mic">Inactive</span></div></td>
             </tr>
-            <tr class="data-row" id="row-webcam">
-              <td><div class="item-title-cell"><span>Webcam Video</span></div></td>
+            <tr class="data-row" id="row-webcam" data-filter="webcam camera video capture app">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>Webcam Video</span></div></td>
               <td><span class="item-badge" id="badge-webcam">Idle</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-webcam">Inactive</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-webcam">Inactive</span></div></td>
             </tr>
-            <tr class="data-row" id="row-audio-output">
-              <td><div class="item-title-cell"><span>Audio Endpoint</span></div></td>
+            <tr class="data-row" id="row-audio-output" data-filter="audio endpoint speaker sound output device">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><span>Audio Endpoint</span></div></td>
               <td><span class="item-badge">Playback</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-audio-output">--</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-audio-output">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-media">
-              <td><div class="item-title-cell"><span>Media Player</span></div></td>
+            <tr class="data-row" id="row-media" data-filter="media player song music transport playing">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg><span>Media Player</span></div></td>
               <td><span class="item-badge" id="badge-media">Idle</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-media">--</td>
+              <td>
+                <div class="val-cell">
+                  <div class="inline-media-box">
+                    <span class="mono inline-media-track" id="val-media">None</span>
+                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_prev')" title="Previous"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_play_pause')" title="Play / Pause"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_next')" title="Next"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('volume_mute')" title="Mute"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
+                  </div>
+                </div>
+              </td>
             </tr>
-            <tr class="data-row" id="row-display">
-              <td><div class="item-title-cell"><span>Display Power</span></div></td>
+            <tr class="data-row" id="row-display" data-filter="display state power screen monitor sleep">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Display Power</span></div></td>
               <td><span class="item-badge" id="badge-display">Active</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-display">Powered On</td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-display">Powered On</span></div></td>
             </tr>
-            <tr class="data-row" id="row-battery">
-              <td><div class="item-title-cell"><span>Power / Battery</span></div></td>
+            <tr class="data-row" id="row-battery" data-filter="battery power level charging ac capacity">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/></svg><span>Power & Battery</span></div></td>
               <td><span class="item-badge" id="badge-pwr">AC</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-battery">--</td>
+              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-battery"></div></div><span class="mono val-text" id="val-battery">--</span></div></td>
             </tr>
-            <tr class="data-row" id="row-reboot">
-              <td><div class="item-title-cell"><span>Windows Update</span></div></td>
-              <td><span class="item-badge" id="badge-reboot">OK</span></td>
-              <td class="mono" style="text-align:right;padding-right:20px;color:var(--text-dim);" id="val-reboot">Up to Date</td>
+            <tr class="data-row" id="row-reboot" data-filter="windows update reboot restart pending patch">
+              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Windows Update</span></div></td>
+              <td><span class="item-badge active" id="badge-reboot">OK</span></td>
+              <td><div class="val-cell"><span class="mono val-text" id="val-reboot">Up to Date</span></div></td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- TAB 2: PERFORMANCE GRAPHS -->
     <section id="panel-performance" class="content-panel hidden">
       <div class="perf-container">
-        <div class="gauges-grid">
+        <div class="gauges-grid" id="perf-gauges">
           <div class="perf-card">
             <div class="perf-card-header">
-              <span class="perf-title">CPU</span>
-              <span class="perf-val mono" id="top-cpu">0%</span>
+              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>CPU</span>
+              <span class="perf-val mono" id="top-cpu">0.0%</span>
             </div>
             <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
               <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
@@ -759,8 +1138,8 @@ input:focus,select:focus{
 
           <div class="perf-card">
             <div class="perf-card-header">
-              <span class="perf-title">Memory</span>
-              <span class="perf-val mono" id="top-mem">0%</span>
+              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>Memory</span>
+              <span class="perf-val mono" id="top-mem">0.0%</span>
             </div>
             <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
               <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
@@ -774,7 +1153,7 @@ input:focus,select:focus{
 
           <div class="perf-card">
             <div class="perf-card-header">
-              <span class="perf-title">Network</span>
+              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/></svg>Network</span>
               <span class="perf-val mono" id="top-net">0 KB/s</span>
             </div>
             <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
@@ -789,8 +1168,8 @@ input:focus,select:focus{
 
           <div class="perf-card" id="perf-gpu-card">
             <div class="perf-card-header">
-              <span class="perf-title" id="perf-gpu-title">GPU</span>
-              <span class="perf-val mono" id="top-gpu">0%</span>
+              <span class="perf-title" id="perf-gpu-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>GPU</span>
+              <span class="perf-val mono" id="top-gpu">0.0%</span>
             </div>
             <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
               <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
@@ -802,10 +1181,11 @@ input:focus,select:focus{
             <span class="perf-sub mono" id="top-gpu-sub">Dedicated graphics</span>
           </div>
         </div>
+
+        <div class="gauges-grid" id="perf-drives-grid"></div>
       </div>
     </section>
 
-    <!-- TAB 3: CONFIGURATION -->
     <section id="panel-settings" class="content-panel hidden">
       <div class="config-container">
         <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
@@ -816,7 +1196,12 @@ input:focus,select:focus{
             <div class="field-row">
               <div class="field">
                 <label for="node_id">Client Node ID</label>
-                <input class="mono" id="node_id" required autocomplete="off">
+                <div class="input-with-action">
+                  <input class="mono" id="node_id" required autocomplete="off">
+                  <button type="button" class="input-btn" onclick="copyText($('node_id').value)" title="Copy Node ID">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  </button>
+                </div>
               </div>
               <div class="field">
                 <label for="broker">Broker URI</label>
@@ -833,7 +1218,12 @@ input:focus,select:focus{
               </div>
               <div class="field">
                 <label for="pass">Broker Password</label>
-                <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+                <div class="input-with-action">
+                  <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+                  <button type="button" class="input-btn" onclick="togglePassVis('pass')" title="Show / Hide Password">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
             <div class="field-row">
@@ -921,7 +1311,12 @@ input:focus,select:focus{
             </div>
             <div class="field">
               <label for="api_key">Authentication Token (or header X-API-Key)</label>
-              <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
+              <div class="input-with-action">
+                <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
+                <button type="button" class="input-btn" onclick="copyText($('api_key').value)" title="Copy API Key">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -947,7 +1342,12 @@ input:focus,select:focus{
                 <div class="field-row">
                   <div class="field">
                     <label for="export_pass">Encryption Passphrase (Optional)</label>
-                    <input type="password" class="mono" id="export_pass" placeholder="Leave empty for plaintext export" autocomplete="new-password">
+                    <div class="input-with-action">
+                      <input type="password" class="mono" id="export_pass" placeholder="Leave empty for plaintext export" autocomplete="new-password">
+                      <button type="button" class="input-btn" onclick="togglePassVis('export_pass')" title="Show / Hide Passphrase">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
@@ -965,7 +1365,12 @@ input:focus,select:focus{
                   </div>
                   <div class="field">
                     <label for="import_pass">Decryption Passphrase (If encrypted)</label>
-                    <input type="password" class="mono" id="import_pass" placeholder="Required if encrypted" autocomplete="current-password">
+                    <div class="input-with-action">
+                      <input type="password" class="mono" id="import_pass" placeholder="Required if encrypted" autocomplete="current-password">
+                      <button type="button" class="input-btn" onclick="togglePassVis('import_pass')" title="Show / Hide Passphrase">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="field">
@@ -997,6 +1402,8 @@ input:focus,select:focus{
   </div>
 </div>
 
+<div id="toast-container" class="toast-container"></div>
+
 <script>
 const $ = id => document.getElementById(id);
 const urlParams = new URLSearchParams(window.location.search);
@@ -1010,7 +1417,67 @@ async function authFetch(url, options = {}) {
   return fetch(url, options);
 }
 
+function showToast(text, isError = false) {
+  const container = $('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast-card ' + (isError ? 'toast-err' : 'toast-ok');
+  toast.innerText = text;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+  }, 3500);
+}
+
+function copyText(val) {
+  if (!val || val === '--') return;
+  navigator.clipboard.writeText(val).then(() => {
+    showToast('Copied to clipboard: ' + val, false);
+  }).catch(() => {
+    showToast('Failed to copy to clipboard', true);
+  });
+}
+
+function togglePassVis(id) {
+  const el = $(id);
+  if (!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function toggleSidebar(open) {
+  const sidebar = $('sidebar');
+  const backdrop = $('sidebar-backdrop');
+  if (!sidebar || !backdrop) return;
+  if (open) {
+    sidebar.classList.add('open');
+    backdrop.classList.add('open');
+  } else {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+}
+
+function toggleActionsPopover(forceClose) {
+  const popover = $('actions-popover');
+  if (!popover) return;
+  if (forceClose) {
+    popover.classList.remove('open');
+  } else {
+    popover.classList.toggle('open');
+  }
+}
+
+document.addEventListener('click', e => {
+  const anchor = document.querySelector('.popover-anchor');
+  if (anchor && !anchor.contains(e.target)) {
+    toggleActionsPopover(true);
+  }
+});
+
 function switchNav(tab) {
+  toggleSidebar(false);
   $('panel-processes').className = 'content-panel' + (tab === 'processes' ? '' : ' hidden');
   $('panel-performance').className = 'content-panel' + (tab === 'performance' ? '' : ' hidden');
   $('panel-settings').className = 'content-panel' + (tab === 'settings' ? '' : ' hidden');
@@ -1018,6 +1485,11 @@ function switchNav(tab) {
   $('nav-proc').className = 'nav-item' + (tab === 'processes' ? ' active' : '');
   $('nav-perf').className = 'nav-item' + (tab === 'performance' ? ' active' : '');
   $('nav-settings').className = 'nav-item' + (tab === 'settings' ? ' active' : '');
+
+  const filterWrap = $('filter-wrapper');
+  if (filterWrap) {
+    filterWrap.style.display = tab === 'processes' ? 'flex' : 'none';
+  }
 
   const titles = {
     processes: 'Processes',
@@ -1027,6 +1499,23 @@ function switchNav(tab) {
   $('page-title').innerText = titles[tab] || 'Task Manager';
 }
 
+function filterSensors(query) {
+  const q = query.trim().toLowerCase();
+  document.querySelectorAll('#proc-tbody tr.data-row').forEach(row => {
+    if (row.classList.contains('configured-hidden')) return;
+    if (!q) {
+      row.classList.remove('hidden');
+      return;
+    }
+    const filterKey = (row.getAttribute('data-filter') || '') + ' ' + row.innerText;
+    if (filterKey.toLowerCase().includes(q)) {
+      row.classList.remove('hidden');
+    } else {
+      row.classList.add('hidden');
+    }
+  });
+}
+
 function bulkToggleEntities(checked) {
   document.querySelectorAll('.exp-chk').forEach(el => {
     el.checked = checked;
@@ -1034,19 +1523,36 @@ function bulkToggleEntities(checked) {
 }
 
 async function triggerAction(actionName) {
+  toggleActionsPopover(true);
   try {
-    await authFetch('/api/action', {
+    const res = await authFetch('/api/action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: actionName })
     });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      showToast('Action executed: ' + actionName.replace(/_/g, ' '), false);
+    } else {
+      showToast('Action failed: ' + (data.error || 'Server rejected request'), true);
+    }
   } catch (err) {
+    showToast('Failed to trigger action: ' + err.message, true);
   }
 }
 
 let activePollTimeout = null;
-let currentIntervalMs = 5000;
+let currentIntervalMs = 2000;
 let currentExpose = {};
+
+function onRateChange(val) {
+  const ms = parseInt(val, 10);
+  currentIntervalMs = ms;
+  clearTimeout(activePollTimeout);
+  if (ms > 0) {
+    poll();
+  }
+}
 
 const MAX_HISTORY = 20;
 const historyCPU = [];
@@ -1062,9 +1568,7 @@ function pushHistory(arr, val) {
 }
 
 function renderSparkline(polyId, lineId, data, maxVal) {
-  if (data.length < 2) {
-    return;
-  }
+  if (data.length < 2) return;
   const max = maxVal > 0 ? maxVal : 1;
   const step = 100 / (MAX_HISTORY - 1);
   const offset = (MAX_HISTORY - data.length) * step;
@@ -1085,6 +1589,14 @@ function renderSparkline(polyId, lineId, data, maxVal) {
     polyEl.setAttribute('points', polyStr);
     lineEl.setAttribute('points', lineStr);
   }
+}
+
+function setHeatBar(elId, pct) {
+  const el = $(elId);
+  if (!el) return;
+  const clamped = Math.min(100, Math.max(0, pct || 0));
+  el.style.width = clamped + '%';
+  el.className = 'heat-fill' + (clamped >= 90 ? ' high' : (clamped >= 70 ? ' mid' : ''));
 }
 
 function setStatusBadge(status) {
@@ -1110,26 +1622,82 @@ function setStaleUI() {
   txt.innerText = 'unreachable';
 }
 
+function updateRowConfigState(id, visible) {
+  const row = $(id);
+  if (!row) return;
+  if (visible) {
+    row.classList.remove('configured-hidden');
+    row.classList.remove('hidden');
+  } else {
+    row.classList.add('configured-hidden');
+    row.classList.add('hidden');
+  }
+}
+
 function updateRowVisibility(expose, hasBattery) {
-  $('row-cpu').className = 'data-row' + (expose.cpu ? '' : ' hidden');
-  $('row-memory').className = 'data-row' + (expose.memory ? '' : ' hidden');
-  $('row-gpu').className = 'data-row' + (expose.gpu !== false ? '' : ' hidden');
+  updateRowConfigState('row-cpu', expose.cpu !== false);
+  updateRowConfigState('row-memory', expose.memory !== false);
+  updateRowConfigState('row-gpu', expose.gpu !== false);
   const perfGPU = $('perf-gpu-card');
   if (perfGPU) perfGPU.className = 'perf-card' + (expose.gpu !== false ? '' : ' hidden');
-  $('row-network').className = 'data-row' + (expose.network ? '' : ' hidden');
-  $('row-local-ip').className = 'data-row' + (expose.local_ip ? '' : ' hidden');
-  $('row-uptime').className = 'data-row' + (expose.uptime ? '' : ' hidden');
-  $('row-presence').className = 'data-row' + (expose.user_presence ? '' : ' hidden');
-  $('row-mic').className = 'data-row' + (expose.microphone ? '' : ' hidden');
-  $('row-webcam').className = 'data-row' + (expose.webcam ? '' : ' hidden');
-  $('row-audio-output').className = 'data-row' + (expose.audio_output ? '' : ' hidden');
-  $('row-wifi').className = 'data-row' + (expose.wifi ? '' : ' hidden');
-  $('row-display').className = 'data-row' + (expose.display_state ? '' : ' hidden');
-  $('row-window').className = 'data-row' + (expose.active_window ? '' : ' hidden');
-  $('row-title').className = 'data-row' + (expose.window_title ? '' : ' hidden');
-  $('row-reboot').className = 'data-row' + (expose.update_pending ? '' : ' hidden');
-  $('row-media').className = 'data-row' + (expose.media_control ? '' : ' hidden');
-  $('row-battery').className = 'data-row' + ((expose.battery && hasBattery) ? '' : ' hidden');
+  updateRowConfigState('row-network', expose.network !== false);
+  updateRowConfigState('row-local-ip', expose.local_ip !== false);
+  updateRowConfigState('row-uptime', expose.uptime !== false);
+  updateRowConfigState('row-presence', expose.user_presence !== false);
+  updateRowConfigState('row-theme', (expose.system_theme || expose.windows_theme) !== false);
+  updateRowConfigState('row-mic', expose.microphone !== false);
+  updateRowConfigState('row-webcam', expose.webcam !== false);
+  updateRowConfigState('row-audio-output', expose.audio_output !== false);
+  updateRowConfigState('row-wifi', expose.wifi !== false);
+  updateRowConfigState('row-display', expose.display_state !== false);
+  updateRowConfigState('row-window', expose.active_window !== false);
+  updateRowConfigState('row-title', expose.window_title !== false);
+  updateRowConfigState('row-reboot', expose.update_pending !== false);
+  updateRowConfigState('row-media', expose.media_control !== false);
+  updateRowConfigState('row-battery', (expose.battery !== false && hasBattery));
+}
+
+function renderDrives(drives, exposeStorage) {
+  const tbody = $('drives-tbody');
+  const perfGrid = $('perf-drives-grid');
+  if (!tbody || !perfGrid) return;
+
+  if (exposeStorage === false || !drives || drives.length === 0) {
+    tbody.innerHTML = '';
+    perfGrid.innerHTML = '';
+    return;
+  }
+
+  let tableHtml = '';
+  let perfHtml = '';
+
+  drives.forEach(d => {
+    const mount = d.mount || 'Disk';
+    const used = d.used_gb ? d.used_gb.toFixed(1) : '0';
+    const total = d.total_gb ? d.total_gb.toFixed(1) : '0';
+    const pct = d.used_percent ? Math.round(d.used_percent) : 0;
+    const heatClass = pct >= 90 ? ' high' : (pct >= 70 ? ' mid' : '');
+
+    tableHtml += `
+      <tr class="data-row" data-filter="disk storage drive mount ${mount}">
+        <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg><span>Disk (${mount})</span></div></td>
+        <td><span class="item-badge">Fixed Disk</span></td>
+        <td><div class="val-cell"><div class="heat-track"><div class="heat-fill${heatClass}" style="width:${pct}%"></div></div><span class="mono val-text">${used} / ${total} GB (${pct}%)</span></div></td>
+      </tr>`;
+
+    perfHtml += `
+      <div class="perf-card">
+        <div class="perf-card-header">
+          <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Disk (${mount})</span>
+          <span class="perf-val mono">${pct}%</span>
+        </div>
+        <div class="perf-disk-bar"><div class="heat-fill${heatClass}" style="width:${pct}%"></div></div>
+        <span class="perf-sub mono">${used} / ${total} GB capacity</span>
+      </div>`;
+  });
+
+  tbody.innerHTML = tableHtml;
+  perfGrid.innerHTML = perfHtml;
 }
 
 let updateDismissed = false;
@@ -1137,9 +1705,7 @@ let updateDismissed = false;
 function dismissUpdateBanner() {
   updateDismissed = true;
   const banner = $('update-banner');
-  if (banner) {
-    banner.style.display = 'none';
-  }
+  if (banner) banner.style.display = 'none';
 }
 
 function handleUpdateStatus(status) {
@@ -1163,40 +1729,34 @@ function handleUpdateStatus(status) {
 }
 
 async function checkUpdatesManual() {
-  const btn = $('btn-check-updates');
-  const origText = btn ? btn.textContent : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Checking...';
-  }
+  toggleActionsPopover(true);
+  showToast('Checking for updates...', false);
   try {
     const res = await authFetch('/api/update/check', { method: 'POST' });
     const data = await res.json();
     if (data.available) {
       updateDismissed = false;
       handleUpdateStatus(data);
-      alert(`Update available: ${data.latest_version}! See banner above to view release.`);
+      showToast(`Update available: ${data.latest_version}`, false);
     } else if (data.error) {
-      alert(`Update check failed: ${data.error}`);
+      showToast(`Update check failed: ${data.error}`, true);
     } else {
-      alert(`Satellite is up to date (${data.current_version || '{{VERSION}}'}).`);
+      showToast(`Satellite is up to date (${data.current_version || '{{VERSION}}'})`, false);
     }
   } catch (err) {
-    alert(`Failed to check for updates: ${err.message}`);
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = origText;
-    }
+    showToast(`Failed to check updates: ${err.message}`, true);
   }
 }
 
-async function poll() {
+async function poll(manual = false) {
+  if (manual) {
+    clearTimeout(activePollTimeout);
+  }
   try {
     const res = await authFetch('/api/status');
     if (!res.ok) {
       setStaleUI();
-      activePollTimeout = setTimeout(poll, currentIntervalMs);
+      if (currentIntervalMs > 0) activePollTimeout = setTimeout(poll, currentIntervalMs);
       return;
     }
     const data = await res.json();
@@ -1208,19 +1768,23 @@ async function poll() {
     const t = data.telemetry;
     if (t) {
       updateRowVisibility(currentExpose, t.has_battery);
+      renderDrives(t.drives, currentExpose.storage);
 
       if (t.cpu_percent !== undefined) {
         const cpuStr = t.cpu_percent.toFixed(1) + '%';
         if ($('val-cpu')) $('val-cpu').innerText = cpuStr;
         if ($('top-cpu')) $('top-cpu').innerText = cpuStr;
+        setHeatBar('fill-cpu', t.cpu_percent);
         pushHistory(historyCPU, t.cpu_percent);
         renderSparkline('poly-cpu', 'line-cpu', historyCPU, 100);
       }
+
       if (t.memory_used_gb !== undefined) {
-        const memStr = `${t.memory_used_gb.toFixed(1)} GB (${t.memory_percent.toFixed(0)}%)`;
+        const memStr = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB (${t.memory_percent.toFixed(0)}%)`;
         if ($('val-mem')) $('val-mem').innerText = memStr;
         if ($('top-mem')) $('top-mem').innerText = t.memory_percent.toFixed(1) + '%';
         if ($('top-mem-sub')) $('top-mem-sub').innerText = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB`;
+        setHeatBar('fill-mem', t.memory_percent);
         pushHistory(historyMem, t.memory_percent);
         renderSparkline('poly-mem', 'line-mem', historyMem, 100);
       }
@@ -1230,7 +1794,7 @@ async function poll() {
         const gpuName = g.name || 'Dedicated GPU';
         if ($('lbl-gpu')) $('lbl-gpu').innerText = gpuName;
         if ($('badge-gpu')) $('badge-gpu').innerText = g.vendor || 'Hardware';
-        if ($('perf-gpu-title')) $('perf-gpu-title').innerText = gpuName.length > 18 ? gpuName.substring(0, 16) + '...' : gpuName;
+        if ($('perf-gpu-title')) $('perf-gpu-title').innerText = gpuName.length > 20 ? gpuName.substring(0, 18) + '...' : gpuName;
 
         const valParts = [];
         let loadVal = 0;
@@ -1247,7 +1811,15 @@ async function poll() {
         if (g.temperature_c !== undefined && g.temperature_c !== null) {
           valParts.push(`${Math.round(g.temperature_c)}°C`);
         }
+        if (g.power_watts !== undefined && g.power_watts !== null) {
+          valParts.push(`${g.power_watts.toFixed(0)} W`);
+        }
+        if (g.fan_speed_percent !== undefined && g.fan_speed_percent !== null) {
+          valParts.push(`Fan ${Math.round(g.fan_speed_percent)}%`);
+        }
+
         if ($('val-gpu')) $('val-gpu').innerText = valParts.join(' | ') || 'Active';
+        setHeatBar('fill-gpu', loadVal);
         if ($('top-gpu')) $('top-gpu').innerText = `${loadVal.toFixed(1)}%`;
         if ($('top-gpu-sub')) $('top-gpu-sub').innerText = valParts.slice(1).join(' | ') || 'Graphics Load';
 
@@ -1279,6 +1851,11 @@ async function poll() {
         $('badge-lock').innerText = t.session_locked ? 'Locked' : (t.user_active ? 'Active' : 'Idle');
         $('badge-lock').className = 'item-badge ' + (t.session_locked ? 'warn' : (t.user_active ? 'active' : ''));
       }
+      if (t.system_theme) {
+        $('val-theme').innerText = t.system_theme.toUpperCase();
+        $('badge-theme').innerText = t.system_theme === 'dark' ? 'Dark' : 'Light';
+        $('badge-theme').className = 'item-badge active';
+      }
       if (t.microphone_in_use !== undefined) {
         $('val-mic').innerText = t.microphone_in_use ? 'Capture Active' : 'Idle';
         $('badge-mic').innerText = t.microphone_in_use ? 'In Use' : 'Idle';
@@ -1292,6 +1869,7 @@ async function poll() {
         const pwr = t.power_plugged ? 'AC' : 'Batt';
         $('val-battery').innerText = t.battery_percent + '% (' + pwr + ')';
         $('badge-pwr').innerText = pwr;
+        setHeatBar('fill-battery', t.battery_percent);
       }
       if (t.active_process) {
         $('val-window').innerText = t.active_process;
@@ -1338,7 +1916,9 @@ async function poll() {
   } catch (err) {
     setStaleUI();
   }
-  activePollTimeout = setTimeout(poll, currentIntervalMs);
+  if (currentIntervalMs > 0) {
+    activePollTimeout = setTimeout(poll, currentIntervalMs);
+  }
 }
 
 async function loadConfig() {
@@ -1351,7 +1931,6 @@ async function loadConfig() {
     $('prefix').value = cfg.mqtt ? cfg.mqtt.topic_prefix : '';
     $('insecure_tls').checked = cfg.mqtt ? !!cfg.mqtt.insecure_tls : false;
     $('interval').value = cfg.interval_sec || 5;
-    currentIntervalMs = Math.max(1, cfg.interval_sec || 5) * 1000;
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
     $('port').value = cfg.port || cfg.webui_port || '';
     $('json_enabled').checked = !!cfg.json_enabled;
@@ -1428,11 +2007,12 @@ $('btn-test').onclick = async () => {
     });
     const result = await res.json();
     showMessage(result.success ? 'Broker reached' : 'Error: ' + result.error, !result.success);
+    showToast(result.success ? 'Broker connection successful' : 'Broker connection failed: ' + result.error, !result.success);
   } catch (err) {
     showMessage('Error: ' + err.message, true);
+    showToast('Broker error: ' + err.message, true);
   }
 };
-
 
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
@@ -1497,16 +2077,18 @@ $('cfg-form').onsubmit = async (e) => {
     });
     const result = await res.json();
     if (result.success) {
-      currentIntervalMs = Math.max(1, intervalSec) * 1000;
       currentExpose = newExpose;
       showMessage('Saved. Reconnecting...', false);
+      showToast('Configuration applied and saved', false);
       clearTimeout(activePollTimeout);
       poll();
     } else {
       showMessage('Error: ' + result.error, true);
+      showToast('Config error: ' + result.error, true);
     }
   } catch (err) {
     showMessage('Error: ' + err.message, true);
+    showToast('Config error: ' + err.message, true);
   }
 };
 
@@ -1540,10 +2122,12 @@ async function exportConfig() {
     URL.revokeObjectURL(link.href);
 
     msgEl.innerText = pass ? 'Encrypted export ready' : 'Plaintext export ready';
-    msgEl.style.color = '#107c41';
+    msgEl.style.color = '#22c55e';
+    showToast('Configuration exported: ' + filename, false);
   } catch (err) {
     msgEl.innerText = 'Error: ' + err.message;
-    msgEl.style.color = '#e81123';
+    msgEl.style.color = '#ef4444';
+    showToast('Export failed: ' + err.message, true);
   }
 }
 
@@ -1552,7 +2136,8 @@ async function importConfig() {
   const fileInput = $('import_file');
   if (!fileInput.files || fileInput.files.length === 0) {
     msgEl.innerText = 'Please select a file to import';
-    msgEl.style.color = '#e81123';
+    msgEl.style.color = '#ef4444';
+    showToast('Please select a configuration file', true);
     return;
   }
   msgEl.innerText = 'Importing...';
@@ -1577,11 +2162,13 @@ async function importConfig() {
       successText += ' (Notice: file was exported from newer v' + result.source_app_version + ')';
     }
     msgEl.innerText = successText;
-    msgEl.style.color = '#107c41';
+    msgEl.style.color = '#22c55e';
+    showToast('Configuration imported successfully', false);
     await loadConfig();
   } catch (err) {
     msgEl.innerText = 'Error: ' + err.message;
-    msgEl.style.color = '#e81123';
+    msgEl.style.color = '#ef4444';
+    showToast('Import failed: ' + err.message, true);
   }
 }
 
