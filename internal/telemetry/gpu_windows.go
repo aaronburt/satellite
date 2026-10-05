@@ -121,34 +121,34 @@ func getDXGIAdapters() []dxgiAdapterInfo {
 		return nil
 	}
 
-	var factory uintptr
+	var factory unsafe.Pointer
 	ret, _, _ := createFactory1.Call(
 		uintptr(unsafe.Pointer(&guidIDXGIFactory1)),
 		uintptr(unsafe.Pointer(&factory)),
 	)
-	if ret != 0 {
+	if ret != 0 || factory == nil {
 		return nil
 	}
 
-	factoryVtbl := *(**[14]uintptr)(unsafe.Pointer(factory))
+	factoryVtbl := *(**[14]uintptr)(factory)
 	enumAdapters1 := factoryVtbl[12]
 	releaseFactory := factoryVtbl[2]
-	defer syscall.SyscallN(releaseFactory, factory)
+	defer syscall.SyscallN(releaseFactory, uintptr(factory))
 
 	var list []dxgiAdapterInfo
 	for i := uintptr(0); ; i++ {
-		var adapter uintptr
-		ret, _, _ = syscall.SyscallN(enumAdapters1, factory, i, uintptr(unsafe.Pointer(&adapter)))
-		if ret != 0 {
+		var adapter unsafe.Pointer
+		ret, _, _ = syscall.SyscallN(enumAdapters1, uintptr(factory), i, uintptr(unsafe.Pointer(&adapter)))
+		if ret != 0 || adapter == nil {
 			break
 		}
 
-		adapterVtbl := *(**[11]uintptr)(unsafe.Pointer(adapter))
+		adapterVtbl := *(**[11]uintptr)(adapter)
 		releaseAdapter := adapterVtbl[2]
 		getDesc1 := adapterVtbl[10]
 
 		var desc dxgiAdapterDesc1
-		ret, _, _ = syscall.SyscallN(getDesc1, adapter, uintptr(unsafe.Pointer(&desc)))
+		ret, _, _ = syscall.SyscallN(getDesc1, uintptr(adapter), uintptr(unsafe.Pointer(&desc)))
 		if ret == 0 {
 			isSoftware := (desc.Flags & 2) != 0
 			if !isSoftware {
@@ -163,7 +163,7 @@ func getDXGIAdapters() []dxgiAdapterInfo {
 				})
 			}
 		}
-		syscall.SyscallN(releaseAdapter, adapter)
+		syscall.SyscallN(releaseAdapter, uintptr(adapter))
 	}
 	return list
 }
