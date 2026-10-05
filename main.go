@@ -189,12 +189,55 @@ func main() {
 	cliMode := flag.Bool("cli", false, "Run in terminal CLI/TUI mode")
 	debugMode := flag.Bool("debug", false, "Run in debug mode (enables WebUI automatically with hot reload from disk)")
 	headlessMode := flag.Bool("headless", false, "Run in headless background mode without system tray")
+	exportPath := flag.String("export", "", "Export configuration to specified file path and exit")
+	importPath := flag.String("import", "", "Import configuration from specified file path and exit")
+	passwordFlag := flag.String("password", "", "Passphrase for configuration export encryption or import decryption")
+	resetNodeID := flag.Bool("reset-node-id", true, "Adapt Node ID and Client ID to current machine hostname on import")
 	flag.Parse()
 
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to load config: %v\n", err)
 		cfg = config.DefaultConfig()
+	}
+
+	if *exportPath != "" {
+		data, err := config.ExportConfig(cfg, *passwordFlag)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error exporting configuration: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.WriteFile(*exportPath, data, 0600); err != nil {
+			fmt.Fprintf(os.Stderr, "Error writing exported file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Configuration exported successfully to %s\n", *exportPath)
+		return
+	}
+
+	if *importPath != "" {
+		raw, err := os.ReadFile(*importPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading import file: %v\n", err)
+			os.Exit(1)
+		}
+		res, err := config.ImportConfig(raw, config.ImportOptions{
+			Passphrase:  *passwordFlag,
+			ResetNodeID: *resetNodeID,
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error importing configuration: %v\n", err)
+			os.Exit(1)
+		}
+		if err := config.Save(res.Config); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving imported configuration: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Configuration imported successfully from Satellite v%s (Active Node ID: %s)\n", res.SourceAppVersion, res.Config.NodeID)
+		if res.IsNewerVersion {
+			fmt.Printf("Notice: Configuration was created by a newer version of Satellite (v%s)\n", res.SourceAppVersion)
+		}
+		return
 	}
 
 	logger.Init(cfg.Webhook, cfg.NodeID)
