@@ -39,14 +39,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $tag = "${{ steps.get_version.outputs.tag }}"
-          $releaseExists = gh release view $tag 2>$null
-          if ($LASTEXITCODE -eq 0) {
+          $existing = gh release list --limit 1000 --json tagName --jq '.[].tagName'
+          if (($existing -split "`r?`n") -contains $tag) {
             Write-Host "Release $tag already exists. Skipping release build."
             "exists=true" >> $env:GITHUB_OUTPUT
           } else {
             Write-Host "Release $tag does not exist. Proceeding with build."
             "exists=false" >> $env:GITHUB_OUTPUT
           }
+          $global:LASTEXITCODE = 0
 
       - name: Set up Go
         if: steps.check_release.outputs.exists == 'false'
@@ -82,8 +83,13 @@ jobs:
             iscc installer.iss
           } elseif (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
             & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
-          } else {
+          } elseif (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe") {
             & "C:\Program Files\Inno Setup 6\ISCC.exe" installer.iss
+          } elseif (Test-Path "C:\ProgramData\chocolatey\bin\iscc.exe") {
+            & "C:\ProgramData\chocolatey\bin\iscc.exe" installer.iss
+          } else {
+            Write-Error "Could not find Inno Setup compiler ISCC.exe"
+            exit 1
           }
 
       - name: Create GitHub Release
