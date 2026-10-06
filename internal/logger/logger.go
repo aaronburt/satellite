@@ -21,15 +21,33 @@ type Event struct {
 	Message   string `json:"message"`
 }
 
+type Listener func(Event)
+
 var (
-	mu         sync.RWMutex
-	enabled    bool
-	url        string
-	minLevel   string
-	secret     string
-	nodeID     string
-	httpClient = &http.Client{Timeout: 5 * time.Second}
+	mu          sync.RWMutex
+	enabled     bool
+	url         string
+	minLevel    string
+	secret      string
+	nodeID      string
+	httpClient  = &http.Client{Timeout: 5 * time.Second}
+	listenersMu sync.RWMutex
+	listeners   = make(map[uint64]Listener)
+	listenerSeq uint64
 )
+
+func AddListener(fn Listener) func() {
+	listenersMu.Lock()
+	defer listenersMu.Unlock()
+	listenerSeq++
+	id := listenerSeq
+	listeners[id] = fn
+	return func() {
+		listenersMu.Lock()
+		defer listenersMu.Unlock()
+		delete(listeners, id)
+	}
+}
 
 func Init(cfg config.WebhookConfig, id string) {
 	UpdateConfig(cfg, id)
@@ -71,15 +89,20 @@ func shouldLog(lvl string) bool {
 }
 
 func Log(level, category, message string) {
-	if !shouldLog(level) {
-		return
-	}
-
 	mu.RLock()
 	id := nodeID
 	targetURL := url
 	targetSecret := secret
+	webhookEnabled := enabled && url != "" && levelScore(level) >= levelScore(minLevel)
 	mu.RUnlock()
+
+	listenersMu.RLock()
+	hasListeners := len(listeners) > 0
+	listenersMu.RUnlock()
+
+	if !webhookEnabled && !hasListeners {
+		return
+	}
 
 	event := Event{
 		Timestamp: time.Now().Unix(),
@@ -90,9 +113,19 @@ func Log(level, category, message string) {
 		Message:   message,
 	}
 
-	go func() {
-		_ = postEvent(targetURL, targetSecret, event)
-	}()
+	if hasListeners {
+		listenersMu.RLock()
+		for _, fn := range listeners {
+			go fn(event)
+		}
+		listenersMu.RUnlock()
+	}
+
+	if webhookEnabled {
+		go func() {
+			_ = postEvent(targetURL, targetSecret, event)
+		}()
+	}
 }
 
 func Info(category, message string) {

@@ -801,6 +801,122 @@ input:focus,select:focus{
   border-radius:3px;
   margin-left:4px;
 }
+.logs-container{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+  padding:14px 18px;
+  gap:10px;
+}
+.logs-toolbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding-bottom:6px;
+  border-bottom:1px solid var(--border-subtle);
+}
+.logs-toolbar-left,.logs-toolbar-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.logs-select{
+  background:#141414;
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:4px;
+  outline:none;
+  cursor:pointer;
+}
+.logs-search-input{
+  background:#141414;
+  border:1px solid var(--border);
+  color:var(--text);
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:4px;
+  width:160px;
+  outline:none;
+}
+.logs-search-input:focus{
+  border-color:var(--border-focus);
+}
+.logs-console{
+  flex:1;
+  background:#121212;
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:10px 12px;
+  overflow-y:auto;
+  font-size:12px;
+  line-height:1.6;
+  position:relative;
+}
+.logs-empty{
+  color:var(--muted);
+  text-align:center;
+  padding:40px 0;
+  font-size:12.5px;
+}
+.logs-stream{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.log-row{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  word-break:break-word;
+}
+.log-time{
+  color:var(--faint);
+  flex-shrink:0;
+  user-select:none;
+}
+.log-badge{
+  font-size:10px;
+  font-weight:700;
+  padding:1px 5px;
+  border-radius:3px;
+  flex-shrink:0;
+  text-transform:uppercase;
+  letter-spacing:0.02em;
+}
+.log-badge.log-mqtt{
+  color:#38bdf8;
+  background:rgba(56,189,248,0.12);
+  border:1px solid rgba(56,189,248,0.25);
+}
+.log-badge.log-info{
+  color:var(--success);
+  background:rgba(34,197,94,0.12);
+  border:1px solid rgba(34,197,94,0.25);
+}
+.log-badge.log-warn{
+  color:var(--warning);
+  background:rgba(245,158,11,0.12);
+  border:1px solid rgba(245,158,11,0.25);
+}
+.log-badge.log-err{
+  color:var(--danger);
+  background:rgba(239,68,68,0.12);
+  border:1px solid rgba(239,68,68,0.25);
+}
+.log-cat{
+  color:var(--muted);
+  flex-shrink:0;
+}
+.log-msg{
+  color:var(--text);
+  flex:1;
+}
 .toggle-item{
   display:flex;
   align-items:center;
@@ -959,6 +1075,13 @@ input:focus,select:focus{
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
           </svg>
           <span>Performance</span>
+        </button>
+        <button type="button" class="nav-item" id="nav-logs" onclick="switchNav('logs')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+          <span>Logs</span>
         </button>
       </nav>
     </div>
@@ -1253,6 +1376,42 @@ input:focus,select:focus{
         </div>
 
         <div class="gauges-grid" id="perf-drives-grid"></div>
+      </div>
+    </section>
+
+    <section id="panel-logs" class="content-panel hidden">
+      <div class="logs-container">
+        <div class="logs-toolbar">
+          <div class="logs-toolbar-left">
+            <select id="logs-level-filter" class="logs-select" onchange="renderLogs()">
+              <option value="ALL">ALL LEVELS</option>
+              <option value="MQTT">MQTT ONLY</option>
+              <option value="INFO">INFO & ABOVE</option>
+              <option value="WARN">WARN & ABOVE</option>
+              <option value="ERROR">ERROR ONLY</option>
+            </select>
+            <input type="search" id="logs-search" class="logs-search-input" placeholder="Search logs..." oninput="renderLogs()">
+            <span id="logs-counter" class="item-badge">0 events (RAM)</span>
+          </div>
+          <div class="logs-toolbar-right">
+            <label class="toggle-item" style="font-size:12px;">
+              <input type="checkbox" id="logs-autoscroll" checked>
+              <span>Auto-scroll</span>
+            </label>
+            <button type="button" class="cmd-btn" onclick="copyLogs()" title="Copy logs to clipboard">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              <span>Copy</span>
+            </button>
+            <button type="button" class="cmd-btn" onclick="clearLogs()" title="Clear browser memory">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+        <div id="logs-console" class="logs-console mono">
+          <div id="logs-empty" class="logs-empty">Waiting for live log stream... (Logs held in browser memory only)</div>
+          <div id="logs-stream" class="logs-stream"></div>
+        </div>
       </div>
     </section>
 
@@ -1590,10 +1749,12 @@ function switchNav(tab) {
   toggleSidebar(false);
   $('panel-processes').className = 'content-panel' + (tab === 'processes' ? '' : ' hidden');
   $('panel-performance').className = 'content-panel' + (tab === 'performance' ? '' : ' hidden');
+  $('panel-logs').className = 'content-panel' + (tab === 'logs' ? '' : ' hidden');
   $('panel-settings').className = 'content-panel' + (tab === 'settings' ? '' : ' hidden');
 
   $('nav-proc').className = 'nav-item' + (tab === 'processes' ? ' active' : '');
   $('nav-perf').className = 'nav-item' + (tab === 'performance' ? ' active' : '');
+  $('nav-logs').className = 'nav-item' + (tab === 'logs' ? ' active' : '');
   $('nav-settings').className = 'nav-item' + (tab === 'settings' ? ' active' : '');
 
   const filterWrap = $('filter-wrapper');
@@ -1604,6 +1765,7 @@ function switchNav(tab) {
   const titles = {
     processes: 'Processes',
     performance: 'Performance',
+    logs: 'Event Logs',
     settings: 'Settings'
   };
   $('page-title').innerText = titles[tab] || 'Task Manager';
@@ -2282,8 +2444,111 @@ async function importConfig() {
   }
 }
 
+const MAX_BROWSER_LOGS = 500;
+const browserLogs = [];
+
+function appendLog(ev) {
+  browserLogs.push(ev);
+  if (browserLogs.length > MAX_BROWSER_LOGS) {
+    browserLogs.shift();
+  }
+  renderLogs();
+}
+
+function clearLogs() {
+  browserLogs.length = 0;
+  renderLogs();
+  showToast('Browser console cleared', false);
+}
+
+function copyLogs() {
+  const visible = getFilteredLogs();
+  if (visible.length === 0) {
+    showToast('No logs to copy', true);
+    return;
+  }
+  const lines = visible.map(ev => `[${ev.time || ''}] [${ev.level || 'INFO'}] (${ev.category || ''}) ${ev.message || ''}`);
+  copyText(lines.join('\n'));
+}
+
+function getFilteredLogs() {
+  const lvl = $('logs-level-filter') ? $('logs-level-filter').value : 'ALL';
+  const q = $('logs-search') ? $('logs-search').value.trim().toLowerCase() : '';
+  return browserLogs.filter(ev => {
+    if (lvl === 'MQTT' && ev.level !== 'MQTT') return false;
+    if (lvl === 'INFO' && !['INFO', 'WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
+    if (lvl === 'WARN' && !['WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
+    if (lvl === 'ERROR' && ev.level !== 'ERROR') return false;
+    if (q) {
+      const line = `${ev.level} ${ev.category} ${ev.message}`.toLowerCase();
+      if (!line.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderLogs() {
+  const filtered = getFilteredLogs();
+  const streamEl = $('logs-stream');
+  const emptyEl = $('logs-empty');
+  const counterEl = $('logs-counter');
+  if (counterEl) {
+    counterEl.innerText = `${browserLogs.length} events (${filtered.length} shown)`;
+  }
+  if (!streamEl || !emptyEl) return;
+  if (filtered.length === 0) {
+    emptyEl.style.display = 'block';
+    streamEl.innerHTML = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  let html = '';
+  filtered.forEach(ev => {
+    const timeStr = ev.time ? (ev.time.length > 19 ? ev.time.substring(11, 19) : ev.time) : '';
+    let badgeClass = 'log-info';
+    const upLvl = (ev.level || '').toUpperCase();
+    if (upLvl === 'MQTT') badgeClass = 'log-mqtt';
+    else if (upLvl === 'WARN' || upLvl === 'WARNING') badgeClass = 'log-warn';
+    else if (upLvl === 'ERROR') badgeClass = 'log-err';
+    const catStr = ev.category ? `(${escapeHtml(ev.category)})` : '';
+    html += `<div class="log-row">
+      <span class="log-time">${escapeHtml(timeStr)}</span>
+      <span class="log-badge ${badgeClass}">${escapeHtml(upLvl)}</span>
+      <span class="log-cat">${catStr}</span>
+      <span class="log-msg">${escapeHtml(ev.message || '')}</span>
+    </div>`;
+  });
+  streamEl.innerHTML = html;
+  if ($('logs-autoscroll') && $('logs-autoscroll').checked) {
+    const consoleEl = $('logs-console');
+    if (consoleEl) consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, s => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[s]);
+}
+
+function initLogStream() {
+  const url = '/api/logs/stream' + (apiToken ? '?token=' + encodeURIComponent(apiToken) : '');
+  const es = new EventSource(url);
+  es.onmessage = e => {
+    try {
+      const ev = JSON.parse(e.data);
+      appendLog(ev);
+    } catch (err) {}
+  };
+}
+
 loadConfig().then(() => {
   poll();
+  initLogStream();
 });
 </script>
 </body>

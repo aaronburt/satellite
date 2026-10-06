@@ -234,6 +234,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
 	mux.HandleFunc("/api/update", webUIMiddleware(authMiddleware(s.handleUpdateStatus)))
 	mux.HandleFunc("/api/update/check", webUIMiddleware(authMiddleware(s.handleUpdateCheck)))
+	mux.HandleFunc("/api/logs/stream", webUIMiddleware(authMiddleware(s.handleLogsStream)))
 	mux.HandleFunc("/json", s.handleJSON)
 	mux.HandleFunc("/json/", s.handleJSON)
 
@@ -717,5 +718,33 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+}
+
+func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	fmt.Fprintf(w, ": connected\n\n")
+	flusher.Flush()
+
+	ctx := r.Context()
+	unsub := logger.AddListener(func(ev logger.Event) {
+		data, err := json.Marshal(ev)
+		if err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+	})
+	defer unsub()
+
+	<-ctx.Done()
 }
 

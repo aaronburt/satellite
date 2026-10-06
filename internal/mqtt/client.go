@@ -238,13 +238,16 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 			return
 		}
 
+		logger.Log("MQTT", "command", fmt.Sprintf("Received remote command on %s: %s", commandTopic, string(p.Payload)))
 		_ = reg.ExecutePayload(p.Payload)
 	})
 	router.RegisterHandler(notifyTopic, func(p *paho.Publish) {
+		logger.Log("MQTT", "notify", fmt.Sprintf("Received notification on %s: %s", notifyTopic, string(p.Payload)))
 		c.handleNotify(p.Payload)
 	})
 	if cfg.NodeID != "all" {
 		router.RegisterHandler(broadcastNotifyTopic, func(p *paho.Publish) {
+			logger.Log("MQTT", "notify", fmt.Sprintf("Received broadcast notification on %s: %s", broadcastNotifyTopic, string(p.Payload)))
 			c.handleNotify(p.Payload)
 		})
 	}
@@ -425,6 +428,7 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		c.lastSentTime = now
 		c.forcePublishNext = false
 		c.mu.Unlock()
+		logger.Log("MQTT", "telemetry", fmt.Sprintf("Published state to %s (%d bytes)", stateTopic, len(bytes)))
 	}
 	return err
 }
