@@ -123,7 +123,8 @@ jobs:
             Write-Error "Could not find Inno Setup compiler ISCC.exe"
             exit 1
           }
-          & $iscc installer.iss
+          $version = "${{ steps.get_version.outputs.version }}"
+          & $iscc "/DMyAppVersion=$version" installer.iss
 
       - name: Create GitHub Release
         if: steps.check_release.outputs.exists == 'false'
