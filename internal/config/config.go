@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.23.0"
+const Version = "0.24.0"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -56,14 +56,14 @@ type WebhookConfig struct {
 }
 
 type Config struct {
-	NodeID      string        `json:"node_id"`
-	MQTT        MQTTConfig    `json:"mqtt"`
-	Expose      ExposeConfig  `json:"expose"`
+	NodeID       string        `json:"node_id"`
+	MQTT         MQTTConfig    `json:"mqtt"`
+	Expose       ExposeConfig  `json:"expose"`
 	IntervalSec  int           `json:"interval_sec"`
 	HeartbeatSec int           `json:"heartbeat_sec,omitempty"`
-	Port        int           `json:"port,omitempty"`
-	WebUIPort   int           `json:"webui_port"`
-	BindAddress string        `json:"bind_address,omitempty"`
+	Port         int           `json:"port,omitempty"`
+	WebUIPort    int           `json:"webui_port"`
+	BindAddress  string        `json:"bind_address,omitempty"`
 	JSONEnabled  bool          `json:"json_enabled"`
 	APIKey       string        `json:"api_key"`
 	Webhook      WebhookConfig `json:"webhook"`
@@ -146,11 +146,11 @@ func DefaultConfig() Config {
 		Expose:       DefaultExpose(),
 		IntervalSec:  5,
 		HeartbeatSec: 60,
-		Port:        0,
-		WebUIPort:   0,
-		BindAddress: "127.0.0.1",
-		JSONEnabled: false,
-		APIKey:      "",
+		Port:         0,
+		WebUIPort:    0,
+		BindAddress:  "127.0.0.1",
+		JSONEnabled:  false,
+		APIKey:       "",
 		Webhook: WebhookConfig{
 			Enabled:  false,
 			URL:      "",
