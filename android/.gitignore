@@ -1,0 +1,27 @@
+# --- Docker test environment runtime data ---
+docker/mosquitto/data/*
+!docker/mosquitto/data/.gitkeep
+docker/mosquitto/log/*
+!docker/mosquitto/log/.gitkeep
+docker/homeassistant/config/*
+!docker/homeassistant/config/configuration.yaml
+
+# --- Android / Gradle ---
+.gradle/
+.kotlin/
+/local.properties
+**/build/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# --- Built distribution artifacts ---
+/dist/
+*.apk
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

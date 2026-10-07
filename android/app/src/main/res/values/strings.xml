@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Satellite</string>
+
+    <string name="notification_channel_name">MQTT connection</string>
+    <string name="notification_title">Satellite</string>
+    <string name="notification_state_disconnected">Not connected</string>
+    <string name="notification_state_connecting">Connecting…</string>
+    <string name="notification_state_connected">Connected to %1$s</string>
+    <string name="notification_state_error">Error: %1$s</string>
+    <string name="notification_state_webhook">Webhook mode</string>
+</resources>
