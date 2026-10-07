@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.mqtt"
+    namespace = "uk.co.aaronburt.satellite.mqtt"
     compileSdk = 37
 
     defaultConfig {

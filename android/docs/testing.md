@@ -69,7 +69,7 @@ docker compose exec mosquitto mosquitto_sub -h localhost -u satellite -P satelli
 
 ```powershell
 $adb = "$env:ANDROID_HOME\platform-tools\adb.exe"
-$pkg = "dev.satelliteandroid.app"
+$pkg = "uk.co.aaronburt.satellite"
 
 # Doze
 & $adb shell dumpsys deviceidle force-idle

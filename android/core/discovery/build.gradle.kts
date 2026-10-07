@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.discovery"
+    namespace = "uk.co.aaronburt.satellite.discovery"
     compileSdk = 37
 
     defaultConfig {

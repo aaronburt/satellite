@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.feature.settings"
+    namespace = "uk.co.aaronburt.satellite.feature.settings"
     compileSdk = 37
 
     defaultConfig {

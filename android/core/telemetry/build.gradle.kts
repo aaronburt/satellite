@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.telemetry"
+    namespace = "uk.co.aaronburt.satellite.telemetry"
     compileSdk = 37
 
     defaultConfig {

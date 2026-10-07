@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.feature.dashboard"
+    namespace = "uk.co.aaronburt.satellite.feature.dashboard"
     compileSdk = 37
 
     defaultConfig {

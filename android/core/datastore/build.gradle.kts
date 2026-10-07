@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.datastore"
+    namespace = "uk.co.aaronburt.satellite.datastore"
     compileSdk = 37
 
     defaultConfig {

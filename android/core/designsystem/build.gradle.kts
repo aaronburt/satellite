@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.designsystem"
+    namespace = "uk.co.aaronburt.satellite.designsystem"
     compileSdk = 37
 
     defaultConfig {

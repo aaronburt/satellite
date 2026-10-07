@@ -38,15 +38,18 @@ Verified on a real phone (Galaxy S23 Ultra): device `Satellite-AB68` online,
 ## Next up — in priority order
 
 ### 1. M3: controllable entities (biggest feature gap)
-Right now everything is read-only. Add command topics so HA can act on the phone:
+Right now everything is read-only. Add command topics so HA can act on the phone.
+
+**Scope decision: minimum viable set first — volume + mic mute.** TTS (`text`)
+and restart/re-publish (`button`) deferred to a follow-up.
 
 - [ ] `MqttClient` already supports `subscribe`; add a command router in
       `:core:reporter` that parses `<base>/cmd/<action>`.
 - [ ] Entities to add (see `docs/development-plan.md` §4.2):
   - [ ] Media volume — `number` + `command_topic`, publish confirming state
   - [ ] Mic mute — `switch` + `command_topic`
-  - [ ] Speak text — `text` entity using Android `TextToSpeech`
-  - [ ] Restart service / re-publish discovery — `button`
+- [ ] Follow-up: Speak text (`text`, Android `TextToSpeech`), restart service /
+      re-publish discovery (`button`).
 - [ ] Publish a confirming state after each command.
 - [ ] Tests: command parsing (unit) + round-trip against Mosquitto.
 
@@ -77,6 +80,9 @@ Right now everything is read-only. Add command topics so HA can act on the phone
 - [ ] Consider a watchdog (`setAndAllowWhileIdle`) for aggressive OEMs.
 
 ### 5. Release engineering
+- [x] **Rename the application ID** to `uk.co.aaronburt.satellite` (app code
+      `uk.co.aaronburt.satellite.app`). ✅ Done. *(Migration note for existing
+      installs still owed before release.)*
 - [ ] GitHub Actions **release workflow**: on tag push, build a signed APK using
       the keystore stored in **Actions secrets**, and attach it to a Release.
 - [ ] Bump CI actions to `@v5` (`checkout`, `upload-artifact`,
@@ -87,20 +93,25 @@ Right now everything is read-only. Add command topics so HA can act on the phone
 
 ### 6. Housekeeping
 - [ ] Add a **LICENSE** — the repo is public with none (defaults to
-      all-rights-reserved). Apache-2.0 was suggested in the plan.
+      all-rights-reserved). **Decided: GPL-3.0.**
 - [ ] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
 - [ ] Keep `README.md` / `docs/development-plan.md` in sync as things land.
 
 ---
 
-## Open questions for tomorrow
+## Decisions (2026-10-07)
 
-1. **License** — Apache-2.0? MIT? (needed for a public repo)
-2. Voice satellite (Wyoming) — still out of scope, or revisit later?
-3. Multi-broker / multi-server support — wanted for v1?
-4. Should M3 commands include power-ish actions (screen, DND) or stay
-   volume/mute/TTS only?
-5. Keep the app name **Satellite** and package `dev.satelliteandroid.app`?
+1. **License** — **GPL-3.0**. Add `LICENSE` + copyright header policy.
+2. **Voice satellite (Wyoming)** — **permanently out of scope**. Remove from the
+   roadmap; note the rationale in `docs/development-plan.md`.
+3. **Multi-broker / multi-server** — **single broker for v1**; defer.
+4. **M3 command scope** — **minimum viable set**: volume + mic mute first; TTS
+   and restart/button deferred.
+5. **App identity** — keep the name **Satellite**; renamed package from
+   `dev.satelliteandroid.*` to **`uk.co.aaronburt.satellite`** (application ID
+   `uk.co.aaronburt.satellite`; app code `uk.co.aaronburt.satellite.app`). ⚠️ Was
+   breaking for existing installs (new sideload/install identity; HA device_id
+   may reset) — plan the migration before shipping over v0.1.0.
 
 ---
 

@@ -23,11 +23,11 @@ val releaseKeyAliasValue = releaseKeystore.getProperty("keyAlias")
 val releaseKeyPasswordValue = releaseKeystore.getProperty("keyPassword")
 
 android {
-    namespace = "dev.satelliteandroid.app"
+    namespace = "uk.co.aaronburt.satellite.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "dev.satelliteandroid.app"
+        applicationId = "uk.co.aaronburt.satellite"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

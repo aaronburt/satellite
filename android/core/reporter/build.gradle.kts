@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "dev.satelliteandroid.reporter"
+    namespace = "uk.co.aaronburt.satellite.reporter"
     compileSdk = 37
 
     defaultConfig {
