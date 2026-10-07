@@ -36,6 +36,7 @@ class SatelliteReporter @Inject constructor(
     private val client: MqttClient,
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
+    private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
     @ApplicationScope private val appScope: CoroutineScope,
 ) {
@@ -156,6 +157,7 @@ class SatelliteReporter @Inject constructor(
                 expirySeconds = STATE_EXPIRY_SECONDS,
             )
         }
+        status.markPublished()
     }
 
     private fun appVersion(): String = runCatching {

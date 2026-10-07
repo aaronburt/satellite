@@ -25,6 +25,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -57,15 +58,24 @@ class SatelliteService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startInForeground(connectionManager.connectionState.value)
-        coordinator.start()
+        startForeground(connectionManager.connectionState.value, transport)
 
         serviceScope.launch {
+            // Belt and braces: never run while the user has paused reporting.
+            if (!settingsRepository.reportingEnabled.first()) {
+                stopSelf()
+                return@launch
+            }
+
+            coordinator.start()
+
             combine(connectionManager.connectionState, settingsRepository.transport) { state, current ->
                 state to current
             }.collect { (state, current) ->
                 transport = current
-                notificationManager().notify(NOTIFICATION_ID, buildNotification(state, current))
+                // Re-post through startForeground so the notification stays owned
+                // by the service (and is removed with it when we stop).
+                startForeground(state, current)
             }
         }
 
@@ -76,11 +86,14 @@ class SatelliteService : Service() {
 
     override fun onDestroy() {
         coordinator.stop()
+        // Belt and braces: make sure nothing is left in the shade when we go away.
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        notificationManager().cancel(NOTIFICATION_ID)
         serviceScope.cancel()
         super.onDestroy()
     }
 
-    private fun startInForeground(state: ConnectionState) {
+    private fun startForeground(state: ConnectionState, current: Transport) {
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
         } else {
@@ -89,7 +102,7 @@ class SatelliteService : Service() {
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
-            buildNotification(state, transport),
+            buildNotification(state, current),
             type,
         )
     }

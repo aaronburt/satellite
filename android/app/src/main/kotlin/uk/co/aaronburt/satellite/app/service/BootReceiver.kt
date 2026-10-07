@@ -9,12 +9,14 @@ import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * Restarts the satellite service after a reboot, but only if a broker has been
- * configured — otherwise it would show a permanent "not connected" notification.
+ * configured and reporting has not been paused — otherwise it would show a
+ * permanent notification the user did not ask for.
  */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -31,7 +33,7 @@ class BootReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + dispatchers.io).launch {
             try {
-                if (settingsRepository.isConfigured()) {
+                if (settingsRepository.isConfigured() && settingsRepository.reportingEnabled.first()) {
                     ContextCompat.startForegroundService(
                         context,
                         Intent(context, SatelliteService::class.java),

@@ -105,6 +105,7 @@ dependencies {
     implementation(project(":core:reporter"))
     implementation(project(":core:designsystem"))
     implementation(project(":feature:dashboard"))
+    implementation(project(":feature:entities"))
     implementation(project(":feature:settings"))
 
     implementation(libs.androidx.core.ktx)
@@ -117,6 +118,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.core)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
 

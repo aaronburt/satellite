@@ -31,6 +31,7 @@ import javax.inject.Singleton
 class WebhookReporter @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
+    private val status: ReporterStatus,
     private val dispatchers: DispatchersProvider,
     @ApplicationContext private val context: Context,
     @ApplicationScope private val appScope: CoroutineScope,
@@ -109,7 +110,9 @@ class WebhookReporter @Inject constructor(
             timestampEpochMillis = System.currentTimeMillis(),
         )
 
-        return post(settings.url, payload, settings.bearerToken)
+        val ok = post(settings.url, payload, settings.bearerToken)
+        if (ok) status.markPublished()
+        return ok
     }
 
     private suspend fun post(url: String, body: String, bearerToken: String?): Boolean =

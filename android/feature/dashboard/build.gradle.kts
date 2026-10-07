@@ -43,6 +43,9 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:datastore"))
     implementation(project(":core:mqtt"))
+    implementation(project(":core:discovery"))
+    implementation(project(":core:reporter"))
+    implementation(project(":core:telemetry"))
     implementation(project(":core:designsystem"))
 
     implementation(libs.androidx.lifecycle.runtime.compose)

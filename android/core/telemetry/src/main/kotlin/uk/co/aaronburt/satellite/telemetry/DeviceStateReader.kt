@@ -151,6 +151,23 @@ class DeviceStateReader @Inject constructor(
     private fun hasPermission(permission: String): Boolean =
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
+    /**
+     * Media volume as a 0–100 percentage. Read-only helper for the app UI; it is
+     * deliberately *not* part of [read], so it is not published to Home Assistant
+     * until the controllable-entity work lands.
+     */
+    fun mediaVolumePercent(): Int? = runCatching {
+        val audio = context.getSystemService(AudioManager::class.java) ?: return null
+        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        if (max <= 0) return null
+        (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100f / max).roundToInt()
+    }.getOrNull()
+
+    /** Whether the microphone is currently muted. Read-only, see [mediaVolumePercent]. */
+    fun isMicrophoneMuted(): Boolean? = runCatching {
+        context.getSystemService(AudioManager::class.java)?.isMicrophoneMute
+    }.getOrNull()
+
     private companion object {
         const val BATTERY_PLUGGED_DOCK = 8 // BatteryManager.BATTERY_PLUGGED_DOCK, API 33
     }

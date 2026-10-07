@@ -13,7 +13,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import uk.co.aaronburt.satellite.app.service.SatelliteService
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.designsystem.theme.SatelliteTheme
@@ -43,12 +45,12 @@ class MainActivity : ComponentActivity() {
             }
 
             SatelliteTheme(darkTheme = darkTheme) {
-                SatelliteNavHost()
+                SatelliteRoot()
             }
         }
 
         requestNotificationPermissionIfNeeded()
-        startSatelliteService()
+        observeReportingToggle()
     }
 
     private fun requestNotificationPermissionIfNeeded() {
@@ -60,7 +62,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startSatelliteService() {
-        ContextCompat.startForegroundService(this, Intent(this, SatelliteService::class.java))
+    /**
+     * Keeps the foreground service in sync with the master reporting switch: it
+     * runs while reporting is on and is torn down when the user pauses.
+     */
+    private fun observeReportingToggle() {
+        lifecycleScope.launch {
+            settingsRepository.reportingEnabled.collect { enabled ->
+                val intent = Intent(this@MainActivity, SatelliteService::class.java)
+                if (enabled) {
+                    ContextCompat.startForegroundService(this@MainActivity, intent)
+                } else {
+                    stopService(intent)
+                }
+            }
+        }
     }
 }

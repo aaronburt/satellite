@@ -17,18 +17,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,27 +38,96 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 private data class RuntimePermission(
     val permission: String,
     val label: String,
+    val rationale: String,
+    val group: String,
     val minSdk: Int = 0,
+    val opensAppSettings: Boolean = false,
 )
 
 private fun runtimePermissions(): List<RuntimePermission> = buildList {
-    add(RuntimePermission(Manifest.permission.ACCESS_COARSE_LOCATION, "Approximate location"))
-    add(RuntimePermission(Manifest.permission.ACCESS_FINE_LOCATION, "Precise location"))
-    add(RuntimePermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION, "Background location", Build.VERSION_CODES.Q))
-    add(RuntimePermission(Manifest.permission.ACTIVITY_RECOGNITION, "Physical activity", Build.VERSION_CODES.Q))
-    add(RuntimePermission(Manifest.permission.READ_PHONE_STATE, "Phone state"))
-    add(RuntimePermission(Manifest.permission.BLUETOOTH_CONNECT, "Bluetooth", Build.VERSION_CODES.S))
-    add(RuntimePermission(Manifest.permission.BLUETOOTH_SCAN, "Bluetooth scanning", Build.VERSION_CODES.S))
-    add(RuntimePermission(Manifest.permission.NEARBY_WIFI_DEVICES, "Nearby Wi-Fi", Build.VERSION_CODES.TIRAMISU))
-    add(RuntimePermission(Manifest.permission.POST_NOTIFICATIONS, "Notifications", Build.VERSION_CODES.TIRAMISU))
+    add(
+        RuntimePermission(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            "Approximate location",
+            "Coarse position for the device tracker",
+            "Location",
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            "Precise location",
+            "Adds a device_tracker so Home Assistant knows where the phone is",
+            "Location",
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            "Background location",
+            "Keeps location updating while the app is closed",
+            "Location",
+            minSdk = Build.VERSION_CODES.Q,
+            opensAppSettings = true,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.ACTIVITY_RECOGNITION,
+            "Physical activity",
+            "Reports step count",
+            "Sensors",
+            minSdk = Build.VERSION_CODES.Q,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.READ_PHONE_STATE,
+            "Phone state",
+            "Reports the mobile carrier",
+            "Sensors",
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.BLUETOOTH_CONNECT,
+            "Bluetooth devices",
+            "Lists currently connected devices",
+            "Sensors",
+            minSdk = Build.VERSION_CODES.S,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.BLUETOOTH_SCAN,
+            "Bluetooth scanning",
+            "Discovers nearby Bluetooth devices",
+            "Sensors",
+            minSdk = Build.VERSION_CODES.S,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.NEARBY_WIFI_DEVICES,
+            "Nearby Wi-Fi",
+            "Reads the connected Wi-Fi network name",
+            "Sensors",
+            minSdk = Build.VERSION_CODES.TIRAMISU,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.POST_NOTIFICATIONS,
+            "Notifications",
+            "Shows the connection-status notification",
+            "Reliability",
+            minSdk = Build.VERSION_CODES.TIRAMISU,
+        ),
+    )
 }.filter { Build.VERSION.SDK_INT >= it.minSdk }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PermissionsScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun PermissionsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val permissions = remember { runtimePermissions() }
     var granted by remember {
@@ -82,89 +145,139 @@ fun PermissionsScreen(
         granted = granted + result
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Permissions") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(
-                "Grant the device-state permissions you want the satellite to report. " +
-                    "Each one unlocks more entities in Home Assistant.",
-                style = MaterialTheme.typography.bodyMedium,
-            )
+    val grantedCount = permissions.count { granted[it.permission] == true }
 
-            permissions.forEach { item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(item.label, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            text = if (granted[item.permission] == true) "Granted" else "Not granted",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                    if (granted[item.permission] != true) {
-                        val requiresSettings =
-                            item.permission == Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                        Button(
-                            onClick = {
-                                if (requiresSettings) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        ElevatedCard {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "$grantedCount of ${permissions.size} granted",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = "more unlocks more entities",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { grantedCount.toFloat() / permissions.size },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp),
+                )
+            }
+        }
+
+        permissions.groupBy { it.group }.forEach { (group, items) ->
+            SectionLabel(group)
+            ElevatedCard {
+                Column(Modifier.fillMaxWidth()) {
+                    items.forEachIndexed { index, item ->
+                        if (index > 0) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                        PermissionRow(
+                            item = item,
+                            granted = granted[item.permission] == true,
+                            onGrant = {
+                                if (item.opensAppSettings) {
                                     context.openAppSettings()
                                 } else {
                                     launcher.launch(arrayOf(item.permission))
                                 }
                             },
-                        ) {
-                            Text(if (requiresSettings) "Settings" else "Grant")
-                        }
+                        )
                     }
                 }
             }
+        }
 
-            HorizontalDivider()
-
-            Text("Special access (opens system Settings)", style = MaterialTheme.typography.titleMedium)
-
-            OutlinedButton(
-                onClick = { context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Usage access") }
-
-            OutlinedButton(
-                onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Notification access") }
-
-            OutlinedButton(
-                onClick = { context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Battery optimization") }
-
-            OutlinedButton(
-                onClick = { context.openAppSettings() },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("App settings") }
+        SectionLabel("Battery")
+        ElevatedCard {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Battery optimisation", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "Recommended \u2014 keeps the connection alive",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Button(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+                        )
+                    },
+                ) {
+                    Text("Open")
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun PermissionRow(
+    item: RuntimePermission,
+    granted: Boolean,
+    onGrant: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(item.label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = item.rationale,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (granted) {
+            Text(
+                text = "Granted",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+        } else {
+            Button(onClick = onGrant, modifier = Modifier.padding(start = 12.dp)) {
+                Text(if (item.opensAppSettings) "Settings" else "Grant")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp),
+    )
 }
 
 private fun Context.isGranted(permission: String): Boolean =

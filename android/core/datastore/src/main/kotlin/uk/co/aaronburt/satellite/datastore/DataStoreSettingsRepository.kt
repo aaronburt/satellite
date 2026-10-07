@@ -67,6 +67,10 @@ class DataStoreSettingsRepository @Inject constructor(
         context.dataStore.edit { it[Keys.DeviceName] = name }
     }
 
+    override val deviceNameFlow: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.DeviceName] ?: deviceName()
+    }
+
     override val themePreference: Flow<ThemePreference> = context.dataStore.data.map { prefs ->
         prefs[Keys.Theme]?.let { stored ->
             runCatching { ThemePreference.valueOf(stored) }.getOrNull()
@@ -107,6 +111,14 @@ class DataStoreSettingsRepository @Inject constructor(
         context.dataStore.edit { it[Keys.Transport] = transport.name }
     }
 
+    override val reportingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.ReportingEnabled] ?: true
+    }
+
+    override suspend fun saveReportingEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.ReportingEnabled] = enabled }
+    }
+
     override val webhookSettings: Flow<WebhookSettings?> = context.dataStore.data.map { prefs ->
         val url = prefs[Keys.WebhookUrl] ?: return@map null
         WebhookSettings(
@@ -141,6 +153,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val UpdateMode = stringPreferencesKey("update_mode")
         val UpdateInterval = stringPreferencesKey("update_interval")
         val Transport = stringPreferencesKey("transport")
+        val ReportingEnabled = booleanPreferencesKey("reporting_enabled")
         val WebhookUrl = stringPreferencesKey("webhook_url")
         val WebhookToken = stringPreferencesKey("webhook_token")
     }

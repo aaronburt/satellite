@@ -102,24 +102,41 @@ and restart/re-publish (`button`) deferred to a follow-up.
 - [ ] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
 - [ ] Keep `README.md` / `docs/development-plan.md` in sync as things land.
 
-### 7. UI/UX refinement (in progress)
-Foundation — done:
-- [x] **Navigation Compose** + `TopAppBar`s + system-back handling (back now pops
-      to the dashboard instead of exiting).
-- [x] Design system: full light/dark colour roles, shapes, opt-in dynamic colour.
+### 7. UI/UX refinement (v2 design — largely built)
+Built:
+- [x] **4-tab bottom navigation** (Status · Entities · Permissions · Settings) via
+      Navigation Compose; single top app bar; system back pops the back stack.
+- [x] Design system: full light/dark colour roles, shapes, opt-in dynamic colour,
+      plus a semantic `ExtendedColors.success` role for the "connected" pill.
+- [x] **Status**: connection hero (state pill / device name / broker / last
+      published / entity count), **Reporting master switch**, highlights,
+      "Send test now", first-run onboarding.
+- [x] **Entities** (new `:feature:entities`): live sensor values mirroring what is
+      published, plus read-only Controls.
+- [x] **Permissions**: rationale per permission, "X of Y granted" progress,
+      usage/notification-access shortcuts removed.
+- [x] **Settings**: sections (Identity / Appearance / Reporting / Connection /
+      App); Theme control (System/Light/Dark); dev hints behind Developer options;
+      version footer.
+- [x] **Reporting pause/resume** (see §8) — off stops the service, removes the
+      notification and marks the device offline.
 
-Next (screens), priority order:
-- [ ] **Dashboard** as a status hero: coloured connection pill
-      (Connected/Connecting/Error/Offline), device name, last-published time,
-      entity count; onboarding empty state for first run.
-- [ ] **Settings**: group into sections/cards (Identity / Appearance / Reporting
-      / Connection); replace "Saved."/status text with a Snackbar; input
-      validation; password reveal toggle; move the dev-environment hint behind a
-      **Developer** toggle.
-- [ ] **Permissions**: rationale per permission (which entity it unlocks) and an
-      "X of Y granted" summary; remove the **Usage access / Notification access**
-      buttons until those features actually exist (currently misleading).
+Still open:
+- [ ] Snackbar instead of inline "Saved." text.
+- [ ] Input validation + password reveal toggle.
 - [ ] Localize UI strings into `strings.xml` (currently hardcoded in Compose).
+- [ ] Per-entity enable/disable.
+
+### 8. Reporting master switch (done)
+- [x] `SettingsRepository.reportingEnabled` persisted in DataStore.
+- [x] `ReporterCoordinator` stops everything and closes MQTT (publishing retained
+      `offline`) when off.
+- [x] `SatelliteService` stops itself + cancels the notification; `BootReceiver`
+      respects the flag; `MainActivity` starts/stops the service on toggle.
+- [x] Fixed: notification was posted via `NotificationManager.notify` and so
+      outlived the service — updates now go through `startForeground`, and
+      `onDestroy` force-removes it.
+- [ ] Wire a Pause action into the ongoing notification.
 
 ---
 
@@ -171,9 +188,10 @@ docker compose exec mosquitto mosquitto_sub -h localhost -u <user> -P <pass> -v 
 | `:core:mqtt` | `MqttClient` + HiveMQ impl, `MqttConnectionManager` |
 | `:core:telemetry` | `DeviceStateReader` (reads the phone) |
 | `:core:discovery` | `EntityCatalog`, `Topics`, discovery + webhook payload builders |
-| `:core:reporter` | `SatelliteReporter` (MQTT), `WebhookReporter`, `ReporterCoordinator` |
-| `:feature:dashboard` | Status screen |
-| `:feature:settings` | Broker/webhook/theme/updates, permissions, test button |
+| `:core:reporter` | `SatelliteReporter` (MQTT), `WebhookReporter`, `ReporterCoordinator`, `ReporterStatus` |
+| `:feature:dashboard` | Status screen (hero, reporting switch, highlights, test) |
+| `:feature:entities` | Entities screen (live sensor values, read-only controls) |
+| `:feature:settings` | Settings (identity/theme/reporting/connection) + permissions |
 
 **MQTT layout:** `satellite/<deviceId>/availability` · `satellite/<deviceId>/state/<key>`
 · discovery at `homeassistant/device/satellite_<deviceId>/config`.

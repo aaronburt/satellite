@@ -24,6 +24,9 @@ interface SettingsRepository {
     /** User-facing device name. Generated randomly on first use. */
     suspend fun deviceName(): String
 
+    /** Device name as a stream, for screens that must react to edits. */
+    val deviceNameFlow: Flow<String>
+
     suspend fun saveDeviceName(name: String)
 
     /** Selected colour scheme. */
@@ -45,6 +48,15 @@ interface SettingsRepository {
     val transport: Flow<Transport>
 
     suspend fun saveTransport(transport: Transport)
+
+    /**
+     * Master switch. When false the app stops publishing, marks itself offline in
+     * Home Assistant and shuts the foreground service down — without the user
+     * having to remove the app.
+     */
+    val reportingEnabled: Flow<Boolean>
+
+    suspend fun saveReportingEnabled(enabled: Boolean)
 
     /** Webhook endpoint, when [Transport.WEBHOOK] is selected. */
     val webhookSettings: Flow<WebhookSettings?>
