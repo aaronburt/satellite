@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -6,6 +7,20 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// Optional release signing. keystore.properties is gitignored; when absent the
+// release build falls back to the debug keystore (handy for CI and dev builds).
+val releaseKeystoreFile = rootProject.file("keystore.properties")
+val releaseKeystoreExists = releaseKeystoreFile.exists()
+val releaseKeystore = Properties().apply {
+    if (releaseKeystoreExists) {
+        releaseKeystoreFile.inputStream().use { load(it) }
+    }
+}
+val releaseStoreFilePath = releaseKeystore.getProperty("storeFile")
+val releaseStorePassword = releaseKeystore.getProperty("storePassword")
+val releaseKeyAliasValue = releaseKeystore.getProperty("keyAlias")
+val releaseKeyPasswordValue = releaseKeystore.getProperty("keyPassword")
 
 android {
     namespace = "dev.satelliteandroid.app"
@@ -20,20 +35,32 @@ android {
     }
 
     signingConfigs {
-        // Dev distribution: signs release builds with the local debug keystore so
-        // the APK can be sideloaded onto another phone. Use a dedicated keystore
-        // for anything public.
+        // Fallback used when no release keystore is configured (CI / dev).
         create("dev") {
             storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
         }
+
+        // Real release signing, from keystore.properties (gitignored).
+        if (releaseKeystoreExists) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFilePath)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAliasValue
+                keyPassword = releaseKeyPasswordValue
+            }
+        }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("dev")
+            signingConfig = if (releaseKeystoreExists) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("dev")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(

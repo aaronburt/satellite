@@ -20,6 +20,11 @@ captures/
 /dist/
 *.apk
 
+# --- Release signing (never commit) ---
+/keystore.properties
+/keystore/
+*.jks
+
 # --- IDE / OS ---
 .idea/
 .vscode/
