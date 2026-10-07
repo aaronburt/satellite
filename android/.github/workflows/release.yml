@@ -1,8 +1,5 @@
 name: Release
 
-# Publishing a version is just pushing a semver tag, e.g. `git tag v0.2.0 && git push origin v0.2.0`.
-# The tag drives versionName/versionCode in the APK and the GitHub Release.
-
 on:
   push:
     tags:
@@ -32,16 +29,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # The runner ships the Android SDK (ANDROID_HOME) with cmdline-tools, but
-      # not necessarily the platform/build-tools this project targets.
       - name: Install SDK packages
         run: |
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
 
-      # The release keystore is stored base64-encoded in Actions secrets; decode
-      # it to the path referenced by keystore.properties below.
       - name: Decode release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
@@ -62,7 +55,6 @@ jobs:
           keyPassword=$KEY_PASSWORD
           EOF
 
-      # v1.2.3 -> versionName 1.2.3, versionCode 10203 (m.m.p padded/gap-tolerant).
       - name: Resolve version from tag
         id: version
         run: |

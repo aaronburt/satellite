@@ -73,8 +73,6 @@ object DiscoveryPayloadBuilder {
         topics: Topics,
         stub: Boolean,
     ): JSONObject {
-        // A stub with nothing but the platform is Home Assistant's signal to
-        // remove a previously discovered component.
         if (stub) {
             return JSONObject().put("platform", spec.platform)
         }

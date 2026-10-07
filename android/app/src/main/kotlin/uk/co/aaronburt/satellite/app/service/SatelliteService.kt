@@ -61,7 +61,6 @@ class SatelliteService : Service() {
         startForeground(connectionManager.connectionState.value, transport)
 
         serviceScope.launch {
-            // Belt and braces: never run while the user has paused reporting.
             if (!settingsRepository.reportingEnabled.first()) {
                 stopSelf()
                 return@launch
@@ -73,8 +72,6 @@ class SatelliteService : Service() {
                 state to current
             }.collect { (state, current) ->
                 transport = current
-                // Re-post through startForeground so the notification stays owned
-                // by the service (and is removed with it when we stop).
                 startForeground(state, current)
             }
         }
@@ -86,7 +83,6 @@ class SatelliteService : Service() {
 
     override fun onDestroy() {
         coordinator.stop()
-        // Belt and braces: make sure nothing is left in the shade when we go away.
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         notificationManager().cancel(NOTIFICATION_ID)
         serviceScope.cancel()

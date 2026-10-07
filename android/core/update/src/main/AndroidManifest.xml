@@ -7,7 +7,6 @@
 
     <application>
 
-        <!-- Shares only the downloaded update with the system installer. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

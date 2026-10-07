@@ -12,7 +12,6 @@ fun SettingsRoute(viewModel: SettingsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // The user may grant "install unknown apps" in system settings and come back.
     LifecycleResumeEffect(Unit) {
         viewModel.refreshUpdateCapabilities()
         onPauseOrDispose { }

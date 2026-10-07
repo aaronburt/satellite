@@ -123,7 +123,6 @@ private fun ControlItem(control: ControlRow, onControlToggled: (String, Boolean)
         Switch(
             checked = control.enabled,
             onCheckedChange = { onControlToggled(control.key, it) },
-            // Greyed out when the device cannot honour the control at all.
             enabled = control.available,
             modifier = Modifier.testTag("control_${control.key}"),
         )

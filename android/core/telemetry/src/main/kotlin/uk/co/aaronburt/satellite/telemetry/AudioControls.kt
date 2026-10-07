@@ -55,8 +55,6 @@ class AudioControls @Inject constructor(
         audio.isMicrophoneMute == muted
     }.getOrDefault(false)
 
-    // --- Capability ---------------------------------------------------------
-
     private val _microphoneMuteSupported = MutableStateFlow<Boolean?>(null)
 
     /** `null` = not yet determined (treat optimistically). */

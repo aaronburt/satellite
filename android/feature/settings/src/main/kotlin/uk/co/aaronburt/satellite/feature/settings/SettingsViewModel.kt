@@ -45,7 +45,6 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Generates and persists a random name on first launch.
             val deviceName = settingsRepository.deviceName()
             val themePreference = settingsRepository.themePreference.first()
             val reportingEnabled = settingsRepository.reportingEnabled.first()

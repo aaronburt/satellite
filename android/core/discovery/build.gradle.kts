@@ -18,6 +18,5 @@ android {
 
 dependencies {
     testImplementation(libs.junit)
-    // Real org.json implementation for JVM unit tests (the Android one is a stub).
     testImplementation(libs.org.json)
 }

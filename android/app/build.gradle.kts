@@ -8,8 +8,6 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// Optional release signing. keystore.properties is gitignored; when absent the
-// release build falls back to the debug keystore (handy for CI and dev builds).
 val releaseKeystoreFile = rootProject.file("keystore.properties")
 val releaseKeystoreExists = releaseKeystoreFile.exists()
 val releaseKeystore = Properties().apply {
@@ -30,14 +28,11 @@ android {
         applicationId = "uk.co.aaronburt.satellite"
         minSdk = 26
         targetSdk = 36
-        // Release builds override these from the git tag (`-PversionName=…`,
-        // `-PversionCode=…`); local/CI debug builds fall back to the defaults.
         versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
         versionName = (project.findProperty("versionName") as String?) ?: "0.1.0"
     }
 
     signingConfigs {
-        // Fallback used when no release keystore is configured (CI / dev).
         create("dev") {
             storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
             storePassword = "android"
@@ -45,7 +40,6 @@ android {
             keyPassword = "android"
         }
 
-        // Real release signing, from keystore.properties (gitignored).
         if (releaseKeystoreExists) {
             create("release") {
                 storeFile = rootProject.file(releaseStoreFilePath)

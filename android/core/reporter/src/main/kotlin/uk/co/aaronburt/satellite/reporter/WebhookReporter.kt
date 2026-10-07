@@ -56,7 +56,6 @@ class WebhookReporter @Inject constructor(
     fun start() {
         if (periodicJob?.isActive == true) return
 
-        // Publishes immediately on start and whenever the endpoint changes.
         settingsJob = appScope.launch {
             settingsRepository.webhookSettings.collect { publish() }
         }

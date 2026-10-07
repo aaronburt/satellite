@@ -35,8 +35,6 @@ class DeviceStateReader @Inject constructor(
     @Suppress("InlinedApi")
     fun read(): Map<String, String> {
         val values = mutableMapOf<String, String>()
-        // Each section is isolated so a single unavailable API can never crash
-        // the reporter; failures simply omit that value.
         runCatching { readBattery(values) }
         runCatching { readPower(values) }
         runCatching { readApp(values) }
@@ -127,8 +125,6 @@ class DeviceStateReader @Inject constructor(
             else -> "normal"
         }
 
-        // Controllable entities: their state is only published when the user has
-        // opted the entity in (the reporter filters by active keys).
         audioControls.mediaVolumePercent()?.let { values["volume_media"] = it.toString() }
         audioControls.isMicrophoneMuted()?.let { values["mic_muted"] = if (it) "ON" else "OFF" }
     }
@@ -158,6 +154,6 @@ class DeviceStateReader @Inject constructor(
         ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
     private companion object {
-        const val BATTERY_PLUGGED_DOCK = 8 // BatteryManager.BATTERY_PLUGGED_DOCK, API 33
+        const val BATTERY_PLUGGED_DOCK = 8
     }
 }

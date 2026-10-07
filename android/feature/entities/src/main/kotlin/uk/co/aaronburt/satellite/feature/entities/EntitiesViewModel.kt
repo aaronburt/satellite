@@ -77,8 +77,6 @@ class EntitiesViewModel @Inject constructor(
 
     fun onControlToggled(key: String, enabled: Boolean) {
         viewModelScope.launch {
-            // Turning a control on is the moment to prove the device can honour
-            // it. If it can't, leave it off and let the row render as unavailable.
             if (enabled && key == EntityCatalog.CONTROL_MIC_MUTE) {
                 val supported = withContext(Dispatchers.IO) { audio.probeMicrophoneMute() }
                 if (!supported) return@launch

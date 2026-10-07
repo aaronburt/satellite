@@ -94,9 +94,6 @@ class SatelliteReporter @Inject constructor(
             }
         }
 
-        // Toggling a control changes what Home Assistant should see, so
-        // re-publish discovery (and state) immediately, and clean up after any
-        // control the user has just hidden.
         controlsJob = appScope.launch {
             var previous: Set<String>? = null
             settingsRepository.enabledControls.collect { enabled ->
@@ -109,12 +106,8 @@ class SatelliteReporter @Inject constructor(
                 val topics = Topics(deviceId)
 
                 removed.forEach { key ->
-                    // Drop the retained state so the broker keeps no ghost value
-                    // for an entity Home Assistant no longer knows about.
                     client.publish(topics.state(key), "", qos = 1, retain = true)
                     if (key == EntityCatalog.CONTROL_MIC_MUTE) {
-                        // Never strand the phone muted with no way back: hiding the
-                        // control restores the microphone.
                         audioControls.setMicrophoneMuted(false)
                     }
                 }
@@ -155,8 +148,6 @@ class SatelliteReporter @Inject constructor(
         publishDiscovery(deviceId, topics)
         publishStates()
 
-        // Re-subscribe on every connect: the broker session may have expired, and
-        // re-subscribing with the same filter simply replaces the subscription.
         client.subscribe(Topics.BIRTH_TOPIC, qos = 0) { message ->
             if (message.payload.trim() == "online") {
                 appScope.launch {
@@ -169,7 +160,6 @@ class SatelliteReporter @Inject constructor(
         client.subscribe(topics.commandWildcard, qos = 1) { message ->
             appScope.launch {
                 val accepted = commandRouter.handle(message.topic, message.payload, topics)
-                // Confirm the resulting state, whether or not the change stuck.
                 if (accepted) publishStates()
             }
         }
@@ -181,8 +171,6 @@ class SatelliteReporter @Inject constructor(
             .map { it.key }
             .filterNot { it in enabledControls }
 
-        // Home Assistant drops a component when it is republished with nothing but
-        // its platform, so send that first, then the config without it.
         if (unexposed.isNotEmpty()) {
             publishDiscoveryPayload(deviceId, topics, enabledControls, unexposed.toSet())
         }

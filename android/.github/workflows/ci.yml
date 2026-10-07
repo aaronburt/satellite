@@ -27,8 +27,6 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      # The runner ships the Android SDK (ANDROID_HOME) with cmdline-tools, but
-      # not necessarily the platform/build-tools this project targets.
       - name: Install SDK packages
         run: |
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)

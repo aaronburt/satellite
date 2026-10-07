@@ -2,13 +2,11 @@ package uk.co.aaronburt.satellite.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Brand seed colours.
 val Blue40 = Color(0xFF0B5FFF)
 val Blue80 = Color(0xFFAECBFF)
 val Teal40 = Color(0xFF00696E)
 val Teal80 = Color(0xFF4DD9E0)
 
-// --- Light scheme support roles -------------------------------------------
 val BlueContainerLight = Color(0xFFDCE4FF)
 val OnBlueContainerLight = Color(0xFF00154A)
 val TealContainerLight = Color(0xFF9DF1F6)
@@ -22,7 +20,6 @@ val ErrorLight = Color(0xFFBA1A1A)
 val ErrorContainerLight = Color(0xFFFFDAD6)
 val OnErrorContainerLight = Color(0xFF410002)
 
-// --- Dark scheme support roles --------------------------------------------
 val BlueContainerDark = Color(0xFF1B3E86)
 val OnBlueContainerDark = Color(0xFFDCE4FF)
 val TealContainerDark = Color(0xFF005055)

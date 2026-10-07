@@ -55,8 +55,6 @@ class DiscoveryPayloadBuilderTest {
         assertTrue(chargerType.getJSONArray("options").length() > 0)
     }
 
-    // --- Controllable entities are opt-in ------------------------------------
-
     @Test
     fun `controls are not exposed by default`() {
         val components = json.getJSONObject("components")

@@ -57,8 +57,6 @@ class MqttConnectionManager @Inject constructor(
             val settings = currentSettings
             if (settings != null) {
                 val baseTopic = "satellite/${settingsRepository.deviceId()}"
-                // Publish availability down before a clean disconnect (a clean
-                // MQTT disconnect does not trigger the will).
                 client.publish("$baseTopic/availability", "offline", qos = 1, retain = true)
             }
             client.disconnect()
