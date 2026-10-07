@@ -27,11 +27,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
+      # The runner ships the Android SDK (ANDROID_HOME) with cmdline-tools, but
+      # not necessarily the platform/build-tools this project targets.
       - name: Install SDK packages
-        run: sdkmanager "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
 
       - name: Unit tests
         run: ./gradlew test --stacktrace
