@@ -159,6 +159,26 @@ Still open:
       `online` and restarts it. Paused hero keeps the last-published time.
 - [ ] Wire a Pause action into the ongoing notification.
 
+### 9. M4: in-app update (built)
+Single big feature: the app can update itself from GitHub Releases.
+
+- [x] `:core:update` — `UpdateChecker` (GitHub `releases/latest`, unauthenticated,
+      only on explicit user action), `UpdateDownloader` (HTTPS only, progress),
+      `UpdateVerifier` (GitHub SHA-256 digest **and** signing cert must match the
+      installed app), `UpdateInstaller`, `UpdateManager`.
+- [x] Version comparison reuses the release workflow's
+      `versionCode = major*10000 + minor*100 + patch`.
+- [x] Settings → **Updates**: installed version, check, progress, release notes,
+      install, and the "install unknown apps" prompt.
+- [x] `REQUEST_INSTALL_PACKAGES` + FileProvider hand-off to the system installer
+      (one tap; Android will not allow a silent self-install for a normal app).
+- [x] Verified end to end on the emulator: 0.4.2 → check → download → checksum →
+      signature → Install → system prompt → InstallSuccess → 0.4.3.
+- [ ] Expose an HA `update` entity (installed/latest version + install command).
+- [ ] Strip Markdown from release notes in the UI (raw `**Full Changelog**` shows).
+- [ ] Optional: silent install when the app is a device owner (dedicated tablets).
+- [ ] Optional: gate self-update off for an F-Droid build (F-Droid discourages it).
+
 ---
 
 ## Decisions (2026-10-07)
