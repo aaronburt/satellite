@@ -58,6 +58,15 @@ interface SettingsRepository {
 
     suspend fun saveReportingEnabled(enabled: Boolean)
 
+    /**
+     * Controllable entities the user has opted into exposing to Home Assistant,
+     * by [uk.co.aaronburt.satellite.discovery.EntitySpec.key]. Empty by default:
+     * commands are never accepted unless explicitly enabled.
+     */
+    val enabledControls: Flow<Set<String>>
+
+    suspend fun setControlEnabled(key: String, enabled: Boolean)
+
     /** Webhook endpoint, when [Transport.WEBHOOK] is selected. */
     val webhookSettings: Flow<WebhookSettings?>
 

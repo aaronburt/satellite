@@ -3,47 +3,86 @@ package uk.co.aaronburt.satellite.feature.entities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.EntitySpec
+import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
 
 /**
  * Renders the entity catalog with live values. Sensor values mirror exactly what
- * is published to Home Assistant; the controls are read-only for now.
+ * is published to Home Assistant; controls show their current state and whether
+ * they are exposed, which is off by default.
  */
 @HiltViewModel
 class EntitiesViewModel @Inject constructor(
     private val telemetry: DeviceStateReader,
+    private val audio: AudioControls,
+    private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
-    private val snapshot = flow {
+    private data class Readings(
+        val states: Map<String, String>,
+        val volumePercent: Int?,
+        val microphoneMuted: Boolean?,
+    )
+
+    private val readings = flow {
         while (true) {
-            emit(runCatching { telemetry.read() }.getOrDefault(emptyMap()))
+            emit(
+                Readings(
+                    states = runCatching { telemetry.read() }.getOrDefault(emptyMap()),
+                    volumePercent = audio.mediaVolumePercent(),
+                    microphoneMuted = audio.isMicrophoneMuted(),
+                ),
+            )
             delay(REFRESH_MILLIS)
         }
     }
 
-    val uiState: StateFlow<EntitiesUiState> = snapshot
-        .map { values ->
-            EntitiesUiState(
-                sensors = EntityCatalog.entities.mapNotNull { spec -> spec.toRow(values) },
-                mediaVolumePercent = telemetry.mediaVolumePercent(),
-                microphoneMuted = telemetry.isMicrophoneMuted(),
-            )
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-            initialValue = EntitiesUiState(),
+    val uiState: StateFlow<EntitiesUiState> = combine(
+        readings,
+        settingsRepository.enabledControls,
+    ) { snapshot, enabled ->
+        EntitiesUiState(
+            sensors = EntityCatalog.entities.mapNotNull { it.toRow(snapshot.states) },
+            controls = EntityCatalog.controlEntities.map { spec ->
+                ControlRow(
+                    key = spec.key,
+                    label = spec.name,
+                    value = controlValue(spec.key, snapshot),
+                    enabled = spec.key in enabled,
+                )
+            },
         )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+        initialValue = EntitiesUiState(),
+    )
+
+    fun onControlToggled(key: String, enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setControlEnabled(key, enabled) }
+    }
+
+    private fun controlValue(key: String, snapshot: Readings): String = when (key) {
+        "volume_media" -> snapshot.volumePercent?.let { "$it%" } ?: "\u2014"
+        "mic_muted" -> when (snapshot.microphoneMuted) {
+            true -> "Muted"
+            false -> "Live"
+            null -> "\u2014"
+        }
+        else -> "\u2014"
+    }
 
     private fun EntitySpec.toRow(values: Map<String, String>): EntityRow? {
         val raw = values[key] ?: return null
@@ -73,8 +112,7 @@ class EntitiesViewModel @Inject constructor(
 
     private fun formatBytes(bytes: Long?): String {
         if (bytes == null) return "unknown"
-        val gigabytes = bytes / 1_000_000_000.0
-        return String.format(Locale.UK, "%.1f GB", gigabytes)
+        return String.format(Locale.UK, "%.1f GB", bytes / 1_000_000_000.0)
     }
 
     private companion object {

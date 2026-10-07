@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
@@ -119,6 +120,17 @@ class DataStoreSettingsRepository @Inject constructor(
         context.dataStore.edit { it[Keys.ReportingEnabled] = enabled }
     }
 
+    override val enabledControls: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+        prefs[Keys.EnabledControls].orEmpty()
+    }
+
+    override suspend fun setControlEnabled(key: String, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.EnabledControls].orEmpty()
+            prefs[Keys.EnabledControls] = if (enabled) current + key else current - key
+        }
+    }
+
     override val webhookSettings: Flow<WebhookSettings?> = context.dataStore.data.map { prefs ->
         val url = prefs[Keys.WebhookUrl] ?: return@map null
         WebhookSettings(
@@ -154,6 +166,7 @@ class DataStoreSettingsRepository @Inject constructor(
         val UpdateInterval = stringPreferencesKey("update_interval")
         val Transport = stringPreferencesKey("transport")
         val ReportingEnabled = booleanPreferencesKey("reporting_enabled")
+        val EnabledControls = stringSetPreferencesKey("enabled_controls")
         val WebhookUrl = stringPreferencesKey("webhook_url")
         val WebhookToken = stringPreferencesKey("webhook_token")
     }

@@ -6,6 +6,7 @@ package uk.co.aaronburt.satellite.discovery
  */
 object EntityCatalog {
 
+    /** Read-only entities, published unconditionally. */
     val entities: List<EntitySpec> = listOf(
         EntitySpec(
             key = "battery",
@@ -118,4 +119,43 @@ object EntityCatalog {
             icon = "mdi:sim",
         ),
     )
+
+    /**
+     * Controllable entities. **Off by default** — Home Assistant only learns
+     * about these once the user opts in on the Entities screen, so the phone
+     * cannot be remote-controlled out of the box.
+     */
+    val controlEntities: List<EntitySpec> = listOf(
+        EntitySpec(
+            key = "volume_media",
+            platform = "number",
+            name = "Media volume",
+            unit = "%",
+            icon = "mdi:volume-high",
+            entityCategory = null,
+            command = CommandSpec("volume", CommandSpec.Kind.NUMBER),
+            min = 0,
+            max = 100,
+            step = 5,
+        ),
+        EntitySpec(
+            key = "mic_muted",
+            platform = "switch",
+            name = "Microphone muted",
+            icon = "mdi:microphone-off",
+            entityCategory = null,
+            command = CommandSpec("mute", CommandSpec.Kind.ON_OFF),
+        ),
+    )
+
+    /** Everything the app knows how to expose. */
+    val all: List<EntitySpec> = entities + controlEntities
+
+    /**
+     * Keys whose state should be published right now: every read-only entity,
+     * plus only those controls the user has enabled.
+     */
+    fun activeKeys(enabledControls: Set<String>): Set<String> =
+        entities.map { it.key }.toSet() +
+            controlEntities.filter { it.key in enabledControls }.map { it.key }
 }

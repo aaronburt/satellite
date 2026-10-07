@@ -37,21 +37,27 @@ Verified on a real phone (Galaxy S23 Ultra): device `Satellite-AB68` online,
 
 ## Next up — in priority order
 
-### 1. M3: controllable entities (biggest feature gap)
-Right now everything is read-only. Add command topics so HA can act on the phone.
+### 1. M3: controllable entities (built — MVP)
+Commands work end to end. **Controllable entities are off by default**: Home
+Assistant only learns about them when the user opts in per entity on the
+Entities screen, and commands for disabled entities are ignored.
 
-**Scope decision: minimum viable set first — volume + mic mute.** TTS (`text`)
-and restart/re-publish (`button`) deferred to a follow-up.
-
-- [ ] `MqttClient` already supports `subscribe`; add a command router in
-      `:core:reporter` that parses `<base>/cmd/<action>`.
-- [ ] Entities to add (see `docs/development-plan.md` §4.2):
-  - [ ] Media volume — `number` + `command_topic`, publish confirming state
-  - [ ] Mic mute — `switch` + `command_topic`
+- [x] `CommandParser` + `CommandRouter` in `:core:reporter`, parsing
+      `<base>/cmd/<action>` and dispatching to `AudioControls`.
+- [x] Media volume — `number` + `command_topic`, min/max/step, confirming state.
+- [x] Mic mute — `switch` + `command_topic`, confirming state. Needed the
+      `MODIFY_AUDIO_SETTINGS` normal permission.
+- [x] Per-entity enable/disable persisted in DataStore (`enabledControls`,
+      empty by default); discovery re-publishers on every toggle.
+- [x] Removal follows HA's documented two-step: publish a platform-only stub,
+      then re-publish the config without the component.
+- [x] State publishing is filtered to the active entity set (sensors + enabled
+      controls) for both MQTT and webhook.
+- [x] Tests: `CommandParserTest` (6) + discovery opt-in/stub tests (3);
+      verified round-trip against Mosquitto.
 - [ ] Follow-up: Speak text (`text`, Android `TextToSpeech`), restart service /
       re-publish discovery (`button`).
-- [ ] Publish a confirming state after each command.
-- [ ] Tests: command parsing (unit) + round-trip against Mosquitto.
+- [ ] Consider surfacing the enabled-controls toggles in Settings too.
 
 ### 2. Permission-gated sensors
 - [ ] Location → `device_tracker` (needs `ACCESS_FINE_LOCATION`)

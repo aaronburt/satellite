@@ -28,4 +28,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.javax.inject)
     implementation(libs.hilt.android)
+
+    testImplementation(libs.junit)
 }

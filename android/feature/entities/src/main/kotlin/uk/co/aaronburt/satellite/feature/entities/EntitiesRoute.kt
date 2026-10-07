@@ -8,5 +8,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun EntitiesRoute(viewModel: EntitiesViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    EntitiesScreen(state = state)
+    EntitiesScreen(
+        state = state,
+        onControlToggled = viewModel::onControlToggled,
+    )
 }

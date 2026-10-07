@@ -7,12 +7,18 @@ import org.json.JSONObject
  * Builds the Home Assistant MQTT **device discovery** payload (one message per
  * device, entities under `components`).
  *
+ * Controllable entities ([EntitySpec.isControl]) are only included when they are
+ * in [enabledControls] — they are opt-in. To un-expose one that Home Assistant
+ * already knows about, Home Assistant's documented removal procedure is used:
+ * first publish the component stub (`{ "platform": … }`), then publish the config
+ * without it. [stubControls] drives the first half of that.
+ *
  * Reference: https://www.home-assistant.io/integrations/mqtt/#device-discovery-payload
  */
 object DiscoveryPayloadBuilder {
 
     const val ORIGIN_NAME = "Satellite"
-    const val SUPPORT_URL = "https://github.com/"
+    const val SUPPORT_URL = "https://github.com/aaronburt/SatelliteAndroid"
 
     fun build(
         deviceId: String,
@@ -21,7 +27,9 @@ object DiscoveryPayloadBuilder {
         model: String,
         appVersion: String,
         androidVersion: String,
-        specs: List<EntitySpec> = EntityCatalog.entities,
+        specs: List<EntitySpec> = EntityCatalog.all,
+        enabledControls: Set<String> = emptySet(),
+        stubControls: Set<String> = emptySet(),
     ): String {
         val topics = Topics(deviceId)
 
@@ -43,7 +51,9 @@ object DiscoveryPayloadBuilder {
 
         val components = JSONObject().apply {
             specs.forEach { spec ->
-                put(spec.key, component(spec, deviceId, topics))
+                val stub = spec.key in stubControls
+                if (!stub && spec.isControl && spec.key !in enabledControls) return@forEach
+                put(spec.key, component(spec, deviceId, topics, stub))
             }
         }
 
@@ -57,19 +67,35 @@ object DiscoveryPayloadBuilder {
         }.toString()
     }
 
-    private fun component(spec: EntitySpec, deviceId: String, topics: Topics): JSONObject =
-        JSONObject().apply {
+    private fun component(
+        spec: EntitySpec,
+        deviceId: String,
+        topics: Topics,
+        stub: Boolean,
+    ): JSONObject {
+        // A stub with nothing but the platform is Home Assistant's signal to
+        // remove a previously discovered component.
+        if (stub) {
+            return JSONObject().put("platform", spec.platform)
+        }
+
+        return JSONObject().apply {
             put("platform", spec.platform)
             put("unique_id", "${deviceId}_${spec.key}")
             put("name", spec.name)
             put("state_topic", topics.state(spec.key).removePrefix("${topics.base}/").let { "~/$it" })
+            spec.command?.let { put("command_topic", "~/cmd/${it.action}") }
             spec.deviceClass?.let { put("device_class", it) }
             spec.unit?.let { put("unit_of_measurement", it) }
             spec.stateClass?.let { put("state_class", it) }
             spec.entityCategory?.let { put("entity_category", it) }
             spec.icon?.let { put("icon", it) }
+            spec.min?.let { put("min", it) }
+            spec.max?.let { put("max", it) }
+            spec.step?.let { put("step", it) }
             spec.options?.let { options ->
                 put("options", JSONArray().apply { options.forEach { put(it) } })
             }
         }
+    }
 }

@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.DiscoveryPayloadBuilder
+import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.model.ConnectionState
 import uk.co.aaronburt.satellite.model.UpdateInterval
@@ -16,6 +17,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -29,13 +32,16 @@ import javax.inject.Singleton
  * - [UpdateMode.EVENT_DRIVEN]: immediately on relevant broadcasts, with the
  *   interval as a safety net.
  *
- * Discovery is re-published when Home Assistant restarts (birth message).
+ * Discovery is re-published when Home Assistant restarts (birth message) and
+ * whenever the user opts a controllable entity in or out. Only entities the user
+ * has enabled are ever published — controls are off by default.
  */
 @Singleton
 class SatelliteReporter @Inject constructor(
     private val client: MqttClient,
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
+    private val commandRouter: CommandRouter,
     private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
     @ApplicationScope private val appScope: CoroutineScope,
@@ -45,6 +51,7 @@ class SatelliteReporter @Inject constructor(
     private var periodicJob: Job? = null
     private var intervalJob: Job? = null
     private var modeJob: Job? = null
+    private var controlsJob: Job? = null
 
     @Volatile
     private var intervalMillis: Long = UpdateInterval.FIVE_MINUTES.seconds * 1000
@@ -85,6 +92,18 @@ class SatelliteReporter @Inject constructor(
                 if (mode == UpdateMode.EVENT_DRIVEN) changeWatcher.register() else changeWatcher.unregister()
             }
         }
+
+        // Toggling a control changes what Home Assistant should see, so
+        // re-publish discovery (and state) immediately.
+        controlsJob = appScope.launch {
+            settingsRepository.enabledControls.drop(1).collect {
+                if (client.connectionState.value is ConnectionState.Connected) {
+                    val deviceId = settingsRepository.deviceId()
+                    publishDiscovery(deviceId, Topics(deviceId))
+                    publishStates()
+                }
+            }
+        }
     }
 
     fun stop() {
@@ -96,6 +115,8 @@ class SatelliteReporter @Inject constructor(
         intervalJob = null
         modeJob?.cancel()
         modeJob = null
+        controlsJob?.cancel()
+        controlsJob = null
         changeWatcher.unregister()
     }
 
@@ -125,9 +146,36 @@ class SatelliteReporter @Inject constructor(
                 }
             }
         }
+
+        client.subscribe(topics.commandWildcard, qos = 1) { message ->
+            appScope.launch {
+                val accepted = commandRouter.handle(message.topic, message.payload, topics)
+                // Confirm the resulting state, whether or not the change stuck.
+                if (accepted) publishStates()
+            }
+        }
     }
 
     private suspend fun publishDiscovery(deviceId: String, topics: Topics) {
+        val enabledControls = settingsRepository.enabledControls.first()
+        val unexposed = EntityCatalog.controlEntities
+            .map { it.key }
+            .filterNot { it in enabledControls }
+
+        // Home Assistant drops a component when it is republished with nothing but
+        // its platform, so send that first, then the config without it.
+        if (unexposed.isNotEmpty()) {
+            publishDiscoveryPayload(deviceId, topics, enabledControls, unexposed.toSet())
+        }
+        publishDiscoveryPayload(deviceId, topics, enabledControls, emptySet())
+    }
+
+    private suspend fun publishDiscoveryPayload(
+        deviceId: String,
+        topics: Topics,
+        enabledControls: Set<String>,
+        stubControls: Set<String>,
+    ) {
         val payload = DiscoveryPayloadBuilder.build(
             deviceId = deviceId,
             deviceName = settingsRepository.deviceName(),
@@ -135,6 +183,8 @@ class SatelliteReporter @Inject constructor(
             model = Build.MODEL ?: "Android",
             appVersion = appVersion(),
             androidVersion = Build.VERSION.RELEASE ?: "unknown",
+            enabledControls = enabledControls,
+            stubControls = stubControls,
         )
         client.publish(
             topic = topics.discovery,
@@ -147,8 +197,9 @@ class SatelliteReporter @Inject constructor(
 
     private suspend fun publishStates() {
         val topics = Topics(settingsRepository.deviceId())
+        val activeKeys = EntityCatalog.activeKeys(settingsRepository.enabledControls.first())
         val states = runCatching { telemetry.read() }.getOrDefault(emptyMap())
-        states.forEach { (key, value) ->
+        states.filterKeys { it in activeKeys }.forEach { (key, value) ->
             client.publish(
                 topic = topics.state(key),
                 payload = value,

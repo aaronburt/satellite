@@ -11,12 +11,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,6 +25,7 @@ import uk.co.aaronburt.satellite.designsystem.theme.SatelliteTheme
 @Composable
 fun EntitiesScreen(
     state: EntitiesUiState,
+    onControlToggled: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -41,31 +42,33 @@ fun EntitiesScreen(
                     if (index > 0) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     }
-                    EntityRowItem(row)
+                    SensorRow(row)
                 }
             }
         }
 
-        SectionLabel("Controls \u00b7 next update")
-        ElevatedCard {
-            Column(Modifier.fillMaxWidth()) {
-                VolumeRow(state.mediaVolumePercent)
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                MicrophoneRow(state.microphoneMuted)
-            }
-        }
+        SectionLabel("Controls")
         Text(
-            text = "Controls become interactive when the command milestone lands " +
-                "\u2014 for now they are read-only.",
+            text = "Off by default. Turn one on to let Home Assistant change it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
+        ElevatedCard {
+            Column(Modifier.fillMaxWidth()) {
+                state.controls.forEachIndexed { index, control ->
+                    if (index > 0) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                    ControlItem(control, onControlToggled)
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun EntityRowItem(row: EntityRow) {
+private fun SensorRow(row: EntityRow) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -86,46 +89,30 @@ private fun EntityRowItem(row: EntityRow) {
 }
 
 @Composable
-private fun VolumeRow(percent: Int?) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Media volume",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = percent?.let { "$it%" } ?: "\u2014",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
-        Slider(
-            value = (percent ?: 0) / 100f,
-            onValueChange = {},
-            enabled = false,
-        )
-    }
-}
-
-@Composable
-private fun MicrophoneRow(muted: Boolean?) {
+private fun ControlItem(control: ControlRow, onControlToggled: (String, Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "Microphone muted",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f),
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = control.label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = "${control.value} \u00b7 " + if (control.enabled) {
+                    "Visible to Home Assistant"
+                } else {
+                    "Hidden from Home Assistant"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = control.enabled,
+            onCheckedChange = { onControlToggled(control.key, it) },
+            modifier = Modifier.testTag("control_${control.key}"),
         )
-        Switch(checked = muted ?: false, onCheckedChange = null, enabled = false)
     }
 }
 
@@ -150,9 +137,12 @@ private fun EntitiesScreenPreview() {
                     EntityRow("charging", "Charging", "On"),
                     EntityRow("wifi_ssid", "Wi-Fi network", "HomeNet"),
                 ),
-                mediaVolumePercent = 70,
-                microphoneMuted = false,
+                controls = listOf(
+                    ControlRow("volume_media", "Media volume", "70%", enabled = false),
+                    ControlRow("mic_muted", "Microphone muted", "Live", enabled = true),
+                ),
             ),
+            onControlToggled = { _, _ -> },
         )
     }
 }

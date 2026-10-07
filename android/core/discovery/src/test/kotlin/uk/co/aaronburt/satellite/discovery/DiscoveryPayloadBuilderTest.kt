@@ -54,4 +54,60 @@ class DiscoveryPayloadBuilderTest {
         assertEquals("enum", chargerType.getString("device_class"))
         assertTrue(chargerType.getJSONArray("options").length() > 0)
     }
+
+    // --- Controllable entities are opt-in ------------------------------------
+
+    @Test
+    fun `controls are not exposed by default`() {
+        val components = json.getJSONObject("components")
+        EntityCatalog.controlEntities.forEach { spec ->
+            assertTrue(
+                "expected ${spec.key} to be hidden by default",
+                !components.has(spec.key),
+            )
+        }
+    }
+
+    @Test
+    fun `enabled control carries its command topic and range`() {
+        val payload = DiscoveryPayloadBuilder.build(
+            deviceId = "abcd1234",
+            deviceName = "Satellite-1A2B",
+            manufacturer = "Google",
+            model = "Pixel 8",
+            appVersion = "0.1.0",
+            androidVersion = "16",
+            enabledControls = setOf("volume_media", "mic_muted"),
+        )
+        val components = JSONObject(payload).getJSONObject("components")
+
+        val volume = components.getJSONObject("volume_media")
+        assertEquals("number", volume.getString("platform"))
+        assertEquals("~/cmd/volume", volume.getString("command_topic"))
+        assertEquals("~/state/volume_media", volume.getString("state_topic"))
+        assertEquals(0, volume.getInt("min"))
+        assertEquals(100, volume.getInt("max"))
+
+        val mic = components.getJSONObject("mic_muted")
+        assertEquals("switch", mic.getString("platform"))
+        assertEquals("~/cmd/mute", mic.getString("command_topic"))
+    }
+
+    @Test
+    fun `disabled control can be removed with a platform-only stub`() {
+        val payload = DiscoveryPayloadBuilder.build(
+            deviceId = "abcd1234",
+            deviceName = "Satellite-1A2B",
+            manufacturer = "Google",
+            model = "Pixel 8",
+            appVersion = "0.1.0",
+            androidVersion = "16",
+            stubControls = setOf("mic_muted"),
+        )
+        val components = JSONObject(payload).getJSONObject("components")
+
+        val stub = components.getJSONObject("mic_muted")
+        assertEquals("switch", stub.getString("platform"))
+        assertEquals(1, stub.length())
+    }
 }

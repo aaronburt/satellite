@@ -6,6 +6,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
@@ -98,7 +99,10 @@ class WebhookReporter @Inject constructor(
         val settings = settingsRepository.webhookSettings.first()
         if (settings == null || settings.url.isBlank()) return false
 
-        val states = runCatching { telemetry.read() }.getOrDefault(emptyMap())
+        val activeKeys = EntityCatalog.activeKeys(settingsRepository.enabledControls.first())
+        val states = runCatching { telemetry.read() }
+            .getOrDefault(emptyMap())
+            .filterKeys { it in activeKeys }
         val payload = WebhookPayloadBuilder.build(
             deviceId = settingsRepository.deviceId(),
             deviceName = settingsRepository.deviceName(),

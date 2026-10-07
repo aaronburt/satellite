@@ -40,6 +40,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:datastore"))
     implementation(project(":core:discovery"))
     implementation(project(":core:telemetry"))
     implementation(project(":core:designsystem"))
