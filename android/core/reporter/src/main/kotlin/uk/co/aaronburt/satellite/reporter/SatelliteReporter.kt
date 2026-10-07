@@ -12,12 +12,12 @@ import uk.co.aaronburt.satellite.model.ConnectionState
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.mqtt.MqttClient
+import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -42,6 +42,7 @@ class SatelliteReporter @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
     private val commandRouter: CommandRouter,
+    private val audioControls: AudioControls,
     private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
     @ApplicationScope private val appScope: CoroutineScope,
@@ -94,14 +95,32 @@ class SatelliteReporter @Inject constructor(
         }
 
         // Toggling a control changes what Home Assistant should see, so
-        // re-publish discovery (and state) immediately.
+        // re-publish discovery (and state) immediately, and clean up after any
+        // control the user has just hidden.
         controlsJob = appScope.launch {
-            settingsRepository.enabledControls.drop(1).collect {
-                if (client.connectionState.value is ConnectionState.Connected) {
-                    val deviceId = settingsRepository.deviceId()
-                    publishDiscovery(deviceId, Topics(deviceId))
-                    publishStates()
+            var previous: Set<String>? = null
+            settingsRepository.enabledControls.collect { enabled ->
+                val removed = previous?.minus(enabled).orEmpty()
+                previous = enabled
+
+                if (client.connectionState.value !is ConnectionState.Connected) return@collect
+
+                val deviceId = settingsRepository.deviceId()
+                val topics = Topics(deviceId)
+
+                removed.forEach { key ->
+                    // Drop the retained state so the broker keeps no ghost value
+                    // for an entity Home Assistant no longer knows about.
+                    client.publish(topics.state(key), "", qos = 1, retain = true)
+                    if (key == EntityCatalog.CONTROL_MIC_MUTE) {
+                        // Never strand the phone muted with no way back: hiding the
+                        // control restores the microphone.
+                        audioControls.setMicrophoneMuted(false)
+                    }
                 }
+
+                publishDiscovery(deviceId, topics)
+                publishStates()
             }
         }
     }

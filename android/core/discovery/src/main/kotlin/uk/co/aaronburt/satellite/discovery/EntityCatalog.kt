@@ -6,6 +6,10 @@ package uk.co.aaronburt.satellite.discovery
  */
 object EntityCatalog {
 
+    /** Controllable entity keys, shared by the reporter and the command router. */
+    const val CONTROL_VOLUME = "volume_media"
+    const val CONTROL_MIC_MUTE = "mic_muted"
+
     /** Read-only entities, published unconditionally. */
     val entities: List<EntitySpec> = listOf(
         EntitySpec(
@@ -127,7 +131,7 @@ object EntityCatalog {
      */
     val controlEntities: List<EntitySpec> = listOf(
         EntitySpec(
-            key = "volume_media",
+            key = CONTROL_VOLUME,
             platform = "number",
             name = "Media volume",
             unit = "%",
@@ -139,7 +143,7 @@ object EntityCatalog {
             step = 5,
         ),
         EntitySpec(
-            key = "mic_muted",
+            key = CONTROL_MIC_MUTE,
             platform = "switch",
             name = "Microphone muted",
             icon = "mdi:microphone-off",

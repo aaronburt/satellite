@@ -55,6 +55,13 @@ Entities screen, and commands for disabled entities are ignored.
       controls) for both MQTT and webhook.
 - [x] Tests: `CommandParserTest` (6) + discovery opt-in/stub tests (3);
       verified round-trip against Mosquitto.
+- [x] **Mic safety**: hiding a control clears its retained state topic, and
+      hiding the microphone control restores the microphone — the phone can
+      never be left muted with no way to unmute it. Verified on device
+      (`mic mute FromApi=true` → `false`).
+- [x] Refusals are logged (`CommandRouter`) and the confirming state always
+      reports the *observed* value, so a platform that blocks the write shows
+      the truth rather than a lie.
 - [ ] Follow-up: Speak text (`text`, Android `TextToSpeech`), restart service /
       re-publish discovery (`button`).
 - [ ] Consider surfacing the enabled-controls toggles in Settings too.
