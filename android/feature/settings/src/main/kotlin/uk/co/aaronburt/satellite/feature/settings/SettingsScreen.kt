@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -15,10 +16,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -27,6 +30,7 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +48,7 @@ import uk.co.aaronburt.satellite.model.ThemePreference
 import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
+import uk.co.aaronburt.satellite.update.UpdateState
 
 @Composable
 fun SettingsScreen(
@@ -63,6 +68,9 @@ fun SettingsScreen(
     onBearerTokenChange: (String) -> Unit,
     onSave: () -> Unit,
     onTest: () -> Unit,
+    onCheckForUpdates: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onOpenInstallSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -295,12 +303,120 @@ fun SettingsScreen(
             }
         }
 
-        Text(
-            text = "Satellite ${state.appVersion}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 4.dp),
+        UpdatesSection(
+            state = state,
+            onCheckForUpdates = onCheckForUpdates,
+            onInstallUpdate = onInstallUpdate,
+            onOpenInstallSettings = onOpenInstallSettings,
         )
+    }
+}
+
+@Composable
+private fun UpdatesSection(
+    state: SettingsUiState,
+    onCheckForUpdates: () -> Unit,
+    onInstallUpdate: () -> Unit,
+    onOpenInstallSettings: () -> Unit,
+) {
+    SectionLabel("Updates")
+    ElevatedCard {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column {
+                Text(
+                    text = "Installed version",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = state.appVersion,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            when (val update = state.update) {
+                UpdateState.Idle -> {
+                    Button(onClick = onCheckForUpdates, modifier = Modifier.fillMaxWidth()) {
+                        Text("Check for updates")
+                    }
+                }
+
+                UpdateState.Checking -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        Text("Checking GitHub for a newer release\u2026")
+                    }
+                }
+
+                is UpdateState.UpToDate -> {
+                    Text("You're on the latest version.")
+                    TextButton(onClick = onCheckForUpdates) { Text("Check again") }
+                }
+
+                is UpdateState.Downloading -> {
+                    Text("Downloading v${update.versionName}\u2026 ${update.progress}%")
+                    LinearProgressIndicator(
+                        progress = { update.progress / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                is UpdateState.Ready -> {
+                    Text(
+                        text = "v${update.versionName} is downloaded and verified.",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    update.notes?.let {
+                        Text(
+                            text = it.lineSequence().take(4).joinToString("\n"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (!state.canInstallUpdates) {
+                        Text(
+                            text = "Android needs to allow Satellite to install apps.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Button(onClick = onOpenInstallSettings, modifier = Modifier.fillMaxWidth()) {
+                            Text("Allow installs")
+                        }
+                    }
+                    Button(
+                        onClick = onInstallUpdate,
+                        enabled = state.canInstallUpdates,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Install v${update.versionName}")
+                    }
+                }
+
+                is UpdateState.Failed -> {
+                    Text(
+                        text = update.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    Button(onClick = onCheckForUpdates, modifier = Modifier.fillMaxWidth()) {
+                        Text("Try again")
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -417,6 +533,9 @@ private fun SettingsScreenPreview() {
             onBearerTokenChange = {},
             onSave = {},
             onTest = {},
+            onCheckForUpdates = {},
+            onInstallUpdate = {},
+            onOpenInstallSettings = {},
         )
     }
 }

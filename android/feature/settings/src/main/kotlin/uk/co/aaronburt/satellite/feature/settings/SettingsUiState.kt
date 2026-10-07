@@ -4,6 +4,7 @@ import uk.co.aaronburt.satellite.model.ThemePreference
 import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
+import uk.co.aaronburt.satellite.update.UpdateState
 
 /**
  * @property deviceName generated randomly on first launch, then editable.
@@ -33,6 +34,8 @@ data class SettingsUiState(
     val testStatus: String? = null,
     val saved: Boolean = false,
     val appVersion: String = "",
+    val update: UpdateState = UpdateState.Idle,
+    val canInstallUpdates: Boolean = false,
 ) {
     companion object {
         const val DEFAULT_HOST = "10.0.2.2"

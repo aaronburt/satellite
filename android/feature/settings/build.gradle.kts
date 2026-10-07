@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:datastore"))
     implementation(project(":core:reporter"))
+    implementation(project(":core:update"))
     implementation(project(":core:designsystem"))
 
     implementation(libs.androidx.lifecycle.runtime.compose)

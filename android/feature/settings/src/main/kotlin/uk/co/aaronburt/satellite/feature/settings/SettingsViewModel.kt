@@ -1,6 +1,7 @@
 package uk.co.aaronburt.satellite.feature.settings
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +14,8 @@ import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
 import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
+import uk.co.aaronburt.satellite.update.UpdateManager
+import uk.co.aaronburt.satellite.update.UpdateState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +28,7 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val coordinator: ReporterCoordinator,
+    private val updateManager: UpdateManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -32,6 +36,14 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            updateManager.state.collect { update ->
+                _uiState.update {
+                    it.copy(update = update, canInstallUpdates = updateManager.canInstall())
+                }
+            }
+        }
+
         viewModelScope.launch {
             // Generates and persists a random name on first launch.
             val deviceName = settingsRepository.deviceName()
@@ -130,6 +142,25 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun refreshUpdateCapabilities() {
+        _uiState.update { it.copy(canInstallUpdates = updateManager.canInstall()) }
+    }
+
+    fun onCheckForUpdates() {
+        refreshUpdateCapabilities()
+        viewModelScope.launch { updateManager.checkAndDownload() }
+    }
+
+    fun onInstallUpdate() {
+        updateManager.install().onFailure { error ->
+            _uiState.update {
+                it.copy(update = UpdateState.Failed(error.message ?: "Install failed"))
+            }
+        }
+    }
+
+    fun unknownSourcesIntent(): Intent = updateManager.unknownSourcesIntent()
 
     private suspend fun persist() {
         val state = _uiState.value
