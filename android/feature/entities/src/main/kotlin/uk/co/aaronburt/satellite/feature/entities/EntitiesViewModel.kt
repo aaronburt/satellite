@@ -8,6 +8,7 @@ import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.EntitySpec
 import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 
@@ -52,7 +54,8 @@ class EntitiesViewModel @Inject constructor(
     val uiState: StateFlow<EntitiesUiState> = combine(
         readings,
         settingsRepository.enabledControls,
-    ) { snapshot, enabled ->
+        audio.microphoneMuteSupported,
+    ) { snapshot, enabled, microphoneMuteSupported ->
         EntitiesUiState(
             sensors = EntityCatalog.entities.mapNotNull { it.toRow(snapshot.states) },
             controls = EntityCatalog.controlEntities.map { spec ->
@@ -61,6 +64,8 @@ class EntitiesViewModel @Inject constructor(
                     label = spec.name,
                     value = controlValue(spec.key, snapshot),
                     enabled = spec.key in enabled,
+                    available = spec.key != EntityCatalog.CONTROL_MIC_MUTE ||
+                        microphoneMuteSupported != false,
                 )
             },
         )
@@ -71,7 +76,15 @@ class EntitiesViewModel @Inject constructor(
     )
 
     fun onControlToggled(key: String, enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setControlEnabled(key, enabled) }
+        viewModelScope.launch {
+            // Turning a control on is the moment to prove the device can honour
+            // it. If it can't, leave it off and let the row render as unavailable.
+            if (enabled && key == EntityCatalog.CONTROL_MIC_MUTE) {
+                val supported = withContext(Dispatchers.IO) { audio.probeMicrophoneMute() }
+                if (!supported) return@launch
+            }
+            settingsRepository.setControlEnabled(key, enabled)
+        }
     }
 
     private fun controlValue(key: String, snapshot: Readings): String = when (key) {

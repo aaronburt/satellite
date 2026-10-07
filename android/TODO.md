@@ -62,6 +62,10 @@ Entities screen, and commands for disabled entities are ignored.
 - [x] Refusals are logged (`CommandRouter`) and the confirming state always
       reports the *observed* value, so a platform that blocks the write shows
       the truth rather than a lie.
+- [x] **Unsupported controls are greyed out**: enabling a control probes the
+      device first (`AudioControls.probeMicrophoneMute`), refuses to enable if
+      it can't work, and the row renders "Not supported on this device" with a
+      disabled switch. A refused command marks the control unavailable too.
 - [ ] Follow-up: Speak text (`text`, Android `TextToSpeech`), restart service /
       re-publish discovery (`button`).
 - [ ] Consider surfacing the enabled-controls toggles in Settings too.

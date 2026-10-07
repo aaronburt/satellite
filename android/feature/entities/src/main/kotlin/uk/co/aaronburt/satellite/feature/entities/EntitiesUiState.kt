@@ -11,12 +11,14 @@ data class EntityRow(
  * One controllable entity row.
  *
  * @property enabled whether Home Assistant is allowed to change it (off by default)
+ * @property available whether this device can actually honour it
  */
 data class ControlRow(
     val key: String,
     val label: String,
     val value: String,
     val enabled: Boolean,
+    val available: Boolean = true,
 )
 
 data class EntitiesUiState(

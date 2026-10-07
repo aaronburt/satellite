@@ -3,6 +3,9 @@ package uk.co.aaronburt.satellite.telemetry
 import android.content.Context
 import android.media.AudioManager
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.math.roundToInt
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,6 +54,39 @@ class AudioControls @Inject constructor(
         audio.isMicrophoneMute = muted
         audio.isMicrophoneMute == muted
     }.getOrDefault(false)
+
+    // --- Capability ---------------------------------------------------------
+
+    private val _microphoneMuteSupported = MutableStateFlow<Boolean?>(null)
+
+    /** `null` = not yet determined (treat optimistically). */
+    val microphoneMuteSupported: StateFlow<Boolean?> = _microphoneMuteSupported.asStateFlow()
+
+    /**
+     * Actively checks whether this device lets the app change the microphone
+     * mute: it flips the flag, observes, and restores. Only call from a
+     * user-initiated action (enabling the control) — never on screen load.
+     */
+    fun probeMicrophoneMute(): Boolean {
+        val supported = runCatching {
+            val audio = audioManager() ?: return@runCatching false
+            val original = audio.isMicrophoneMute
+            @Suppress("DEPRECATION")
+            audio.isMicrophoneMute = !original
+            val changed = audio.isMicrophoneMute != original
+            @Suppress("DEPRECATION")
+            audio.isMicrophoneMute = original
+            changed
+        }.getOrDefault(false)
+
+        _microphoneMuteSupported.value = supported
+        return supported
+    }
+
+    /** Recorded when the platform refuses a write, so the UI can grey it out. */
+    fun markMicrophoneMuteUnsupported() {
+        _microphoneMuteSupported.value = false
+    }
 
     private fun audioManager(): AudioManager? =
         context.getSystemService(AudioManager::class.java)

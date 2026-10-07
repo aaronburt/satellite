@@ -97,12 +97,24 @@ private fun ControlItem(control: ControlRow, onControlToggled: (String, Boolean)
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = control.label, style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "${control.value} \u00b7 " + if (control.enabled) {
-                    "Visible to Home Assistant"
+                text = control.label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (control.available) {
+                    MaterialTheme.colorScheme.onSurface
                 } else {
-                    "Hidden from Home Assistant"
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+            Text(
+                text = if (!control.available) {
+                    "Not supported on this device"
+                } else {
+                    "${control.value} \u00b7 " + if (control.enabled) {
+                        "Visible to Home Assistant"
+                    } else {
+                        "Hidden from Home Assistant"
+                    }
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -111,6 +123,8 @@ private fun ControlItem(control: ControlRow, onControlToggled: (String, Boolean)
         Switch(
             checked = control.enabled,
             onCheckedChange = { onControlToggled(control.key, it) },
+            // Greyed out when the device cannot honour the control at all.
+            enabled = control.available,
             modifier = Modifier.testTag("control_${control.key}"),
         )
     }
@@ -139,7 +153,7 @@ private fun EntitiesScreenPreview() {
                 ),
                 controls = listOf(
                     ControlRow("volume_media", "Media volume", "70%", enabled = false),
-                    ControlRow("mic_muted", "Microphone muted", "Live", enabled = true),
+                    ControlRow("mic_muted", "Microphone muted", "Live", enabled = false, available = false),
                 ),
             ),
             onControlToggled = { _, _ -> },

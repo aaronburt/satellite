@@ -52,6 +52,8 @@ class CommandRouter @Inject constructor(
                             "Microphone mute was not applied; the platform refused it " +
                                 "(observed state differs from the request)",
                         )
+                        // Let the UI grey out a control that cannot work here.
+                        audio.markMicrophoneMuteUnsupported()
                     }
                     true
                 }
