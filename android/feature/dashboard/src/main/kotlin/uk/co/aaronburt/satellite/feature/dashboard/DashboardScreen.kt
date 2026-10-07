@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -20,6 +22,7 @@ import uk.co.aaronburt.satellite.designsystem.theme.SatelliteTheme
 import uk.co.aaronburt.satellite.model.ConnectionState
 import uk.co.aaronburt.satellite.model.Transport
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     state: ConnectionState,
@@ -28,7 +31,10 @@ fun DashboardScreen(
     onPermissions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { padding ->
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = { TopAppBar(title = { Text("Satellite") }) },
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -36,10 +42,6 @@ fun DashboardScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                text = "Satellite",
-                style = MaterialTheme.typography.headlineMedium,
-            )
             Text(
                 text = "Home Assistant companion over MQTT",
                 style = MaterialTheme.typography.bodyMedium,

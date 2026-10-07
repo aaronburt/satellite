@@ -102,6 +102,25 @@ and restart/re-publish (`button`) deferred to a follow-up.
 - [ ] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
 - [ ] Keep `README.md` / `docs/development-plan.md` in sync as things land.
 
+### 7. UI/UX refinement (in progress)
+Foundation — done:
+- [x] **Navigation Compose** + `TopAppBar`s + system-back handling (back now pops
+      to the dashboard instead of exiting).
+- [x] Design system: full light/dark colour roles, shapes, opt-in dynamic colour.
+
+Next (screens), priority order:
+- [ ] **Dashboard** as a status hero: coloured connection pill
+      (Connected/Connecting/Error/Offline), device name, last-published time,
+      entity count; onboarding empty state for first run.
+- [ ] **Settings**: group into sections/cards (Identity / Appearance / Reporting
+      / Connection); replace "Saved."/status text with a Snackbar; input
+      validation; password reveal toggle; move the dev-environment hint behind a
+      **Developer** toggle.
+- [ ] **Permissions**: rationale per permission (which entity it unlocks) and an
+      "X of Y granted" summary; remove the **Usage access / Notification access**
+      buttons until those features actually exist (currently misleading).
+- [ ] Localize UI strings into `strings.xml` (currently hardcoded in Compose).
+
 ---
 
 ## Decisions (2026-10-07)
