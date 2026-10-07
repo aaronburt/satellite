@@ -30,8 +30,10 @@ android {
         applicationId = "uk.co.aaronburt.satellite"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // Release builds override these from the git tag (`-PversionName=…`,
+        // `-PversionCode=…`); local/CI debug builds fall back to the defaults.
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("versionName") as String?) ?: "0.1.0"
     }
 
     signingConfigs {

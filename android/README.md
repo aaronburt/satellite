@@ -4,7 +4,9 @@ An Android companion app that presents itself to Home Assistant over MQTT:
 auto-registration via **MQTT Discovery** (device + entities), periodic and
 event-driven state reporting, and a foreground service that stays connected.
 
-**Status:** M0 complete (build + CI); M1 complete — the app connects to MQTT, publishes availability, and stays connected via a foreground service across backgrounding and reboot. Home Assistant discovery is next.
+**Status:** M0–M2 complete — MQTT or webhook transport, Home Assistant discovery
+and telemetry, settings and permissions; `v0.1.0` released. Controllable entities
+(M3) are next.
 
 ## Building
 
@@ -32,6 +34,25 @@ enable *install unknown apps*, and install.
 On a physical phone, set the **broker host to the PC's LAN IP** (not `10.0.2.2`)
 and make sure the phone is on the same network and the firewall allows inbound
 `1883` (MQTT) / `8123` (Home Assistant).
+
+## Releasing
+
+Publishing a version is just pushing a semver tag. CI builds a signed APK and
+attaches it to a GitHub Release:
+
+```powershell
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+The tag drives the APK `versionName` (`0.2.0`) and `versionCode`
+(`major*10000 + minor*100 + patch` → `200`). Signing is supplied from repository
+secrets — `RELEASE_KEYSTORE_BASE64` (base64 of the `.jks`), `RELEASE_STORE_PASSWORD`,
+`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — injected by
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
+
+Debug APKs are built on every push/PR by [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+and uploaded as the `app-debug` artifact (not a Release).
 
 ## Documentation
 

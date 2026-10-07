@@ -83,12 +83,17 @@ and restart/re-publish (`button`) deferred to a follow-up.
 - [x] **Rename the application ID** to `uk.co.aaronburt.satellite` (app code
       `uk.co.aaronburt.satellite.app`). ✅ Done. *(Migration note for existing
       installs still owed before release.)*
-- [ ] GitHub Actions **release workflow**: on tag push, build a signed APK using
-      the keystore stored in **Actions secrets**, and attach it to a Release.
-- [ ] Bump CI actions to `@v5` (`checkout`, `upload-artifact`,
-      `gradle/actions/setup-gradle`) to clear Node 20 deprecation warnings.
+- [x] GitHub Actions **release workflow** (`.github/workflows/release.yml`): on
+      `v*` tag push, build a signed APK and attach it to a GitHub Release.
+      ✅ Done. Required secrets (set): `RELEASE_KEYSTORE_BASE64`,
+      `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
+- [x] Bump CI actions to current majors — `checkout@v7`, `setup-java@v6`,
+      `gradle/actions/setup-gradle@v6`, `upload-artifact@v7`. ✅ Done. *(The old
+      `@v5` target was already stale.)*
+- [x] Version bumping strategy: tag-driven — `versionName` from the tag,
+      `versionCode` = `major*10000 + minor*100 + patch`. ✅ Done.
 - [ ] Add detekt / ktlint to CI (skipped in M0).
-- [ ] Version bumping strategy (`versionCode`/`versionName`).
+- [ ] Migration note for existing installs (package/ID change is breaking).
 - [ ] F-Droid listing + reproducible build notes (decided distribution).
 
 ### 6. Housekeeping
