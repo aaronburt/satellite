@@ -99,7 +99,8 @@ and restart/re-publish (`button`) deferred to a follow-up.
 ### 6. Housekeeping
 - [ ] Add a **LICENSE** — the repo is public with none (defaults to
       all-rights-reserved). **Decided: GPL-3.0.**
-- [ ] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
+- [x] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
+      ✅ Done — cleared retained discovery/availability/state for the old device id.
 - [ ] Keep `README.md` / `docs/development-plan.md` in sync as things land.
 
 ### 7. UI/UX refinement (v2 design — largely built)
@@ -136,6 +137,9 @@ Still open:
 - [x] Fixed: notification was posted via `NotificationManager.notify` and so
       outlived the service — updates now go through `startForeground`, and
       `onDestroy` force-removes it.
+- [x] Verified against the dev Mosquitto: pause publishes retained `offline`,
+      stops the service and clears the notification; resume republishes
+      `online` and restarts it. Paused hero keeps the last-published time.
 - [ ] Wire a Pause action into the ongoing notification.
 
 ---
