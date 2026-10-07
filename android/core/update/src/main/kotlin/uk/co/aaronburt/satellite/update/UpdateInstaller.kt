@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -51,12 +52,15 @@ class UpdateInstaller @Inject constructor(
 
             val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
                 ?: Intent(Intent.ACTION_MAIN)
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                sessionId,
-                launch,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
+
+            // commit() hands the result back through this PendingIntent, so on
+            // Android 12+ it must be mutable for the system to fill it in.
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val pendingIntent = PendingIntent.getActivity(context, sessionId, launch, flags)
             session.commit(pendingIntent.intentSender)
         }
     }
