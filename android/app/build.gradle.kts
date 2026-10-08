@@ -28,8 +28,8 @@ android {
         applicationId = "uk.co.aaronburt.satellite"
         minSdk = 26
         targetSdk = 36
-        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 1
-        versionName = (project.findProperty("versionName") as String?) ?: "0.1.0"
+        versionCode = (project.findProperty("versionCode") as String?)?.toIntOrNull() ?: 501
+        versionName = (project.findProperty("versionName") as String?) ?: "0.5.1"
     }
 
     signingConfigs {
