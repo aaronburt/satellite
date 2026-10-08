@@ -2,21 +2,39 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Permissions declared here (or by library manifests) each map to a
+         shipped feature:
+           INTERNET                          - MQTT broker + webhook transport
+           ACCESS_NETWORK_STATE              - network_transport entity
+           ACCESS_WIFI_STATE (telemetry)     - Wi-Fi SSID entity
+           ACCESS_COARSE_LOCATION            - companion to precise location
+                                               (required on Android 12+); only
+                                               ever used to read the Wi-Fi SSID
+           ACCESS_FINE_LOCATION              - Wi-Fi SSID on Android 12 and below
+           NEARBY_WIFI_DEVICES               - Wi-Fi SSID on Android 13+
+           READ_PHONE_STATE                  - carrier entity
+           MODIFY_AUDIO_SETTINGS             - volume / microphone controls
+           FOREGROUND_SERVICE(+SPECIAL_USE)  - persistent MQTT connection
+           POST_NOTIFICATIONS                - foreground-service notification
+           RECEIVE_BOOT_COMPLETED            - restart reporting after reboot -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <!-- Location is used solely to read the Wi-Fi SSID on Android 12 and below.
+         Android 12+ requires requesting coarse alongside fine; both are capped at
+         API 32 because Android 13+ uses NEARBY_WIFI_DEVICES instead. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 
     <application
         android:name=".SatelliteApp"
@@ -25,7 +43,8 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.SatelliteAndroid"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:usesCleartextTraffic="false">
 
         <activity
             android:name=".MainActivity"

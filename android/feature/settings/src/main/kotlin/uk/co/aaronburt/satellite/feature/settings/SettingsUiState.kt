@@ -28,7 +28,7 @@ data class SettingsUiState(
     val port: String = DEFAULT_PORT,
     val username: String = "",
     val password: String = "",
-    val useTls: Boolean = false,
+    val useTls: Boolean = true,
     val webhookUrl: String = DEFAULT_WEBHOOK_URL,
     val bearerToken: String = "",
     val testStatus: String? = null,
@@ -39,7 +39,7 @@ data class SettingsUiState(
 ) {
     companion object {
         const val DEFAULT_HOST = "10.0.2.2"
-        const val DEFAULT_PORT = "1883"
-        const val DEFAULT_WEBHOOK_URL = "http://10.0.2.2:8123/api/webhook/"
+        const val DEFAULT_PORT = "8883"
+        const val DEFAULT_WEBHOOK_URL = "https://10.0.2.2:8123/api/webhook/"
     }
 }

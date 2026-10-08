@@ -195,6 +195,6 @@ class SettingsViewModel @Inject constructor(
     }.getOrNull() ?: "unknown"
 
     private companion object {
-        const val DEFAULT_PORT = 1883
+        const val DEFAULT_PORT = 8883
     }
 }

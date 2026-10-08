@@ -32,7 +32,7 @@ class DataStoreSettingsRepository @Inject constructor(
             port = prefs[Keys.Port] ?: DEFAULT_PORT,
             username = prefs[Keys.Username]?.takeIf { it.isNotBlank() },
             password = prefs[Keys.Password]?.takeIf { it.isNotBlank() },
-            useTls = prefs[Keys.UseTls] ?: false,
+            useTls = prefs[Keys.UseTls] ?: true,
         )
     }
 
@@ -172,7 +172,7 @@ class DataStoreSettingsRepository @Inject constructor(
     }
 
     private companion object {
-        const val DEFAULT_PORT = 1883
+        const val DEFAULT_PORT = 8883
         const val DEVICE_ID_LENGTH = 8
     }
 }

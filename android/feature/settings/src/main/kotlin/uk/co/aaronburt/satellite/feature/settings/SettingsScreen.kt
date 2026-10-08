@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -73,6 +74,8 @@ fun SettingsScreen(
     onOpenInstallSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var confirmDisableTls by remember { mutableStateOf(false) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -239,7 +242,20 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text("Use TLS", modifier = Modifier.weight(1f))
-                        Switch(checked = state.useTls, onCheckedChange = onUseTlsChange)
+                        Switch(
+                            checked = state.useTls,
+                            onCheckedChange = { enabled ->
+                                if (enabled) onUseTlsChange(true) else confirmDisableTls = true
+                            },
+                        )
+                    }
+                    if (!state.useTls) {
+                        Text(
+                            text = "Encryption is off. The broker password and all " +
+                                "telemetry can be read by anyone on the network.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 } else {
                     OutlinedTextField(
@@ -262,6 +278,14 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .testTag("settings_bearer_token"),
                     )
+                    if (state.webhookUrl.trim().startsWith("http://", ignoreCase = true)) {
+                        Text(
+                            text = "Insecure webhook: plain HTTP is only allowed for " +
+                                "local development hosts. Use HTTPS for real deployments.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
                 }
 
                 Button(
@@ -308,6 +332,31 @@ fun SettingsScreen(
             onCheckForUpdates = onCheckForUpdates,
             onInstallUpdate = onInstallUpdate,
             onOpenInstallSettings = onOpenInstallSettings,
+        )
+    }
+
+    if (confirmDisableTls) {
+        AlertDialog(
+            onDismissRequest = { confirmDisableTls = false },
+            title = { Text("Turn off encryption?") },
+            text = {
+                Text(
+                    "With TLS off, the broker username, password and all telemetry " +
+                        "travel over the network unencrypted. Only continue on a " +
+                        "trusted local network.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmDisableTls = false
+                        onUseTlsChange(false)
+                    },
+                ) { Text("Turn off TLS") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDisableTls = false }) { Text("Keep TLS on") }
+            },
         )
     }
 }
@@ -448,8 +497,11 @@ private fun DeveloperOptions() {
 
     AnimatedVisibility(visible = expanded) {
         Text(
-            text = "Dev environment: MQTT at 10.0.2.2:1883 (satellite / satellite), " +
-                "or a webhook on http://10.0.2.2:8123. On a physical device use the PC's LAN IP.",
+            text = "Dev environment: the bundled Mosquitto listens on " +
+                "10.0.2.2:1883 (cleartext) and Home Assistant on " +
+                "http://10.0.2.2:8123. Cleartext is permitted only for these local " +
+                "dev hosts; use TLS/HTTPS for real deployments. On a physical device " +
+                "use the PC's LAN IP.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
