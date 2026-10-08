@@ -18,7 +18,7 @@ import org.json.JSONObject
 object DiscoveryPayloadBuilder {
 
     const val ORIGIN_NAME = "Satellite"
-    const val SUPPORT_URL = "https://github.com/aaronburt/SatelliteAndroid"
+    const val SUPPORT_URL = "https://github.com/aaronburt/satellite-android"
 
     fun build(
         deviceId: String,

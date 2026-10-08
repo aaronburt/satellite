@@ -12,11 +12,11 @@ class GitHubReleaseParserTest {
           "tag_name": "v0.4.0",
           "name": "v0.4.0",
           "body": "Adds the update checker.",
-          "html_url": "https://github.com/aaronburt/SatelliteAndroid/releases/tag/v0.4.0",
+          "html_url": "https://github.com/aaronburt/satellite-android/releases/tag/v0.4.0",
           "assets": [
             {
               "name": "satellite-v0.4.0.apk",
-              "browser_download_url": "https://github.com/aaronburt/SatelliteAndroid/releases/download/v0.4.0/satellite-v0.4.0.apk",
+              "browser_download_url": "https://github.com/aaronburt/satellite-android/releases/download/v0.4.0/satellite-v0.4.0.apk",
               "size": 1941504,
               "digest": "sha256:abc123"
             },

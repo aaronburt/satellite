@@ -35,7 +35,7 @@ class UpdateChecker @Inject constructor() {
 
     companion object {
         /** Only this repository is ever consulted. */
-        const val REPO = "aaronburt/SatelliteAndroid"
+        const val REPO = "aaronburt/satellite-android"
 
         private const val LATEST_RELEASE_URL = "https://api.github.com/repos/$REPO/releases/latest"
         private const val USER_AGENT = "SatelliteAndroid"
