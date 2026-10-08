@@ -40,15 +40,27 @@ private data class RuntimePermission(
     val rationale: String,
     val group: String,
     val minSdk: Int = 0,
+    val maxSdk: Int = Int.MAX_VALUE,
 )
 
 private fun runtimePermissions(): List<RuntimePermission> = buildList {
     add(
         RuntimePermission(
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            "Approximate location",
+            "Requested with precise location on Android 12+; only used to read " +
+                "the Wi-Fi network name",
+            "Sensors",
+            maxSdk = Build.VERSION_CODES.S_V2,
+        ),
+    )
+    add(
+        RuntimePermission(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            "Location",
+            "Precise location",
             "Reads the connected Wi-Fi network name on Android 12 and below",
             "Sensors",
+            maxSdk = Build.VERSION_CODES.S_V2,
         ),
     )
     add(
@@ -77,7 +89,7 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
             minSdk = Build.VERSION_CODES.TIRAMISU,
         ),
     )
-}.filter { Build.VERSION.SDK_INT >= it.minSdk }
+}.filter { Build.VERSION.SDK_INT in it.minSdk..it.maxSdk }
 
 @Composable
 fun PermissionsScreen(modifier: Modifier = Modifier) {

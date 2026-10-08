@@ -7,6 +7,9 @@
            INTERNET                          - MQTT broker + webhook transport
            ACCESS_NETWORK_STATE              - network_transport entity
            ACCESS_WIFI_STATE (telemetry)     - Wi-Fi SSID entity
+           ACCESS_COARSE_LOCATION            - companion to precise location
+                                               (required on Android 12+); only
+                                               ever used to read the Wi-Fi SSID
            ACCESS_FINE_LOCATION              - Wi-Fi SSID on Android 12 and below
            NEARBY_WIFI_DEVICES               - Wi-Fi SSID on Android 13+
            READ_PHONE_STATE                  - carrier entity
@@ -16,7 +19,15 @@
            RECEIVE_BOOT_COMPLETED            - restart reporting after reboot -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Location is used solely to read the Wi-Fi SSID on Android 12 and below.
+         Android 12+ requires requesting coarse alongside fine; both are capped at
+         API 32 because Android 13+ uses NEARBY_WIFI_DEVICES instead. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_COARSE_LOCATION"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
