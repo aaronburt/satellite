@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,69 +40,15 @@ private data class RuntimePermission(
     val rationale: String,
     val group: String,
     val minSdk: Int = 0,
-    val opensAppSettings: Boolean = false,
 )
 
 private fun runtimePermissions(): List<RuntimePermission> = buildList {
     add(
         RuntimePermission(
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            "Approximate location",
-            "Coarse position for the device tracker",
-            "Location",
-        ),
-    )
-    add(
-        RuntimePermission(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            "Precise location",
-            "Adds a device_tracker so Home Assistant knows where the phone is",
             "Location",
-        ),
-    )
-    add(
-        RuntimePermission(
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-            "Background location",
-            "Keeps location updating while the app is closed",
-            "Location",
-            minSdk = Build.VERSION_CODES.Q,
-            opensAppSettings = true,
-        ),
-    )
-    add(
-        RuntimePermission(
-            Manifest.permission.ACTIVITY_RECOGNITION,
-            "Physical activity",
-            "Reports step count",
+            "Reads the connected Wi-Fi network name on Android 12 and below",
             "Sensors",
-            minSdk = Build.VERSION_CODES.Q,
-        ),
-    )
-    add(
-        RuntimePermission(
-            Manifest.permission.READ_PHONE_STATE,
-            "Phone state",
-            "Reports the mobile carrier",
-            "Sensors",
-        ),
-    )
-    add(
-        RuntimePermission(
-            Manifest.permission.BLUETOOTH_CONNECT,
-            "Bluetooth devices",
-            "Lists currently connected devices",
-            "Sensors",
-            minSdk = Build.VERSION_CODES.S,
-        ),
-    )
-    add(
-        RuntimePermission(
-            Manifest.permission.BLUETOOTH_SCAN,
-            "Bluetooth scanning",
-            "Discovers nearby Bluetooth devices",
-            "Sensors",
-            minSdk = Build.VERSION_CODES.S,
         ),
     )
     add(
@@ -113,6 +58,14 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
             "Reads the connected Wi-Fi network name",
             "Sensors",
             minSdk = Build.VERSION_CODES.TIRAMISU,
+        ),
+    )
+    add(
+        RuntimePermission(
+            Manifest.permission.READ_PHONE_STATE,
+            "Phone state",
+            "Reports the mobile carrier",
+            "Sensors",
         ),
     )
     add(
@@ -192,13 +145,7 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
                         PermissionRow(
                             item = item,
                             granted = granted[item.permission] == true,
-                            onGrant = {
-                                if (item.opensAppSettings) {
-                                    context.openAppSettings()
-                                } else {
-                                    launcher.launch(arrayOf(item.permission))
-                                }
-                            },
+                            onGrant = { launcher.launch(arrayOf(item.permission)) },
                         )
                     }
                 }
@@ -264,7 +211,7 @@ private fun PermissionRow(
             )
         } else {
             Button(onClick = onGrant, modifier = Modifier.padding(start = 12.dp)) {
-                Text(if (item.opensAppSettings) "Settings" else "Grant")
+                Text("Grant")
             }
         }
     }
@@ -282,12 +229,3 @@ private fun SectionLabel(text: String) {
 
 private fun Context.isGranted(permission: String): Boolean =
     ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
-
-private fun Context.openAppSettings() {
-    startActivity(
-        Intent(
-            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-            Uri.fromParts("package", packageName, null),
-        ),
-    )
-}
