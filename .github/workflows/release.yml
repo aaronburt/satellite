@@ -1,0 +1,266 @@
+name: Release
+
+# One release per version. Bumping `const Version` in
+# windows/internal/config/config.go and pushing to main builds the Windows
+# binaries/installer and the signed Android APK, then publishes them together
+# as a single vX.Y.Z release. If the release already exists, nothing is built.
+#
+# The Windows app reads only the release tag, and the Android app takes the
+# first .apk attached to the latest release, so both update from this release.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'windows/**'
+      - 'android/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      tag: ${{ steps.get_version.outputs.tag }}
+      code: ${{ steps.get_version.outputs.code }}
+      exists: ${{ steps.check_release.outputs.exists }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Extract and Validate Version
+        id: get_version
+        run: |
+          VERSION=$(sed -nE 's/^const[[:space:]]+Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' windows/internal/config/config.go | head -n1)
+          if [[ -z "$VERSION" ]]; then
+            echo "::error::Could not find 'const Version' in windows/internal/config/config.go"
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$VERSION' is not semver (expected X.Y.Z)"
+            exit 1
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "Found version: $VERSION"
+          {
+            echo "version=$VERSION"
+            echo "tag=v$VERSION"
+            echo "code=$((10#$MAJOR * 10000 + 10#$MINOR * 100 + 10#$PATCH))"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check if Release Exists
+        id: check_release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.get_version.outputs.tag }}
+        run: |
+          EXISTING=$(gh release list --limit 1000 --json tagName --jq '.[].tagName')
+          if grep -Fxq "$TAG" <<< "$EXISTING"; then
+            echo "Release $TAG already exists. Skipping build."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release $TAG does not exist. Proceeding with build."
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  windows:
+    name: Build Windows and Linux binaries and installer
+    needs: version
+    if: needs.version.outputs.exists == 'false'
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: 'windows/go.mod'
+          cache: true
+          cache-dependency-path: windows/go.sum
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and
+              -not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") -and
+              -not (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup --no-progress -y --skip-if-installed
+          }
+
+      - name: Build Binaries
+        shell: pwsh
+        run: |
+          go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
+          $env:GOOS = "linux"
+          $env:GOARCH = "amd64"
+          $env:CGO_ENABLED = "0"
+          go build -ldflags="-s -w" -o satellite-linux-amd64 .
+          $env:GOOS = "windows"
+
+      - name: Smoke Test Binaries
+        shell: pwsh
+        run: |
+          foreach ($f in @("satellite.exe", "satellite-linux-amd64")) {
+            if (-not (Test-Path $f)) { Write-Error "$f missing"; exit 1 }
+            $size = (Get-Item $f).Length
+            if ($size -lt 1MB) {
+              Write-Error "$f suspiciously small ($size bytes)"
+              exit 1
+            }
+            Write-Host "$f OK ($([math]::Round($size/1MB,1)) MB)"
+          }
+
+      - name: Build Inno Setup Installer
+        shell: pwsh
+        run: |
+          $iscc = $null
+          if (Get-Command iscc -ErrorAction SilentlyContinue) {
+            $iscc = "iscc"
+          } elseif (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe") {
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          } elseif (Test-Path "C:\Program Files\Inno Setup 6\ISCC.exe") {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          } elseif (Test-Path "C:\ProgramData\chocolatey\bin\iscc.exe") {
+            $iscc = "C:\ProgramData\chocolatey\bin\iscc.exe"
+          } else {
+            Write-Error "Could not find Inno Setup compiler ISCC.exe"
+            exit 1
+          }
+          $version = "${{ needs.version.outputs.version }}"
+          & $iscc "/DMyAppVersion=$version" installer.iss
+
+      - name: Upload Windows assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-release
+          path: |
+            windows/satellite.exe
+            windows/satellite-linux-amd64
+            windows/dist/Satellite-Setup-v${{ needs.version.outputs.version }}.exe
+          if-no-files-found: error
+
+  android:
+    name: Build signed Android APK
+    needs: version
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: android
+
+      - name: Install SDK packages
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Repository secret RELEASE_${name} is not set. Refusing to publish an unsigned or debug-signed APK."
+              exit 1
+            fi
+          done
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/satellite-release.jks
+          printf 'storeFile=keystore/satellite-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+
+      - name: Assemble release APK
+        run: |
+          ./gradlew :app:assembleRelease \
+            -PversionName="${{ needs.version.outputs.version }}" \
+            -PversionCode="${{ needs.version.outputs.code }}" \
+            --stacktrace
+
+      - name: Rename APK for the release
+        run: |
+          mkdir -p dist
+          SRC=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          cp "$SRC" "dist/satellite-${{ needs.version.outputs.tag }}.apk"
+
+      - name: Upload Android asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release
+          path: android/dist/*.apk
+          if-no-files-found: error
+
+  publish:
+    name: Publish release
+    needs: [version, windows, android]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download assets
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: '*-release'
+          merge-multiple: true
+
+      - name: Verify assets
+        run: |
+          ls -l dist
+          test -f dist/satellite.exe
+          test -f dist/satellite-linux-amd64
+          test -f "dist/Satellite-Setup-${{ needs.version.outputs.tag }}.exe"
+          test -f "dist/satellite-${{ needs.version.outputs.tag }}.apk"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            --generate-notes
+          {
+            echo "## Released $TAG"
+            echo
+            echo "**Assets:**"
+            for f in dist/*; do echo "- \`$(basename "$f")\`"; done
+          } >> "$GITHUB_STEP_SUMMARY"

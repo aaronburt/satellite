@@ -37,19 +37,18 @@ and make sure the phone is on the same network and the firewall allows inbound
 
 ## Releasing
 
-Publishing a version is just pushing an `android-v` semver tag. CI builds a
-signed APK and attaches it to a GitHub Release:
+The APK is released together with the Windows build as a single GitHub Release.
+Bump `const Version` in `windows/internal/config/config.go` and push to `main`;
+[`release.yml`](../.github/workflows/release.yml) builds both apps and publishes
+one `vX.Y.Z` release containing the signed APK alongside the Windows files.
+The app's updater downloads the first `.apk` attached to the latest release.
 
-```powershell
-git tag android-v0.2.0
-git push origin android-v0.2.0
-```
-
-The tag drives the APK `versionName` (`0.2.0`) and `versionCode`
-(`major*10000 + minor*100 + patch` → `200`). Signing is supplied from repository
+The shared version drives the APK `versionName` (`0.25.0`) and `versionCode`
+(`major*10000 + minor*100 + patch` → `2500`). Signing is supplied from repository
 secrets — `RELEASE_KEYSTORE_BASE64` (base64 of the `.jks`), `RELEASE_STORE_PASSWORD`,
-`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — injected by
-[`android-release.yml`](../.github/workflows/android-release.yml).
+`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. The release fails rather than
+publish an unsigned APK if any of them is missing. Keep a backup of the keystore:
+an installed app only accepts updates signed with the same key.
 
 Debug APKs are built on every push/PR touching `android/` by
 [`android-ci.yml`](../.github/workflows/android-ci.yml) and uploaded as the

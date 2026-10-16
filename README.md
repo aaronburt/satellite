@@ -24,14 +24,13 @@ Each app has its own README with build and setup instructions:
 
 ## Releases
 
-Each app is released independently by a workflow in [`.github/workflows/`](.github/workflows/):
+Both apps ship in one release. Bump `Version` in `windows/internal/config/config.go` and push to `main`, and [`release.yml`](.github/workflows/release.yml) builds everything and publishes a single `vX.Y.Z` release containing:
 
-| App | Trigger | Tag |
-| --- | --- | --- |
-| Windows & Linux | Bump `Version` in `windows/internal/config/config.go` and push to `main` | `vX.Y.Z` |
-| Android | Push a tag | `android-vX.Y.Z` |
+- `satellite.exe` and `Satellite-Setup-vX.Y.Z.exe` (Windows)
+- `satellite-linux-amd64` (Linux)
+- `satellite-vX.Y.Z.apk` (Android, signed)
 
-Android releases are not marked as the repo's "latest" release, so the Windows app's update checker keeps seeing Windows releases.
+Each app updates itself from the latest release: the Windows app checks the release tag, and the Android app downloads the `.apk` attached to it.
 
 ## Disclaimer
 

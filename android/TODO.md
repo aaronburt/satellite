@@ -100,8 +100,8 @@ Entities screen, and commands for disabled entities are ignored.
 - [x] **Rename the application ID** to `uk.co.aaronburt.satellite` (app code
       `uk.co.aaronburt.satellite.app`). ✅ Done. *(Migration note for existing
       installs still owed before release.)*
-- [x] GitHub Actions **release workflow** (`.github/workflows/android-release.yml`
-      at the repo root): on `android-v*` tag push, build a signed APK and attach it to a GitHub Release.
+- [x] GitHub Actions **release workflow** (`.github/workflows/release.yml`
+      at the repo root): on a version bump, build a signed APK and attach it to the shared GitHub Release.
       ✅ Done. Required secrets (set): `RELEASE_KEYSTORE_BASE64`,
       `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
 - [x] Bump CI actions to current majors — `checkout@v7`, `setup-java@v6`,
