@@ -25,6 +25,6 @@ Each app is released independently by a workflow in [`.github/workflows/`](.gith
 
 Android releases are not marked as the repo's "latest" release, so the Windows app's update checker keeps seeing Windows releases.
 
-## AI Disclaimer
+## Disclaimer
 
-This project was written with AI assistance and reviewed by a human. Review the code yourself before running it on your own devices or network.
+Written with AI, reviewed by a human.
