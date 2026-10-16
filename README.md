@@ -9,6 +9,14 @@ This is a monorepo containing the Satellite apps:
 | Windows & Linux | [`windows/`](windows/) | Lightweight telemetry agent and remote controller. Written in Go. |
 | Android | [`android/`](android/) | Companion app with MQTT Discovery and a foreground service. Written in Kotlin. |
 
+## Screenshots
+
+The Windows & Linux agent's local web UI:
+
+| Processes | Performance | Settings |
+| --- | --- | --- |
+| ![Processes view](windows/docs/screenshots/processes.jpg) | ![Performance view](windows/docs/screenshots/performance.jpg) | ![Settings view](windows/docs/screenshots/settings.jpg) |
+
 Each app has its own README with build and setup instructions:
 
 - [`windows/README.md`](windows/README.md)
