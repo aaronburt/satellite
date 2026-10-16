@@ -150,14 +150,22 @@ jobs:
           $version = "${{ needs.version.outputs.version }}"
           & $iscc "/DMyAppVersion=$version" installer.iss
 
+      # upload-artifact keeps the folder structure when given several paths
+      # (the installer would end up in dist/dist/ after download), so stage
+      # everything flat first. Copy-Item also fails fast if a file is missing.
+      - name: Stage release assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path staging | Out-Null
+          Copy-Item satellite.exe, satellite-linux-amd64 -Destination staging
+          Copy-Item "dist/Satellite-Setup-v${{ needs.version.outputs.version }}.exe" -Destination staging
+          Get-ChildItem staging | Format-Table Name, Length
+
       - name: Upload Windows assets
         uses: actions/upload-artifact@v7
         with:
           name: windows-release
-          path: |
-            windows/satellite.exe
-            windows/satellite-linux-amd64
-            windows/dist/Satellite-Setup-v${{ needs.version.outputs.version }}.exe
+          path: windows/staging
           if-no-files-found: error
 
   android:
