@@ -1,0 +1,15 @@
+# Minimal Home Assistant configuration for the SatelliteAndroid test environment.
+#
+# The MQTT integration itself is added through the UI once (broker setup via
+# configuration.yaml is no longer supported by Home Assistant). See
+# docker/README.md for the step-by-step instructions.
+#
+# This file is committed; everything else HA writes into /config is ignored
+# by git (see .gitignore).
+
+default_config:
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.mqtt: info
