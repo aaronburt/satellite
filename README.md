@@ -25,8 +25,6 @@ Each app is released independently by a workflow in [`.github/workflows/`](.gith
 
 Android releases are not marked as the repo's "latest" release, so the Windows app's update checker keeps seeing Windows releases.
 
-## History
+## AI Disclaimer
 
-These were previously developed as separate repositories,
-[satellite-windows](https://github.com/aaronburt/satellite-windows) and
-[satellite-android](https://github.com/aaronburt/satellite-android). Their full commit history is preserved here.
+This project was written with AI assistance and reviewed by a human. Review the code yourself before running it on your own devices or network.
