@@ -93,7 +93,7 @@ These are the checks that will validate the foreground-service design in M1/M5.
 
 ## CI
 
-- Unit tests + lint + debug assemble on every push/PR (`.github/workflows/ci.yml`).
+- Unit tests + lint + debug assemble on every push/PR (`.github/workflows/android-ci.yml` at the repo root).
 - Instrumented tests via Gradle-managed devices (planned).
 - MQTT integration via a Mosquitto service container (planned for M1).
 - Discovery golden tests run as plain JVM tests, so HA compatibility regressions fail fast in CI.

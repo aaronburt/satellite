@@ -37,22 +37,23 @@ and make sure the phone is on the same network and the firewall allows inbound
 
 ## Releasing
 
-Publishing a version is just pushing a semver tag. CI builds a signed APK and
-attaches it to a GitHub Release:
+Publishing a version is just pushing an `android-v` semver tag. CI builds a
+signed APK and attaches it to a GitHub Release:
 
 ```powershell
-git tag v0.2.0
-git push origin v0.2.0
+git tag android-v0.2.0
+git push origin android-v0.2.0
 ```
 
 The tag drives the APK `versionName` (`0.2.0`) and `versionCode`
 (`major*10000 + minor*100 + patch` → `200`). Signing is supplied from repository
 secrets — `RELEASE_KEYSTORE_BASE64` (base64 of the `.jks`), `RELEASE_STORE_PASSWORD`,
 `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` — injected by
-[`.github/workflows/release.yml`](.github/workflows/release.yml).
+[`android-release.yml`](../.github/workflows/android-release.yml).
 
-Debug APKs are built on every push/PR by [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-and uploaded as the `app-debug` artifact (not a Release).
+Debug APKs are built on every push/PR touching `android/` by
+[`android-ci.yml`](../.github/workflows/android-ci.yml) and uploaded as the
+`app-debug` artifact (not a Release).
 
 ## Documentation
 

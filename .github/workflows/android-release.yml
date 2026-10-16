@@ -1,16 +1,20 @@
-name: Release
+name: Android Release
 
 on:
   push:
     tags:
-      - 'v*'
+      - 'android-v*'
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: android-release-${{ github.ref }}
   cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: android
 
 jobs:
   release:
@@ -28,6 +32,8 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: android
 
       - name: Install SDK packages
         run: |
@@ -59,7 +65,7 @@ jobs:
         id: version
         run: |
           TAG="${GITHUB_REF_NAME}"
-          VERSION="${TAG#v}"
+          VERSION="${TAG#android-v}"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
@@ -90,7 +96,10 @@ jobs:
           if gh release view "$TAG" > /dev/null 2>&1; then
             gh release upload "$TAG" dist/*.apk --clobber
           else
+            # --latest=false keeps the Windows release as the repo's "latest",
+            # which the Windows app's update checker relies on.
             gh release create "$TAG" dist/*.apk \
-              --title "$TAG" \
+              --title "Android v${{ steps.version.outputs.version }}" \
+              --latest=false \
               --generate-notes
           fi

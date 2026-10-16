@@ -1,20 +1,26 @@
-name: Release on Version Bump
+name: Windows Release on Version Bump
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'windows/**'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+defaults:
+  run:
+    working-directory: windows
 
 jobs:
   release:
     runs-on: windows-latest
     timeout-minutes: 15
     concurrency:
-      group: release-${{ github.ref }}
+      group: windows-release-${{ github.ref }}
       cancel-in-progress: false
     env:
       GOTOOLCHAIN: local
@@ -68,8 +74,9 @@ jobs:
         if: steps.check_release.outputs.exists == 'false'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version-file: 'go.mod'
+          go-version-file: 'windows/go.mod'
           cache: true
+          cache-dependency-path: windows/go.sum
 
       - name: Install Inno Setup
         if: steps.check_release.outputs.exists == 'false'
