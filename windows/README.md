@@ -4,6 +4,14 @@ Lightweight Windows & Linux telemetry agent and remote controller for Home Assis
 
 ---
 
+## Screenshots
+
+The local web UI (`satellite v0.23.0`) lets you choose which sensors are published and shows what the agent is reporting:
+
+| Processes | Performance | Settings |
+| --- | --- | --- |
+| ![Processes view](docs/screenshots/processes.jpg) | ![Performance view](docs/screenshots/performance.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
+
 ## Features
 
 - **Telemetry:** CPU, GPU (Core Load, VRAM, Temperature, Power), RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
