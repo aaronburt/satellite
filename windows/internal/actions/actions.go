@@ -204,10 +204,19 @@ func (r *Registry) Execute(actionName string) error {
 	return err
 }
 
-func (r *Registry) ExecutePayload(raw []byte) error {
+// Canonical returns the canonical name for an action or one of its aliases,
+// e.g. "next_track" -> "media_next". Unknown names are lower-cased and trimmed.
+func Canonical(name string) string {
+	return normalizeAction(name)
+}
+
+// ParsePayload extracts the canonical action name from a command payload,
+// which is either plain text ("lock") or JSON ({"action":"lock"} or
+// {"command":"lock"}).
+func ParsePayload(raw []byte) (string, error) {
 	trimmed := strings.TrimSpace(string(raw))
 	if trimmed == "" {
-		return errors.New("empty command payload")
+		return "", errors.New("empty command payload")
 	}
 
 	var msg CommandMessage
@@ -217,9 +226,16 @@ func (r *Registry) ExecutePayload(raw []byte) error {
 			action = msg.Command
 		}
 		if action != "" {
-			return r.Execute(action)
+			return normalizeAction(action), nil
 		}
 	}
+	return normalizeAction(trimmed), nil
+}
 
-	return r.Execute(trimmed)
+func (r *Registry) ExecutePayload(raw []byte) error {
+	action, err := ParsePayload(raw)
+	if err != nil {
+		return err
+	}
+	return r.Execute(action)
 }

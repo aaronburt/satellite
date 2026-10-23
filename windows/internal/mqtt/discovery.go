@@ -43,6 +43,36 @@ type EntityDiscoveryPayload struct {
 	Icon                   string     `json:"icon,omitempty"`
 }
 
+// Seams so tests can control which drives and GPUs discovery sees.
+var (
+	listDrives = telemetry.GetAllDrives
+	listGPUs   = telemetry.GetGPUInfo
+)
+
+// discoveryID makes s safe for a Home Assistant discovery topic segment,
+// which only allows letters, digits, underscore and hyphen.
+func discoveryID(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			b.WriteRune(r)
+		} else {
+			b.WriteByte('_')
+		}
+	}
+	return b.String()
+}
+
+// driveKey turns a mount point into a stable entity key: "C:" -> "c",
+// "/" -> "root", "/mnt/data" -> "mnt_data".
+func driveKey(mount string) string {
+	clean := strings.ToLower(strings.Trim(mount, ":/\\"))
+	if clean == "" {
+		return "root"
+	}
+	return discoveryID(clean)
+}
+
 type DiscoveryItem struct {
 	Key       string
 	Topic     string
@@ -592,7 +622,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 
 	var items []DiscoveryItem
 	for _, def := range definitions {
-		topic := fmt.Sprintf("homeassistant/%s/%s/%s/config", def.Payload.Component, nodeID, def.Payload.UniqueID)
+		topic := fmt.Sprintf("homeassistant/%s/%s/%s/config", def.Payload.Component, discoveryID(nodeID), discoveryID(def.Payload.UniqueID))
 		var b []byte
 		if def.ShouldRun {
 			b, _ = json.Marshal(def.Payload)
@@ -606,15 +636,15 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 	}
 
 	if cfg.Expose.Storage && isCap("storage") {
-		drives := telemetry.GetAllDrives()
+		drives := listDrives()
 		for _, d := range drives {
-			cleanMount := strings.ToLower(strings.Trim(d.Mount, ":"))
-			dTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_drive_%s_pct/config", nodeID, nodeID, cleanMount)
+			cleanMount := driveKey(d.Mount)
+			dTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_drive_%s_pct/config", discoveryID(nodeID), discoveryID(nodeID), cleanMount)
 			payload := EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              fmt.Sprintf("Disk %s Usage", d.Mount),
 				StateTopic:        stateTopic,
-				ValueTemplate:     fmt.Sprintf("{{ (value_json.drives | selectattr('mount', 'equalto', '%s') | map(attribute='used_percent') | first) if value_json.drives is defined else None }}", d.Mount),
+				ValueTemplate:     fmt.Sprintf("{{ (value_json.drives | selectattr('mount', 'equalto', '%s') | map(attribute='used_percent') | first) if value_json.drives is defined else None }}", strings.ReplaceAll(d.Mount, "'", "\\'")),
 				UniqueID:          fmt.Sprintf("%s_drive_%s_pct", nodeID, cleanMount),
 				Device:            device,
 				AvailabilityTopic: availTopic,
@@ -633,7 +663,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 	}
 
 	if cfg.Expose.GPU && isCap("gpu") {
-		gpus := telemetry.GetGPUInfo(cfg.Expose.NvidiaNVML)
+		gpus := listGPUs(cfg.Expose.NvidiaNVML)
 		for _, g := range gpus {
 			gpuKey := fmt.Sprintf("gpu_%d", g.Index)
 			namePrefix := fmt.Sprintf("GPU %d", g.Index)
@@ -641,7 +671,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 				namePrefix = g.Name
 			}
 
-			usageTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_usage/config", nodeID, nodeID, gpuKey)
+			usageTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_usage/config", discoveryID(nodeID), discoveryID(nodeID), gpuKey)
 			usagePayload := EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              fmt.Sprintf("%s Usage", namePrefix),
@@ -662,7 +692,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 				ShouldRun: true,
 			})
 
-			memPctTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_pct/config", nodeID, nodeID, gpuKey)
+			memPctTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_pct/config", discoveryID(nodeID), discoveryID(nodeID), gpuKey)
 			memPctPayload := EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              fmt.Sprintf("%s Memory Usage", namePrefix),
@@ -683,7 +713,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 				ShouldRun: true,
 			})
 
-			memUsedTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_used/config", nodeID, nodeID, gpuKey)
+			memUsedTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_mem_used/config", discoveryID(nodeID), discoveryID(nodeID), gpuKey)
 			memUsedPayload := EntityDiscoveryPayload{
 				Component:         "sensor",
 				Name:              fmt.Sprintf("%s Memory Used", namePrefix),
@@ -706,7 +736,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 			})
 
 			if g.TemperatureC != nil {
-				tempTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_temp/config", nodeID, nodeID, gpuKey)
+				tempTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_temp/config", discoveryID(nodeID), discoveryID(nodeID), gpuKey)
 				tempPayload := EntityDiscoveryPayload{
 					Component:         "sensor",
 					Name:              fmt.Sprintf("%s Temperature", namePrefix),
@@ -730,7 +760,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 			}
 
 			if g.PowerWatts != nil {
-				powerTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_power/config", nodeID, nodeID, gpuKey)
+				powerTopic := fmt.Sprintf("homeassistant/sensor/%s/%s_%s_power/config", discoveryID(nodeID), discoveryID(nodeID), gpuKey)
 				powerPayload := EntityDiscoveryPayload{
 					Component:         "sensor",
 					Name:              fmt.Sprintf("%s Power", namePrefix),
