@@ -177,4 +177,3 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal("expected eventLoop to terminate on quitItem click")
 	}
 }
-

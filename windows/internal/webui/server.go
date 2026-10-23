@@ -789,4 +789,3 @@ func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
 
 	<-ctx.Done()
 }
-
