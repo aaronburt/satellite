@@ -599,3 +599,38 @@ func deref64(p *float64) any {
 	}
 	return *p
 }
+
+// Each expose setting controls whether its reading appears in the snapshot,
+// so turning a sensor off in the UI really stops it being published.
+func TestCollectorOnlyReportsExposedReadings(t *testing.T) {
+	h := newFakeHost(t)
+	h.write("/proc/meminfo", "MemTotal: 1048576 kB\nMemAvailable: 524288 kB\n")
+	h.write("/proc/uptime", "100.0 1.0\n")
+	h.write("/proc/net/wireless", "h\nh\nwlan0: 0000 70. 0 0 0 0 0 0 0 0\n")
+
+	none := NewCollector().Collect(config.ExposeConfig{})
+	if none.MemoryPercent != nil || none.UptimeSeconds != nil || none.SessionLocked != nil ||
+		none.MicrophoneInUse != nil || none.FullscreenActive != nil || none.UpdatePending != nil ||
+		none.Media != nil || none.WebcamInUse != nil || none.DisplayPowered != nil ||
+		none.WifiSSID != "" || none.SystemTheme != "" || none.Drives != nil || none.GPUs != nil {
+		t.Fatalf("nothing exposed but snapshot has readings: %+v", none)
+	}
+
+	all := NewCollector().Collect(config.ExposeConfig{
+		Memory: true, Uptime: true, SessionLock: true, Microphone: true, Fullscreen: true,
+		UpdatePending: true, MediaControl: true, Webcam: true, DisplayState: true, Wifi: true,
+	})
+	if all.MemoryPercent == nil || *all.MemoryPercent != 50 {
+		t.Errorf("memory = %v", deref64(all.MemoryPercent))
+	}
+	if all.UptimeSeconds == nil || *all.UptimeSeconds != 100 {
+		t.Errorf("uptime = %v", all.UptimeSeconds)
+	}
+	if all.SessionLocked == nil || all.MicrophoneInUse == nil || all.FullscreenActive == nil ||
+		all.UpdatePending == nil || all.Media == nil || all.WebcamInUse == nil || all.DisplayPowered == nil {
+		t.Errorf("exposed readings missing: %+v", all)
+	}
+	if all.WifiSSID != "wlan0" || all.WifiSignalPercent == nil || *all.WifiSignalPercent != 100 {
+		t.Errorf("wifi = %q %v", all.WifiSSID, deref(all.WifiSignalPercent))
+	}
+}
