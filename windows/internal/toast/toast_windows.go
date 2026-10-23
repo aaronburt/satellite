@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/gen2brain/beeep"
 )
@@ -19,8 +18,18 @@ import (
 var embeddedIcon []byte
 
 var (
-	iconOnce     sync.Once
+	iconOnce      sync.Once
 	savedIconPath string
+)
+
+// Seams so tests don't show real notifications or open a browser.
+var (
+	notify  = beeep.Notify
+	openURL = func(u string) error {
+		// FileProtocolHandler opens the URL with the default browser without
+		// going through cmd.exe, so characters like & cannot run commands.
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", u).Start()
+	}
 )
 
 func getIconPath() string {
@@ -43,24 +52,17 @@ func getIconPath() string {
 }
 
 func Show(n Notification) error {
-	iconPath := getIconPath()
 	title := strings.TrimSpace(n.Title)
 	if title == "" {
 		title = "Satellite"
 	}
 
-	err := beeep.Notify(title, n.Message, iconPath)
-	if err != nil {
+	if err := notify(title, n.Message, getIconPath()); err != nil {
 		return fmt.Errorf("notification failed: %w", err)
 	}
 
-	if strings.TrimSpace(n.URL) != "" {
-		go func(targetURL string) {
-			cmd := exec.Command("cmd", "/c", "start", "", targetURL)
-			cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-			_ = cmd.Start()
-		}(strings.TrimSpace(n.URL))
+	if target, ok := SafeURL(n.URL); ok {
+		_ = openURL(target)
 	}
-
 	return nil
 }

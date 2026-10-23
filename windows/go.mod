@@ -7,6 +7,7 @@ require (
 	github.com/gen2brain/beeep v0.11.2
 	github.com/getlantern/systray v1.2.2
 	github.com/godbus/dbus/v5 v5.1.0
+	github.com/mochi-mqtt/server/v2 v2.7.9
 	golang.org/x/sys v0.30.0
 )
 
@@ -21,11 +22,14 @@ require (
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jackmordaunt/icns/v3 v3.0.1 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
+	github.com/rs/xid v1.4.0 // indirect
 	github.com/sergeymakinen/go-bmp v1.0.0 // indirect
 	github.com/sergeymakinen/go-ico v1.0.0-beta.0 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/tadvi/systray v0.0.0-20190226123456-11a2b8fa57af // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -14,14 +14,23 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/godbus/dbus/v5"
 )
 
 var errNotSupported = errors.New("not supported on this platform")
 
+// hostRoot is prefixed to every /proc, /sys and /dev path so tests can point
+// the readers at a fake filesystem tree.
+var hostRoot = "/"
+
+func hostPath(p string) string {
+	return filepath.Join(hostRoot, p)
+}
+
 func GetCPUTimes() (uint64, uint64, uint64, error) {
-	file, err := os.Open("/proc/stat")
+	file, err := os.Open(hostPath("/proc/stat"))
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -58,7 +67,7 @@ func GetCPUTimes() (uint64, uint64, uint64, error) {
 }
 
 func GetRAMUsage() (float64, float64, float64, error) {
-	file, err := os.Open("/proc/meminfo")
+	file, err := os.Open(hostPath("/proc/meminfo"))
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -99,7 +108,7 @@ func GetRAMUsage() (float64, float64, float64, error) {
 }
 
 func GetAllDrives() []DiskInfo {
-	file, err := os.Open("/proc/mounts")
+	file, err := os.Open(hostPath("/proc/mounts"))
 	if err != nil {
 		return nil
 	}
@@ -127,7 +136,7 @@ func GetAllDrives() []DiskInfo {
 		if len(fields) < 3 {
 			continue
 		}
-		mountPoint := fields[1]
+		mountPoint := unescapeMountPath(fields[1])
 		fsType := fields[2]
 
 		if !supportedFs[fsType] || seenMounts[mountPoint] {
@@ -139,7 +148,7 @@ func GetAllDrives() []DiskInfo {
 		seenMounts[mountPoint] = true
 
 		var stat syscall.Statfs_t
-		if err := syscall.Statfs(mountPoint, &stat); err != nil {
+		if err := syscall.Statfs(hostPath(mountPoint), &stat); err != nil {
 			continue
 		}
 
@@ -164,8 +173,28 @@ func GetAllDrives() []DiskInfo {
 	return drives
 }
 
+// unescapeMountPath decodes the octal escapes /proc/mounts uses for spaces,
+// tabs, newlines and backslashes in mount points (e.g. "/mnt/My\040Drive").
+func unescapeMountPath(p string) string {
+	if !strings.Contains(p, `\`) {
+		return p
+	}
+	var b strings.Builder
+	for i := 0; i < len(p); i++ {
+		if p[i] == '\\' && i+4 <= len(p) {
+			if v, err := strconv.ParseUint(p[i+1:i+4], 8, 8); err == nil {
+				b.WriteByte(byte(v))
+				i += 3
+				continue
+			}
+		}
+		b.WriteByte(p[i])
+	}
+	return b.String()
+}
+
 func GetNetworkOctets() (uint64, uint64, error) {
-	file, err := os.Open("/proc/net/dev")
+	file, err := os.Open(hostPath("/proc/net/dev"))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -200,7 +229,7 @@ func GetNetworkOctets() (uint64, uint64, error) {
 }
 
 func GetSystemUptimeSeconds() uint64 {
-	data, err := os.ReadFile("/proc/uptime")
+	data, err := os.ReadFile(hostPath("/proc/uptime"))
 	if err != nil {
 		return 0
 	}
@@ -233,16 +262,34 @@ func GetUserIdleSeconds() (uint64, bool) {
 	defer sysConn.Close()
 
 	obj := sysConn.Object("org.freedesktop.login1", "/org/freedesktop/login1/session/auto")
-	val, callErr := obj.GetProperty("org.freedesktop.login1.Session.IdleSinceHint")
-	if callErr == nil {
-		if usec, ok := val.Value().(uint64); ok && usec > 0 {
-			nowUsec := uint64(GetSystemUptimeSeconds()) * 1000000
-			if nowUsec > usec {
-				return (nowUsec - usec) / 1000000, true
-			}
-		}
+	hintVal, err := obj.GetProperty("org.freedesktop.login1.Session.IdleHint")
+	if err != nil {
+		return 0, false
 	}
-	return 0, false
+	sinceVal, err := obj.GetProperty("org.freedesktop.login1.Session.IdleSinceHint")
+	if err != nil {
+		return 0, false
+	}
+	idle, _ := hintVal.Value().(bool)
+	since, _ := sinceVal.Value().(uint64)
+	return idleSecondsFromLogind(idle, since, time.Now())
+}
+
+// idleSecondsFromLogind turns logind's IdleHint/IdleSinceHint into seconds
+// idle. IdleSinceHint is a CLOCK_REALTIME timestamp in microseconds of the
+// last IdleHint change, so it only measures idleness while IdleHint is true.
+func idleSecondsFromLogind(idleHint bool, sinceRealtimeUsec uint64, now time.Time) (uint64, bool) {
+	if !idleHint {
+		return 0, true
+	}
+	if sinceRealtimeUsec == 0 {
+		return 0, false
+	}
+	nowUsec := now.UnixMicro()
+	if nowUsec <= 0 || uint64(nowUsec) <= sinceRealtimeUsec {
+		return 0, true
+	}
+	return (uint64(nowUsec) - sinceRealtimeUsec) / 1_000_000, true
 }
 
 func IsSessionLocked() bool {
@@ -263,7 +310,7 @@ func IsSessionLocked() bool {
 }
 
 func IsMicrophoneInUse() bool {
-	matches, err := filepath.Glob("/proc/[0-9]*/fd/*")
+	matches, err := filepath.Glob(hostPath("/proc/[0-9]*/fd/*"))
 	if err != nil {
 		return false
 	}
@@ -277,12 +324,13 @@ func IsMicrophoneInUse() bool {
 }
 
 func GetWebcamStatus() (bool, string) {
-	videoMatches, err := filepath.Glob("/dev/video*")
+	videoMatches, err := filepath.Glob(hostPath("/dev/video*"))
 	if err != nil || len(videoMatches) == 0 {
 		return false, ""
 	}
 
-	matches, err := filepath.Glob("/proc/[0-9]*/fd/*")
+	procDir := hostPath("/proc")
+	matches, err := filepath.Glob(filepath.Join(procDir, "[0-9]*", "fd", "*"))
 	if err != nil {
 		return false, ""
 	}
@@ -292,11 +340,11 @@ func GetWebcamStatus() (bool, string) {
 		if err != nil || !strings.HasPrefix(target, "/dev/video") {
 			continue
 		}
-		parts := strings.Split(match, "/")
-		if len(parts) >= 3 {
-			commPath := filepath.Join("/proc", parts[2], "comm")
-			commData, err := os.ReadFile(commPath)
-			if err == nil {
+		// match is <procDir>/<pid>/fd/<n>
+		rel, err := filepath.Rel(procDir, match)
+		if err == nil {
+			pid := strings.SplitN(filepath.ToSlash(rel), "/", 2)[0]
+			if commData, err := os.ReadFile(filepath.Join(procDir, pid, "comm")); err == nil {
 				return true, strings.TrimSpace(string(commData))
 			}
 		}
@@ -319,17 +367,31 @@ func GetSystemTheme() string {
 	obj := conn.Object("org.freedesktop.portal.Desktop", "/org/freedesktop/portal/desktop")
 	var schemeVariant dbus.Variant
 	call := obj.Call("org.freedesktop.portal.Settings.Read", 0, "org.freedesktop.appearance", "color-scheme")
-	if call.Err == nil && call.Store(&schemeVariant) == nil {
-		if innerVal, ok := schemeVariant.Value().(dbus.Variant); ok {
-			if num, ok := innerVal.Value().(uint32); ok {
-				if num == 1 {
-					return "dark"
-				}
-				return "light"
-			}
-		}
+	if call.Err != nil || call.Store(&schemeVariant) != nil {
+		return "dark"
 	}
-	return "dark"
+	return themeFromColorScheme(schemeVariant)
+}
+
+// themeFromColorScheme maps the XDG portal "color-scheme" setting
+// (0 = no preference, 1 = prefer dark, 2 = prefer light) to a theme name.
+// Settings.Read wraps the value in an extra variant; both shapes are accepted.
+func themeFromColorScheme(v dbus.Variant) string {
+	val := v.Value()
+	if inner, ok := val.(dbus.Variant); ok {
+		val = inner.Value()
+	}
+	num, ok := val.(uint32)
+	if !ok {
+		return "dark"
+	}
+	if num == 2 {
+		return "light"
+	}
+	if num == 1 {
+		return "dark"
+	}
+	return "light"
 }
 
 func GetLocalIPv4() string {
@@ -359,7 +421,7 @@ func GetLocalIPv4() string {
 }
 
 func GetBatteryAndPower() (bool, int, bool) {
-	matches, err := filepath.Glob("/sys/class/power_supply/BAT*")
+	matches, err := filepath.Glob(hostPath("/sys/class/power_supply/BAT*"))
 	if err != nil || len(matches) == 0 {
 		return false, 0, false
 	}
@@ -373,14 +435,28 @@ func GetBatteryAndPower() (bool, int, bool) {
 	if err != nil {
 		return false, 0, false
 	}
+	if pct < 0 {
+		pct = 0
+	} else if pct > 100 {
+		pct = 100
+	}
 
-	statusData, err := os.ReadFile(filepath.Join(batDir, "status"))
 	plugged := false
-	if err == nil {
-		status := strings.TrimSpace(string(statusData))
-		plugged = status == "Charging" || status == "Full"
+	if statusData, err := os.ReadFile(filepath.Join(batDir, "status")); err == nil {
+		plugged = batteryStatusMeansPlugged(strings.TrimSpace(string(statusData)))
 	}
 	return true, pct, plugged
+}
+
+// batteryStatusMeansPlugged reports whether a sysfs battery status implies
+// the charger is connected. "Not charging" is what laptops report when held
+// at a charge limit while on AC.
+func batteryStatusMeansPlugged(status string) bool {
+	switch status {
+	case "Charging", "Full", "Not charging":
+		return true
+	}
+	return false
 }
 
 func GetActiveWindowAndProcess() (string, string) {
@@ -388,7 +464,7 @@ func GetActiveWindowAndProcess() (string, string) {
 }
 
 func IsRebootPending() bool {
-	_, err := os.Stat("/var/run/reboot-required")
+	_, err := os.Stat(hostPath("/var/run/reboot-required"))
 	return err == nil
 }
 
@@ -404,43 +480,58 @@ func GetActiveMediaInfo() MediaInfo {
 		return MediaInfo{Status: "idle"}
 	}
 
+	var players []MediaInfo
 	for _, name := range names {
 		if !strings.HasPrefix(name, "org.mpris.MediaPlayer2.") {
 			continue
 		}
-
 		player := conn.Object(name, "/org/mpris/MediaPlayer2")
 		statusProp, err := player.GetProperty("org.mpris.MediaPlayer2.Player.PlaybackStatus")
 		if err != nil {
 			continue
 		}
 		statusStr, _ := statusProp.Value().(string)
-
-		media := MediaInfo{
-			Status: strings.ToLower(statusStr),
-			AppID:  strings.TrimPrefix(name, "org.mpris.MediaPlayer2."),
+		var meta map[string]dbus.Variant
+		if metaProp, err := player.GetProperty("org.mpris.MediaPlayer2.Player.Metadata"); err == nil {
+			meta, _ = metaProp.Value().(map[string]dbus.Variant)
 		}
+		players = append(players, mediaFromMPRIS(name, statusStr, meta))
+	}
+	return selectActiveMedia(players)
+}
 
-		metaProp, err := player.GetProperty("org.mpris.MediaPlayer2.Player.Metadata")
-		if err == nil {
-			if metaMap, ok := metaProp.Value().(map[string]dbus.Variant); ok {
-				if title, ok := metaMap["xesam:title"].Value().(string); ok {
-					media.Title = title
-				}
-				if artists, ok := metaMap["xesam:artist"].Value().([]string); ok && len(artists) > 0 {
-					media.Artist = artists[0]
-				}
-				if album, ok := metaMap["xesam:album"].Value().(string); ok {
-					media.Album = album
-				}
-			}
-		}
+// mediaFromMPRIS builds a MediaInfo from an MPRIS player's bus name,
+// PlaybackStatus and Metadata properties.
+func mediaFromMPRIS(busName, status string, meta map[string]dbus.Variant) MediaInfo {
+	media := MediaInfo{
+		Status: strings.ToLower(status),
+		AppID:  strings.TrimPrefix(busName, "org.mpris.MediaPlayer2."),
+	}
+	if title, ok := meta["xesam:title"].Value().(string); ok {
+		media.Title = title
+	}
+	if artists, ok := meta["xesam:artist"].Value().([]string); ok && len(artists) > 0 {
+		media.Artist = artists[0]
+	}
+	if album, ok := meta["xesam:album"].Value().(string); ok {
+		media.Album = album
+	}
+	return media
+}
 
-		if media.Status == "playing" || media.Status == "paused" {
-			return media
+// selectActiveMedia picks the player to report: the first one playing,
+// otherwise the first one paused, otherwise idle.
+func selectActiveMedia(players []MediaInfo) MediaInfo {
+	for _, p := range players {
+		if p.Status == "playing" {
+			return p
 		}
 	}
-
+	for _, p := range players {
+		if p.Status == "paused" {
+			return p
+		}
+	}
 	return MediaInfo{Status: "idle"}
 }
 
@@ -453,41 +544,48 @@ func GetActiveAudioOutputDevice() string {
 }
 
 func GetWifiStatus() (string, *int) {
-	data, err := os.ReadFile("/proc/net/wireless")
+	data, err := os.ReadFile(hostPath("/proc/net/wireless"))
 	if err != nil {
 		return "", nil
 	}
+	return parseProcNetWireless(string(data))
+}
 
-	lines := strings.Split(string(data), "\n")
+// parseProcNetWireless reads the first interface from /proc/net/wireless and
+// converts its link quality (0-70 on most drivers) to a percentage.
+func parseProcNetWireless(data string) (string, *int) {
+	lines := strings.Split(data, "\n")
 	if len(lines) < 3 {
 		return "", nil
 	}
-
 	fields := strings.Fields(lines[2])
-	if len(fields) >= 3 {
-		iface := strings.TrimSuffix(fields[0], ":")
-		linkQuality, err := strconv.ParseFloat(fields[2], 64)
-		if err == nil {
-			pct := int(math.Min(100, math.Max(0, (linkQuality/70.0)*100.0)))
-			return iface, &pct
-		}
+	if len(fields) < 3 {
+		return "", nil
+	}
+	iface := strings.TrimSuffix(fields[0], ":")
+	linkQuality, err := strconv.ParseFloat(strings.TrimSuffix(fields[2], "."), 64)
+	if err != nil {
 		return iface, nil
 	}
-	return "", nil
+	pct := int(math.Min(100, math.Max(0, (linkQuality/70.0)*100.0)))
+	return iface, &pct
 }
 
 func IsDisplayPowered() bool {
 	return true
 }
 
+// runDisplayCommand is a seam so tests don't turn off the test machine's screen.
+var runDisplayCommand = func(name string, args ...string) error {
+	return exec.Command(name, args...).Run()
+}
+
 func SleepDisplays() error {
 	if os.Getenv("DISPLAY") != "" {
-		cmd := exec.Command("xset", "dpms", "force", "off")
-		return cmd.Run()
+		return runDisplayCommand("xset", "dpms", "force", "off")
 	}
 	if os.Getenv("WAYLAND_DISPLAY") != "" {
-		cmd := exec.Command("wlopm", "--off", "*")
-		if err := cmd.Run(); err == nil {
+		if err := runDisplayCommand("wlopm", "--off", "*"); err == nil {
 			return nil
 		}
 	}

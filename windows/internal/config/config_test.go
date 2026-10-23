@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"satellite/internal/testutil"
 	"testing"
 )
 
@@ -78,9 +79,7 @@ func TestConfigSerialization(t *testing.T) {
 
 func TestSaveAndLoadConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	origAppData := os.Getenv("APPDATA")
-	defer os.Setenv("APPDATA", origAppData)
-	os.Setenv("APPDATA", tmpDir)
+	testutil.IsolateConfigDir(t, tmpDir)
 
 	cfg := DefaultConfig()
 	cfg.NodeID = "test-node"
@@ -146,9 +145,7 @@ func TestGenerateAPIKey(t *testing.T) {
 
 func TestLoadCorruptConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	origAppData := os.Getenv("APPDATA")
-	defer os.Setenv("APPDATA", origAppData)
-	os.Setenv("APPDATA", tmpDir)
+	testutil.IsolateConfigDir(t, tmpDir)
 
 	filePath := ConfigFilePath()
 	_ = os.MkdirAll(filepath.Dir(filePath), 0755)
@@ -162,9 +159,7 @@ func TestLoadCorruptConfig(t *testing.T) {
 
 func TestLoadNormalization(t *testing.T) {
 	tmpDir := t.TempDir()
-	origAppData := os.Getenv("APPDATA")
-	defer os.Setenv("APPDATA", origAppData)
-	os.Setenv("APPDATA", tmpDir)
+	testutil.IsolateConfigDir(t, tmpDir)
 
 	partial := Config{
 		NodeID:    "norm-node",
@@ -212,9 +207,7 @@ func TestLoadNormalization(t *testing.T) {
 
 func TestLoadNonExistentConfig(t *testing.T) {
 	tmpDir := t.TempDir()
-	origAppData := os.Getenv("APPDATA")
-	defer os.Setenv("APPDATA", origAppData)
-	os.Setenv("APPDATA", tmpDir)
+	testutil.IsolateConfigDir(t, tmpDir)
 
 	cfg, err := Load()
 	if err != nil {

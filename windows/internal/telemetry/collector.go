@@ -17,30 +17,59 @@ type Collector struct {
 	lastTx       uint64
 	lastNetTime  time.Time
 	lastSnapshot Snapshot
+	now          func() time.Time
 }
 
 func NewCollector() *Collector {
-	return &Collector{}
+	return &Collector{now: time.Now}
+}
+
+func (c *Collector) clock() time.Time {
+	if c.now != nil {
+		return c.now()
+	}
+	return time.Now()
+}
+
+// cpuPercent converts two cumulative CPU time samples into a busy percentage
+// (one decimal place). kernel includes idle time, matching GetSystemTimes on
+// Windows and the Linux reader. ok is false when no time has elapsed or the
+// counters went backwards.
+func cpuPercent(prevIdle, prevKernel, prevUser, idle, kernel, user uint64) (float64, bool) {
+	if idle < prevIdle || kernel < prevKernel || user < prevUser {
+		return 0, false
+	}
+	idleDelta := idle - prevIdle
+	totalDelta := (kernel - prevKernel) + (user - prevUser)
+	if totalDelta == 0 || totalDelta < idleDelta {
+		return 0, false
+	}
+	return math.Round((float64(totalDelta-idleDelta)/float64(totalDelta))*1000) / 10, true
+}
+
+// kbPerSecond converts two cumulative byte counters into kB/s (one decimal).
+func kbPerSecond(prev, curr uint64, elapsed time.Duration) (float64, bool) {
+	secs := elapsed.Seconds()
+	if secs <= 0 || curr < prev {
+		return 0, false
+	}
+	return math.Round((float64(curr-prev)/secs/1024)*10) / 10, true
 }
 
 func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	collectedAt := c.clock()
 	snap := Snapshot{
-		Timestamp: time.Now().Unix(),
+		Timestamp: collectedAt.Unix(),
 	}
 
 	if expose.CPU {
 		idle, kernel, user, err := GetCPUTimes()
 		if err == nil {
 			if c.lastKernel > 0 || c.lastUser > 0 {
-				idleDelta := idle - c.lastIdle
-				kernelDelta := kernel - c.lastKernel
-				userDelta := user - c.lastUser
-				totalDelta := kernelDelta + userDelta
-				if totalDelta > 0 && totalDelta >= idleDelta {
-					cpuPct := math.Round((float64(totalDelta-idleDelta)/float64(totalDelta))*1000) / 10
+				if cpuPct, ok := cpuPercent(c.lastIdle, c.lastKernel, c.lastUser, idle, kernel, user); ok {
 					snap.CPUPercent = &cpuPct
 				}
 			}
@@ -66,19 +95,18 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 	if expose.Network {
 		rx, tx, err := GetNetworkOctets()
 		if err == nil {
-			now := time.Now()
 			if !c.lastNetTime.IsZero() {
-				elapsed := now.Sub(c.lastNetTime).Seconds()
-				if elapsed > 0 && rx >= c.lastRx && tx >= c.lastTx {
-					rxKBs := math.Round((float64(rx-c.lastRx)/elapsed/1024)*10) / 10
-					txKBs := math.Round((float64(tx-c.lastTx)/elapsed/1024)*10) / 10
+				elapsed := collectedAt.Sub(c.lastNetTime)
+				rxKBs, rxOK := kbPerSecond(c.lastRx, rx, elapsed)
+				txKBs, txOK := kbPerSecond(c.lastTx, tx, elapsed)
+				if rxOK && txOK {
 					snap.NetworkRxKBs = &rxKBs
 					snap.NetworkTxKBs = &txKBs
 				}
 			}
 			c.lastRx = rx
 			c.lastTx = tx
-			c.lastNetTime = now
+			c.lastNetTime = collectedAt
 		}
 	}
 
