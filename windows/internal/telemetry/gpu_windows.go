@@ -14,7 +14,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-
 type dxgiAdapterInfo struct {
 	index     int
 	name      string
@@ -436,7 +435,7 @@ func GetGPUInfo(enableNVML ...bool) []GPUInfo {
 				usedMB := math.Round(float64(v) / 1024 / 1024)
 				gpu.MemoryUsedMB = &usedMB
 				if gpu.MemoryTotalMB != nil && *gpu.MemoryTotalMB > 0 {
-					pct := math.Round((usedMB / *gpu.MemoryTotalMB) * 1000) / 10
+					pct := math.Round((usedMB / *gpu.MemoryTotalMB)*1000) / 10
 					gpu.MemoryPercent = &pct
 				}
 				break
@@ -467,7 +466,7 @@ func GetGPUInfo(enableNVML ...bool) []GPUInfo {
 					gpu.MemoryUsedMB = &ns.memUsedMB
 				}
 				if gpu.MemoryUsedMB != nil && gpu.MemoryTotalMB != nil && *gpu.MemoryTotalMB > 0 {
-					pct := math.Round((*gpu.MemoryUsedMB / *gpu.MemoryTotalMB) * 1000) / 10
+					pct := math.Round((*gpu.MemoryUsedMB / *gpu.MemoryTotalMB)*1000) / 10
 					gpu.MemoryPercent = &pct
 				}
 				break
