@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"satellite/internal/testutil"
 	"strings"
 	"testing"
 
@@ -19,9 +19,7 @@ import (
 
 func TestAuthMiddlewareAndEndpoints(t *testing.T) {
 	tmpDir := t.TempDir()
-	origAppData := os.Getenv("APPDATA")
-	defer os.Setenv("APPDATA", origAppData)
-	os.Setenv("APPDATA", tmpDir)
+	testutil.IsolateConfigDir(t, tmpDir)
 
 	_ = config.Save(config.DefaultConfig())
 	collector := telemetry.NewCollector()

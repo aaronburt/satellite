@@ -24,9 +24,15 @@ var (
 	procKeybdEvent      = modUser32.NewProc("keybd_event")
 )
 
+// keybdEvent is a seam so tests can check which keys are sent without
+// actually pressing media keys on the machine running the tests.
+var keybdEvent = func(vk byte, flags uintptr) {
+	procKeybdEvent.Call(uintptr(vk), 0, flags, 0)
+}
+
 func sendVirtualKey(vk byte) error {
-	procKeybdEvent.Call(uintptr(vk), 0, 0, 0)
-	procKeybdEvent.Call(uintptr(vk), 0, KEYEVENTF_KEYUP, 0)
+	keybdEvent(vk, 0)
+	keybdEvent(vk, KEYEVENTF_KEYUP)
 	return nil
 }
 
