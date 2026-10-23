@@ -9,7 +9,6 @@ import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,7 +32,7 @@ class BootReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(SupervisorJob() + dispatchers.io).launch {
             try {
-                if (settingsRepository.isConfigured() && settingsRepository.reportingEnabled.first()) {
+                if (BootPolicy.shouldStartService(settingsRepository)) {
                     ContextCompat.startForegroundService(
                         context,
                         Intent(context, SatelliteService::class.java),

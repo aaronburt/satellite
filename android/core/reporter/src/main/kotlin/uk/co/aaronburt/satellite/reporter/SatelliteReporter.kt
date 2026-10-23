@@ -100,6 +100,13 @@ class SatelliteReporter @Inject constructor(
                 val removed = previous?.minus(enabled).orEmpty()
                 previous = enabled
 
+                // Handing the microphone back is a local safety step: it must
+                // happen even while offline, or a mic muted from Home Assistant
+                // would stay muted with nothing left that can unmute it.
+                if (EntityCatalog.CONTROL_MIC_MUTE in removed) {
+                    audioControls.setMicrophoneMuted(false)
+                }
+
                 if (client.connectionState.value !is ConnectionState.Connected) return@collect
 
                 val deviceId = settingsRepository.deviceId()
@@ -107,9 +114,6 @@ class SatelliteReporter @Inject constructor(
 
                 removed.forEach { key ->
                     client.publish(topics.state(key), "", qos = 1, retain = true)
-                    if (key == EntityCatalog.CONTROL_MIC_MUTE) {
-                        audioControls.setMicrophoneMuted(false)
-                    }
                 }
 
                 publishDiscovery(deviceId, topics)
@@ -132,21 +136,21 @@ class SatelliteReporter @Inject constructor(
         changeWatcher.unregister()
     }
 
-    /** Force an immediate discovery + state publish. Returns false when not connected. */
+    /**
+     * Force an immediate discovery + state publish. Returns false when not
+     * connected or when the broker did not accept the publishes.
+     */
     suspend fun refresh(): Boolean {
-        if (client.connectionState.value is ConnectionState.Connected) {
-            onConnected()
-            return true
-        }
-        return false
+        if (client.connectionState.value !is ConnectionState.Connected) return false
+        return onConnected()
     }
 
-    private suspend fun onConnected() {
+    private suspend fun onConnected(): Boolean {
         val deviceId = settingsRepository.deviceId()
         val topics = Topics(deviceId)
 
-        publishDiscovery(deviceId, topics)
-        publishStates()
+        val discovered = publishDiscovery(deviceId, topics)
+        val published = publishStates()
 
         client.subscribe(Topics.BIRTH_TOPIC, qos = 0) { message ->
             if (message.payload.trim() == "online") {
@@ -163,9 +167,11 @@ class SatelliteReporter @Inject constructor(
                 if (accepted) publishStates()
             }
         }
+
+        return discovered && published
     }
 
-    private suspend fun publishDiscovery(deviceId: String, topics: Topics) {
+    private suspend fun publishDiscovery(deviceId: String, topics: Topics): Boolean {
         val enabledControls = settingsRepository.enabledControls.first()
         val unexposed = EntityCatalog.controlEntities
             .map { it.key }
@@ -174,7 +180,7 @@ class SatelliteReporter @Inject constructor(
         if (unexposed.isNotEmpty()) {
             publishDiscoveryPayload(deviceId, topics, enabledControls, unexposed.toSet())
         }
-        publishDiscoveryPayload(deviceId, topics, enabledControls, emptySet())
+        return publishDiscoveryPayload(deviceId, topics, enabledControls, emptySet()).isSuccess
     }
 
     private suspend fun publishDiscoveryPayload(
@@ -182,7 +188,7 @@ class SatelliteReporter @Inject constructor(
         topics: Topics,
         enabledControls: Set<String>,
         stubControls: Set<String>,
-    ) {
+    ): Result<Unit> {
         val payload = DiscoveryPayloadBuilder.build(
             deviceId = deviceId,
             deviceName = settingsRepository.deviceName(),
@@ -193,7 +199,7 @@ class SatelliteReporter @Inject constructor(
             enabledControls = enabledControls,
             stubControls = stubControls,
         )
-        client.publish(
+        return client.publish(
             topic = topics.discovery,
             payload = payload,
             qos = 1,
@@ -202,20 +208,29 @@ class SatelliteReporter @Inject constructor(
         )
     }
 
-    private suspend fun publishStates() {
+    /**
+     * Publishes every active state. Only counts as published (for the "last
+     * published" time and the test button) when the broker took all of them.
+     */
+    private suspend fun publishStates(): Boolean {
         val topics = Topics(settingsRepository.deviceId())
         val activeKeys = EntityCatalog.activeKeys(settingsRepository.enabledControls.first())
         val states = runCatching { telemetry.read() }.getOrDefault(emptyMap())
-        states.filterKeys { it in activeKeys }.forEach { (key, value) ->
+            .filterKeys { it in activeKeys }
+        if (states.isEmpty()) return false
+
+        val allPublished = states.map { (key, value) ->
             client.publish(
                 topic = topics.state(key),
                 payload = value,
                 qos = 1,
                 retain = true,
                 expirySeconds = STATE_EXPIRY_SECONDS,
-            )
-        }
-        status.markPublished()
+            ).isSuccess
+        }.all { it }
+
+        if (allPublished) status.markPublished()
+        return allPublished
     }
 
     private fun appVersion(): String = runCatching {

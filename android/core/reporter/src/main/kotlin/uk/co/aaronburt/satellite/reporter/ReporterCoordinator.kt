@@ -25,6 +25,7 @@ class ReporterCoordinator @Inject constructor(
     private val mqttReporter: SatelliteReporter,
     private val webhookReporter: WebhookReporter,
     private val connectionManager: MqttConnectionManager,
+    private val status: ReporterStatus,
     @ApplicationScope private val appScope: CoroutineScope,
 ) {
 
@@ -86,5 +87,6 @@ class ReporterCoordinator @Inject constructor(
         mqttReporter.stop()
         webhookReporter.stop()
         connectionManager.stop()
+        status.reset()
     }
 }

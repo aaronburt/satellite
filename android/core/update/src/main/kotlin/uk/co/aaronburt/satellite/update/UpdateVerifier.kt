@@ -23,15 +23,15 @@ import javax.inject.Singleton
 @Singleton
 class UpdateVerifier @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ApkVerifier {
 
-    fun verifySha256(file: File, expected: String?): Boolean {
+    override fun verifySha256(file: File, expected: String?): Boolean {
         if (expected.isNullOrBlank()) return true
         val actual = sha256(file) ?: return false
         return actual.equals(expected, ignoreCase = true)
     }
 
-    fun signatureMatchesInstalledApp(apk: File): Boolean = runCatching {
+    override fun signatureMatchesInstalledApp(apk: File): Boolean = runCatching {
         val packageManager = context.packageManager
         val flags = signatureFlags()
 

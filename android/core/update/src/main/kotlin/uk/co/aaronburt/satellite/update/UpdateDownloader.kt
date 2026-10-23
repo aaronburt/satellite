@@ -17,17 +17,24 @@ import javax.inject.Singleton
 @Singleton
 class UpdateDownloader @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ApkDownloader {
 
-    suspend fun download(asset: ReleaseAsset, onProgress: (Int) -> Unit): File =
+    override suspend fun download(asset: ReleaseAsset, onProgress: (Int) -> Unit): File =
         withContext(Dispatchers.IO) {
             require(asset.downloadUrl.startsWith("https://")) {
                 "Refusing a non-HTTPS download"
             }
 
+            // The asset name comes from the network: keep only its last path
+            // segment so it can never point outside the updates directory.
+            val fileName = File(asset.name).name
+            require(fileName.isNotBlank() && fileName != "." && fileName != "..") {
+                "Refusing an unnamed download"
+            }
+
             val directory = File(context.filesDir, DIRECTORY).apply { mkdirs() }
-            val target = File(directory, asset.name)
-            val partial = File(directory, "${asset.name}.part")
+            val target = File(directory, fileName)
+            val partial = File(directory, "$fileName.part")
 
             val connection = (URL(asset.downloadUrl).openConnection() as HttpURLConnection).apply {
                 instanceFollowRedirects = true
@@ -56,6 +63,9 @@ class UpdateDownloader @Inject constructor(
                         }
                     }
                 }
+            } catch (error: Throwable) {
+                partial.delete()
+                throw error
             } finally {
                 connection.disconnect()
             }

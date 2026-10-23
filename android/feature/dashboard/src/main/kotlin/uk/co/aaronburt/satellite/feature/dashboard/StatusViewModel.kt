@@ -69,7 +69,7 @@ class StatusViewModel @Inject constructor(
             lastPublishedAtMillis = coreState.lastPublished,
             entityCount = EntityCatalog.entities.size,
             configured = isConfigured,
-            highlights = highlights(values),
+            highlights = statusHighlights(values),
         )
     }.stateIn(
         scope = viewModelScope,
@@ -99,21 +99,6 @@ class StatusViewModel @Inject constructor(
         }
     }
 
-    private fun highlights(values: Map<String, String>): List<StatusHighlight> = buildList {
-        values["battery"]?.let { add(StatusHighlight("battery", "Battery", "$it%")) }
-        values["charging"]?.let {
-            add(StatusHighlight("charging", "Charging", if (it == "ON") "On" else "Off"))
-        }
-        val wifi = values["wifi_ssid"]
-        if (wifi != null) {
-            add(StatusHighlight("wifi_ssid", "Wi-Fi", wifi))
-        } else {
-            values["network_transport"]?.let {
-                add(StatusHighlight("network_transport", "Network", it.displayEnum()))
-            }
-        }
-    }
-
     private data class CoreState(
         val deviceName: String,
         val transport: Transport,
@@ -129,5 +114,21 @@ class StatusViewModel @Inject constructor(
     }
 }
 
-private fun String.displayEnum(): String =
-    replaceFirstChar { it.uppercase() }
+/**
+ * The at-a-glance values for the Status screen: battery, charging, and the
+ * Wi-Fi network name when known, otherwise the network type.
+ */
+internal fun statusHighlights(values: Map<String, String>): List<StatusHighlight> = buildList {
+    values["battery"]?.let { add(StatusHighlight("battery", "Battery", "$it%")) }
+    values["charging"]?.let {
+        add(StatusHighlight("charging", "Charging", if (it == "ON") "On" else "Off"))
+    }
+    val wifi = values["wifi_ssid"]
+    if (wifi != null) {
+        add(StatusHighlight("wifi_ssid", "Wi-Fi", wifi))
+    } else {
+        values["network_transport"]?.let {
+            add(StatusHighlight("network_transport", "Network", it.replaceFirstChar { c -> c.uppercase() }))
+        }
+    }
+}
