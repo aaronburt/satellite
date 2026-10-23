@@ -20,6 +20,7 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
 - **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
+- **Generic Webhook:** Optionally POST every telemetry snapshot as JSON to any HTTP endpoint, alongside (or instead of) MQTT.
 - **Tray, Web UI & Headless:** Runs in system tray on desktop, provides a local Web UI for setup, or runs headless (`--headless`) as a background systemd daemon.
 
 ---
@@ -53,7 +54,7 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
   ```
 
 ### 3. Configure
-Right-click the tray icon and select **Open Web UI** (or launch Satellite in debug/headless mode to configure via browser) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, or enable webhook log pushing.
+Right-click the tray icon and select **Open Web UI** (or launch Satellite in debug/headless mode to configure via browser) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
 
 The WebUI automatically probes your operating system and hardware on boot and only displays sensor toggles that are actually supported on your current machine.
 
@@ -139,6 +140,45 @@ When connected to your MQTT broker, Home Assistant automatically discovers:
 - Telemetry sensors and binary sensors (including Webcam, Display Power, Audio Output, and Wi-Fi).
 - `media_player.<node_id>_media_player` entity.
 - Quick action buttons (Lock PC, Sleep Displays, Play/Pause, Next, Previous, Mute, Volume).
+
+---
+
+## Telemetry Webhook
+
+Satellite can also send its data to anything that accepts an HTTP POST, such as Node-RED, n8n, a Home Assistant webhook trigger, or your own server. It runs alongside MQTT, so Home Assistant keeps working as before. Leave the MQTT broker blank if you only want the webhook.
+
+Enable it in the Web UI under **Telemetry Webhook**, or in `config.json`:
+
+```json
+"telemetry_webhook": {
+  "enabled": true,
+  "url": "https://example.com/satellite",
+  "bearer_token": "optional-secret",
+  "min_interval_sec": 0
+}
+```
+
+- A snapshot is sent when a value changes noticeably, and at least once per heartbeat (`heartbeat_sec`, default 60s).
+- `min_interval_sec` sets a minimum gap between posts (0 means post on every change).
+- If `bearer_token` is set, it is sent as `Authorization: Bearer <token>`.
+- Any 2xx response counts as success. Failures are logged and retried on the next change or heartbeat.
+
+The body uses the same envelope as the Android app, so one endpoint can receive both:
+
+```json
+{
+  "device_id": "my-pc",
+  "device_name": "MY-PC",
+  "platform": "windows",
+  "app_version": "0.25.0",
+  "timestamp": 1761259200000,
+  "state": { "cpu_percent": 12.5, "memory_percent": 48.1, "timestamp": 1761259200 }
+}
+```
+
+`state` holds the same fields as the MQTT state topic and the `/json` endpoint. Only sensors you have enabled are included. The outer `timestamp` is in milliseconds, and `state.timestamp` is in seconds.
+
+The webhook only sends data out. Remote commands such as lock and media control still need MQTT.
 
 ---
 

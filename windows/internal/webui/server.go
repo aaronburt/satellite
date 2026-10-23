@@ -18,6 +18,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
+	"satellite/internal/output"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -232,6 +233,7 @@ func (s *Server) Start(preferredPort int) (int, error) {
 	mux.HandleFunc("/api/action", webUIMiddleware(authMiddleware(s.handleAction)))
 	mux.HandleFunc("/api/test-connection", webUIMiddleware(authMiddleware(s.handleTestConnection)))
 	mux.HandleFunc("/api/test-webhook", webUIMiddleware(authMiddleware(s.handleTestWebhook)))
+	mux.HandleFunc("/api/test-telemetry-webhook", webUIMiddleware(authMiddleware(s.handleTestTelemetryWebhook)))
 	mux.HandleFunc("/api/update", webUIMiddleware(authMiddleware(s.handleUpdateStatus)))
 	mux.HandleFunc("/api/update/check", webUIMiddleware(authMiddleware(s.handleUpdateCheck)))
 	mux.HandleFunc("/api/logs/stream", webUIMiddleware(authMiddleware(s.handleLogsStream)))
@@ -399,6 +401,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		cfg := config.Get()
 		cfg.MQTT.Password = ""
+		cfg.TelemetryWebhook.BearerToken = ""
 		_ = json.NewEncoder(w).Encode(cfg)
 		return
 	}
@@ -414,6 +417,13 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		current := config.Get()
 		if incoming.MQTT.Password == "" {
 			incoming.MQTT.Password = current.MQTT.Password
+		}
+		if incoming.TelemetryWebhook.BearerToken == "" {
+			incoming.TelemetryWebhook.BearerToken = current.TelemetryWebhook.BearerToken
+		}
+		incoming.TelemetryWebhook.URL = strings.TrimSpace(incoming.TelemetryWebhook.URL)
+		if incoming.TelemetryWebhook.MinIntervalSec < 0 {
+			incoming.TelemetryWebhook.MinIntervalSec = 0
 		}
 		if incoming.IntervalSec <= 0 {
 			incoming.IntervalSec = 5
@@ -669,6 +679,38 @@ func (s *Server) handleTestWebhook(w http.ResponseWriter, r *http.Request) {
 	err := logger.SendTestWebhook(wCfg, current.NodeID)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": true})
+}
+
+// handleTestTelemetryWebhook sends one live snapshot to the telemetry webhook.
+// A blank URL or token falls back to the saved settings.
+func (s *Server) handleTestTelemetryWebhook(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	var wh config.TelemetryWebhookConfig
+	if err := json.NewDecoder(r.Body).Decode(&wh); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
+		return
+	}
+
+	current := config.Get()
+	if strings.TrimSpace(wh.URL) == "" {
+		wh.URL = current.TelemetryWebhook.URL
+	}
+	if wh.BearerToken == "" {
+		wh.BearerToken = current.TelemetryWebhook.BearerToken
+	}
+
+	snap := s.collector.Collect(current.Expose)
+	if err := output.SendTest(wh, current.NodeID, snap); err != nil {
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "error": err.Error()})
 		return
 	}

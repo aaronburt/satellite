@@ -43,6 +43,8 @@ type ExportData struct {
 	Webhook      WebhookConfig `json:"webhook"`
 	CheckUpdates bool          `json:"check_updates"`
 	UpdateRepo   string        `json:"update_repo,omitempty"`
+
+	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
 
 type ExportEnvelope struct {
@@ -111,6 +113,8 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		Webhook:      cfg.Webhook,
 		CheckUpdates: cfg.CheckUpdates,
 		UpdateRepo:   cfg.UpdateRepo,
+
+		TelemetryWebhook: cfg.TelemetryWebhook,
 	}
 
 	trimmedPass := strings.TrimSpace(passphrase)
@@ -258,6 +262,8 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		Webhook:      data.Webhook,
 		CheckUpdates: data.CheckUpdates,
 		UpdateRepo:   data.UpdateRepo,
+
+		TelemetryWebhook: data.TelemetryWebhook,
 	}
 
 	if cfg.IntervalSec <= 0 {

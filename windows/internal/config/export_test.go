@@ -16,6 +16,7 @@ func TestExportImportPlaintext(t *testing.T) {
 	orig.Expose.CPU = true
 	orig.Expose.GPU = true
 	orig.Expose.Storage = true
+	orig.TelemetryWebhook = TelemetryWebhookConfig{Enabled: true, URL: "https://example.com/hook", BearerToken: "tok", MinIntervalSec: 30}
 
 	data, err := ExportConfig(orig, "")
 	if err != nil {
@@ -38,6 +39,9 @@ func TestExportImportPlaintext(t *testing.T) {
 	}
 	if !res.Config.Expose.GPU {
 		t.Errorf("expected GPU exposure to be true")
+	}
+	if res.Config.TelemetryWebhook != orig.TelemetryWebhook {
+		t.Errorf("expected telemetry webhook %+v, got %+v", orig.TelemetryWebhook, res.Config.TelemetryWebhook)
 	}
 	if res.SourceAppVersion != Version {
 		t.Errorf("expected source app version %q, got %q", Version, res.SourceAppVersion)
