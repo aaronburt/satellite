@@ -109,11 +109,10 @@ func main() {
 	server.SetCapabilities(caps)
 	server.SetUpdater(updaterInstance)
 	server.SetWebUIEnabled(*debugMode)
+	server.SetDevMode(*debugMode)
 	if *debugMode {
-		port, err := server.Start(cfg.GetPort())
-		if err == nil {
-			url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", port, server.Token())
-			fmt.Printf("\n[DEBUG] WebUI running with live disk reload at: %s\n\n", url)
+		if _, err := server.Start(cfg.GetPort()); err == nil {
+			fmt.Printf("\n[DEBUG] WebUI running with live disk reload at: %s\n\n", server.URL())
 		}
 	} else if cfg.JSONEnabled {
 		if cfg.APIKey == "" {

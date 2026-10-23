@@ -143,8 +143,7 @@ func (t *Tray) eventLoop() {
 			go t.manualCheckUpdate()
 		case <-t.openItem.ClickedCh:
 			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
-				url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", t.server.Port(), t.server.Token())
-				_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+				_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", t.server.URL()).Start()
 			}
 		case <-t.toggleItem.ClickedCh:
 			if t.server.IsWebUIEnabled() {

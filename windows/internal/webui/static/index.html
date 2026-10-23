@@ -1041,11 +1041,34 @@ input:focus,select:focus{
     display:none;
   }
 }
+.session-banner{
+  border-bottom-color:#ef4444;
+  background:rgba(239,68,68,0.1);
+}
+.session-banner .update-icon{
+  background:#ef4444;
+}
+.field-warning{
+  font-size:12px;
+  color:#f59e0b;
+  border:1px solid rgba(245,158,11,0.4);
+  background:rgba(245,158,11,0.08);
+  border-radius:4px;
+  padding:8px 10px;
+  margin:4px 0 8px;
+}
+.content-panel:focus{
+  outline:none;
+}
+button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]:focus-visible{
+  outline:2px solid var(--border-focus);
+  outline-offset:2px;
+}
 </style>
 </head>
 <body>
 <div class="app-window">
-  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+  <div id="sidebar-backdrop" class="sidebar-backdrop" data-click="toggleSidebar" data-arg="false"></div>
 
   <aside id="sidebar" class="sidebar">
     <div class="sidebar-top">
@@ -1060,8 +1083,8 @@ input:focus,select:focus{
           <span class="sidebar-ver mono">satellite v{{VERSION}}</span>
         </div>
       </div>
-      <nav class="nav-list">
-        <button type="button" class="nav-item active" id="nav-proc" onclick="switchNav('processes')">
+      <nav class="nav-list" aria-label="Sections">
+        <button type="button" class="nav-item active" id="nav-proc" aria-current="page" data-click="switchNav" data-arg="processes">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -1070,13 +1093,13 @@ input:focus,select:focus{
           </svg>
           <span>Processes</span>
         </button>
-        <button type="button" class="nav-item" id="nav-perf" onclick="switchNav('performance')">
+        <button type="button" class="nav-item" id="nav-perf" data-click="switchNav" data-arg="performance">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
           </svg>
           <span>Performance</span>
         </button>
-        <button type="button" class="nav-item" id="nav-logs" onclick="switchNav('logs')">
+        <button type="button" class="nav-item" id="nav-logs" data-click="switchNav" data-arg="logs">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="4 17 10 11 4 5"/>
             <line x1="12" y1="19" x2="20" y2="19"/>
@@ -1086,7 +1109,7 @@ input:focus,select:focus{
       </nav>
     </div>
     <div class="sidebar-bottom">
-      <button type="button" class="nav-item" id="nav-settings" onclick="switchNav('settings')">
+      <button type="button" class="nav-item" id="nav-settings" data-click="switchNav" data-arg="settings">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="3"/>
           <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -1099,32 +1122,32 @@ input:focus,select:focus{
   <div class="main-stage">
     <header class="command-bar">
       <div class="command-left">
-        <button type="button" class="menu-btn" onclick="toggleSidebar(true)" aria-label="Open menu">
+        <button type="button" class="menu-btn" data-click="toggleSidebar" data-arg="true" aria-label="Open menu">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="3" y1="12" x2="21" y2="12"/>
             <line x1="3" y1="6" x2="21" y2="6"/>
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <span class="page-title" id="page-title">Processes</span>
+        <span class="page-title" id="page-title" role="heading" aria-level="1">Processes</span>
         <div class="table-filter-box" id="filter-wrapper">
           <svg class="table-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/>
             <line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
-          <input type="search" id="filter-input" class="table-filter-input" placeholder="Filter sensors..." oninput="filterSensors(this.value)">
+          <input type="search" id="filter-input" class="table-filter-input" placeholder="Filter sensors..." aria-label="Filter sensors">
         </div>
       </div>
       <div class="command-actions">
         <div class="rate-ctrl">
           <span class="rate-label">Refresh:</span>
-          <select id="rate-select" class="rate-select" onchange="onRateChange(this.value)">
+          <select id="rate-select" class="rate-select" aria-label="Refresh rate">
             <option value="1000">1s</option>
             <option value="2000" selected>2s</option>
             <option value="5000">5s</option>
             <option value="0">Paused</option>
           </select>
-          <button type="button" class="cmd-btn" style="padding:2px 4px;" onclick="poll(true)" title="Refresh Now">
+          <button type="button" class="cmd-btn" style="padding:2px 4px;" data-click="refreshNow" title="Refresh Now" aria-label="Refresh Now">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="23 4 23 10 17 10"/>
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -1133,7 +1156,7 @@ input:focus,select:focus{
         </div>
 
         <div class="popover-anchor">
-          <button type="button" class="cmd-btn" id="btn-quick-actions" onclick="toggleActionsPopover()">
+          <button type="button" class="cmd-btn" id="btn-quick-actions" data-click="toggleActionsPopover" aria-haspopup="true" aria-expanded="false" aria-controls="actions-popover">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
@@ -1142,34 +1165,34 @@ input:focus,select:focus{
               <polyline points="6 9 12 15 18 9"/>
             </svg>
           </button>
-          <div id="actions-popover" class="actions-popover">
-            <button type="button" class="popover-item" onclick="triggerAction('lock')">
+          <div id="actions-popover" class="actions-popover" role="menu" aria-label="Quick actions">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="lock">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <span>Lock Workstation</span>
             </button>
-            <button type="button" class="popover-item" onclick="triggerAction('display_sleep')">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="display_sleep">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
               <span>Sleep Displays</span>
             </button>
-            <button type="button" class="popover-item" onclick="triggerAction('test_toast')">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="test_toast">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span>Run Test Toast</span>
             </button>
             <div class="popover-divider"></div>
-            <button type="button" class="popover-item" onclick="triggerAction('volume_up')">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="volume_up">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
               <span>Volume Up</span>
             </button>
-            <button type="button" class="popover-item" onclick="triggerAction('volume_down')">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="volume_down">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
               <span>Volume Down</span>
             </button>
-            <button type="button" class="popover-item" onclick="triggerAction('volume_mute')">
+            <button type="button" class="popover-item" role="menuitem" data-click="triggerAction" data-arg="volume_mute">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
               <span>Toggle Mute</span>
             </button>
             <div class="popover-divider"></div>
-            <button type="button" class="popover-item" onclick="checkUpdatesManual()">
+            <button type="button" class="popover-item" role="menuitem" data-click="checkUpdatesManual">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
               <span>Check for Updates</span>
             </button>
@@ -1190,11 +1213,18 @@ input:focus,select:focus{
       </div>
       <div class="command-actions">
         <a id="update-banner-link" href="#" target="_blank" rel="noopener noreferrer" class="cmd-btn update-btn">View Release</a>
-        <button type="button" class="cmd-btn" onclick="dismissUpdateBanner()">Dismiss</button>
+        <button type="button" class="cmd-btn" data-click="dismissUpdateBanner">Dismiss</button>
       </div>
     </div>
 
-    <section id="panel-processes" class="content-panel">
+    <div id="session-banner" class="update-banner session-banner" role="alert" style="display:none;">
+      <div class="update-banner-left">
+        <span class="update-icon">!</span>
+        <span>This link has expired. Reopen the web UI from the Satellite tray icon to get a new one.</span>
+      </div>
+    </div>
+
+    <section id="panel-processes" class="content-panel" tabindex="-1">
       <div class="tm-table-wrap">
         <table class="tm-table">
           <thead>
@@ -1229,7 +1259,7 @@ input:focus,select:focus{
             <tr class="data-row" id="row-local-ip" data-filter="ipv4 local ip address connection">
               <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>IPv4 Address</span></div></td>
               <td><span class="item-badge">Configured</span></td>
-              <td><div class="val-cell"><button type="button" class="copy-btn" onclick="copyText($('val-ip').innerText)" title="Copy IP"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><span class="mono val-text" id="val-ip">--</span></div></td>
+              <td><div class="val-cell"><button type="button" class="copy-btn" data-click="copyFrom" data-arg="val-ip" title="Copy IP" aria-label="Copy IP"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><span class="mono val-text" id="val-ip">--</span></div></td>
             </tr>
             <tr class="data-row" id="row-wifi" data-filter="wifi ssid wireless wlan">
               <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>Wi-Fi Connection</span></div></td>
@@ -1283,10 +1313,10 @@ input:focus,select:focus{
                 <div class="val-cell">
                   <div class="inline-media-box">
                     <span class="mono inline-media-track" id="val-media">None</span>
-                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_prev')" title="Previous"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_play_pause')" title="Play / Pause"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('media_next')" title="Next"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" onclick="triggerAction('volume_mute')" title="Mute"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_prev" title="Previous" aria-label="Previous"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_play_pause" title="Play / Pause" aria-label="Play / Pause"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_next" title="Next" aria-label="Next"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="volume_mute" title="Mute" aria-label="Mute"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
                   </div>
                 </div>
               </td>
@@ -1311,7 +1341,7 @@ input:focus,select:focus{
       </div>
     </section>
 
-    <section id="panel-performance" class="content-panel hidden">
+    <section id="panel-performance" class="content-panel hidden" tabindex="-1">
       <div class="perf-container">
         <div class="gauges-grid" id="perf-gauges">
           <div class="perf-card">
@@ -1379,18 +1409,18 @@ input:focus,select:focus{
       </div>
     </section>
 
-    <section id="panel-logs" class="content-panel hidden">
+    <section id="panel-logs" class="content-panel hidden" tabindex="-1">
       <div class="logs-container">
         <div class="logs-toolbar">
           <div class="logs-toolbar-left">
-            <select id="logs-level-filter" class="logs-select" onchange="renderLogs()">
+            <select id="logs-level-filter" class="logs-select" aria-label="Log level">
               <option value="ALL">ALL LEVELS</option>
               <option value="MQTT">MQTT ONLY</option>
               <option value="INFO">INFO & ABOVE</option>
               <option value="WARN">WARN & ABOVE</option>
               <option value="ERROR">ERROR ONLY</option>
             </select>
-            <input type="search" id="logs-search" class="logs-search-input" placeholder="Search logs..." oninput="renderLogs()">
+            <input type="search" id="logs-search" class="logs-search-input" placeholder="Search logs..." aria-label="Search logs">
             <span id="logs-counter" class="item-badge">0 events (RAM)</span>
           </div>
           <div class="logs-toolbar-right">
@@ -1398,11 +1428,11 @@ input:focus,select:focus{
               <input type="checkbox" id="logs-autoscroll" checked>
               <span>Auto-scroll</span>
             </label>
-            <button type="button" class="cmd-btn" onclick="copyLogs()" title="Copy logs to clipboard">
+            <button type="button" class="cmd-btn" data-click="copyLogs" title="Copy logs to clipboard" aria-label="Copy logs to clipboard">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               <span>Copy</span>
             </button>
-            <button type="button" class="cmd-btn" onclick="clearLogs()" title="Clear browser memory">
+            <button type="button" class="cmd-btn" data-click="clearLogs" title="Clear browser memory" aria-label="Clear browser memory">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               <span>Clear</span>
             </button>
@@ -1410,12 +1440,12 @@ input:focus,select:focus{
         </div>
         <div id="logs-console" class="logs-console mono">
           <div id="logs-empty" class="logs-empty">Waiting for live log stream... (Logs held in browser memory only)</div>
-          <div id="logs-stream" class="logs-stream"></div>
+          <div id="logs-stream" class="logs-stream" role="log" aria-label="Live log events"></div>
         </div>
       </div>
     </section>
 
-    <section id="panel-settings" class="content-panel hidden">
+    <section id="panel-settings" class="content-panel hidden" tabindex="-1">
       <div class="config-container">
         <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
           <div class="config-card">
@@ -1427,7 +1457,7 @@ input:focus,select:focus{
                 <label for="node_id">Client Node ID</label>
                 <div class="input-with-action">
                   <input class="mono" id="node_id" required autocomplete="off">
-                  <button type="button" class="input-btn" onclick="copyText($('node_id').value)" title="Copy Node ID">
+                  <button type="button" class="input-btn" data-click="copyFrom" data-arg="node_id" title="Copy Node ID" aria-label="Copy Node ID">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                   </button>
                 </div>
@@ -1449,7 +1479,7 @@ input:focus,select:focus{
                 <label for="pass">Broker Password</label>
                 <div class="input-with-action">
                   <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
-                  <button type="button" class="input-btn" onclick="togglePassVis('pass')" title="Show / Hide Password">
+                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="pass" title="Show / Hide Password" aria-label="Show / Hide Password">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                 </div>
@@ -1471,9 +1501,9 @@ input:focus,select:focus{
             <div class="card-head">
               <span class="card-title">Exposed Sensors & Remote Services</span>
               <div>
-                <button type="button" class="link-btn" onclick="bulkToggleEntities(true)">Select All</button>
+                <button type="button" class="link-btn" data-click="bulkToggleEntities" data-arg="true">Select All</button>
                 <span style="color:var(--faint)">|</span>
-                <button type="button" class="link-btn" onclick="bulkToggleEntities(false)">None</button>
+                <button type="button" class="link-btn" data-click="bulkToggleEntities" data-arg="false">None</button>
               </div>
             </div>
 
@@ -1563,7 +1593,7 @@ input:focus,select:focus{
 
           <div class="config-card">
             <div class="card-head">
-              <span class="card-title">Local JSON REST Interface (/json)</span>
+              <span class="card-title">Web UI &amp; Local JSON Interface (/json)</span>
             </div>
             <div class="field">
               <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
@@ -1571,18 +1601,21 @@ input:focus,select:focus{
             <div class="field-row">
               <div class="field">
                 <label for="bind_address">Listen Address</label>
-                <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off">
+                <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off" aria-describedby="bind-warning">
               </div>
               <div class="field">
                 <label for="port">Port (0 for auto)</label>
                 <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
               </div>
             </div>
+            <div id="bind-warning" class="field-warning" style="display:none;">
+              This address makes the web UI and /json reachable from other devices over plain HTTP. Anyone who can see the link or the API key can control this computer. Use 127.0.0.1 unless you need remote access.
+            </div>
             <div class="field">
               <label for="api_key">Authentication Token (or header X-API-Key)</label>
               <div class="input-with-action">
                 <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
-                <button type="button" class="input-btn" onclick="copyText($('api_key').value)" title="Copy API Key">
+                <button type="button" class="input-btn" data-click="copyFrom" data-arg="api_key" title="Copy API Key" aria-label="Copy API Key">
                   <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 </button>
               </div>
@@ -1605,7 +1638,7 @@ input:focus,select:focus{
                 <label for="tw_token">Bearer Token (optional)</label>
                 <div class="input-with-action">
                   <input type="password" class="mono" id="tw_token" placeholder="Leave blank to keep current" autocomplete="new-password">
-                  <button type="button" class="input-btn" onclick="togglePassVis('tw_token')" title="Show / Hide Token">
+                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="tw_token" title="Show / Hide Token" aria-label="Show / Hide Token">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   </button>
                 </div>
@@ -1617,6 +1650,42 @@ input:focus,select:focus{
             </div>
             <div class="field">
               <button type="button" id="btn-test-tw" class="btn-secondary">Send Test Snapshot</button>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">Log Webhook (Discord, Slack or any URL)</span>
+            </div>
+            <div class="field">
+              <label class="toggle-item"><input type="checkbox" id="lw_enabled"><span>POST agent log events to a webhook</span></label>
+            </div>
+            <div class="field">
+              <label for="lw_url">Webhook URL</label>
+              <input class="mono" id="lw_url" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="lw_level">Minimum Level</label>
+                <select id="lw_level">
+                  <option value="info">Info and above</option>
+                  <option value="warn">Warnings and errors</option>
+                  <option value="error">Errors only</option>
+                  <option value="debug">Everything, including MQTT</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="lw_secret">Bearer Secret (optional)</label>
+                <div class="input-with-action">
+                  <input type="password" class="mono" id="lw_secret" placeholder="Leave blank to keep current" autocomplete="new-password">
+                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="lw_secret" title="Show / Hide Secret" aria-label="Show / Hide Secret">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <button type="button" id="btn-test-lw" class="btn-secondary">Send Test Event</button>
             </div>
           </div>
 
@@ -1644,15 +1713,15 @@ input:focus,select:focus{
                     <label for="export_pass">Encryption Passphrase (Optional)</label>
                     <div class="input-with-action">
                       <input type="password" class="mono" id="export_pass" placeholder="Leave empty for plaintext export" autocomplete="new-password">
-                      <button type="button" class="input-btn" onclick="togglePassVis('export_pass')" title="Show / Hide Passphrase">
+                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="export_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
                   </div>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <button type="button" id="btn-export" class="btn-secondary" onclick="exportConfig()">Export .satconfig</button>
-                  <span id="export-msg" class="mono" style="font-size:12px;"></span>
+                  <button type="button" id="btn-export" class="btn-secondary" data-click="exportConfig">Export .satconfig</button>
+                  <span id="export-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
                 </div>
               </div>
 
@@ -1667,7 +1736,7 @@ input:focus,select:focus{
                     <label for="import_pass">Decryption Passphrase (If encrypted)</label>
                     <div class="input-with-action">
                       <input type="password" class="mono" id="import_pass" placeholder="Required if encrypted" autocomplete="current-password">
-                      <button type="button" class="input-btn" onclick="togglePassVis('import_pass')" title="Show / Hide Passphrase">
+                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="import_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
@@ -1680,8 +1749,8 @@ input:focus,select:focus{
                   </label>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;">
-                  <button type="button" id="btn-import" class="btn-secondary" onclick="importConfig()">Import & Apply</button>
-                  <span id="import-msg" class="mono" style="font-size:12px;"></span>
+                  <button type="button" id="btn-import" class="btn-secondary" data-click="importConfig">Import & Apply</button>
+                  <span id="import-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
                 </div>
               </div>
             </div>
@@ -1692,7 +1761,7 @@ input:focus,select:focus{
               <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
-              <span class="msg-area mono" id="msg-area"></span>
+              <span class="msg-area mono" id="msg-area" role="status" aria-live="polite"></span>
               <button type="submit" class="btn-primary">Apply & Restart Service</button>
             </div>
           </div>
@@ -1702,19 +1771,39 @@ input:focus,select:focus{
   </div>
 </div>
 
-<div id="toast-container" class="toast-container"></div>
+<div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
-<script>
+<script nonce="{{CSP_NONCE}}">
 const $ = id => document.getElementById(id);
 const urlParams = new URLSearchParams(window.location.search);
 const apiToken = urlParams.get('token') || '';
+
+let sessionExpired = false;
+let logStream = null;
 
 async function authFetch(url, options = {}) {
   options.headers = options.headers || {};
   if (apiToken) {
     options.headers['X-API-Token'] = apiToken;
   }
-  return fetch(url, options);
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    showSessionExpired();
+  }
+  return res;
+}
+
+// The token changes every time the agent starts, so an old tab gets 401s.
+// Say so plainly and stop polling instead of showing an empty form.
+function showSessionExpired() {
+  if (sessionExpired) return;
+  sessionExpired = true;
+  const banner = $('session-banner');
+  if (banner) banner.style.display = 'flex';
+  pollSeq++;
+  clearTimeout(activePollTimeout);
+  if (logStream) logStream.close();
+  setStaleUI();
 }
 
 function showToast(text, isError = false) {
@@ -1734,10 +1823,16 @@ function showToast(text, isError = false) {
 function copyText(val) {
   if (!val || val === '--') return;
   navigator.clipboard.writeText(val).then(() => {
-    showToast('Copied to clipboard: ' + val, false);
+    showToast('Copied to clipboard', false);
   }).catch(() => {
     showToast('Failed to copy to clipboard', true);
   });
+}
+
+function copyFrom(id) {
+  const el = $(id);
+  if (!el) return;
+  copyText(el.tagName === 'INPUT' ? el.value : el.innerText);
 }
 
 function togglePassVis(id) {
@@ -1762,11 +1857,13 @@ function toggleSidebar(open) {
 function toggleActionsPopover(forceClose) {
   const popover = $('actions-popover');
   if (!popover) return;
-  if (forceClose) {
+  if (forceClose === true) {
     popover.classList.remove('open');
   } else {
     popover.classList.toggle('open');
   }
+  const btn = $('btn-quick-actions');
+  if (btn) btn.setAttribute('aria-expanded', popover.classList.contains('open') ? 'true' : 'false');
 }
 
 document.addEventListener('click', e => {
@@ -1776,30 +1873,35 @@ document.addEventListener('click', e => {
   }
 });
 
-function switchNav(tab) {
-  toggleSidebar(false);
-  $('panel-processes').className = 'content-panel' + (tab === 'processes' ? '' : ' hidden');
-  $('panel-performance').className = 'content-panel' + (tab === 'performance' ? '' : ' hidden');
-  $('panel-logs').className = 'content-panel' + (tab === 'logs' ? '' : ' hidden');
-  $('panel-settings').className = 'content-panel' + (tab === 'settings' ? '' : ' hidden');
+const NAV_TABS = {
+  processes: { panel: 'panel-processes', nav: 'nav-proc', title: 'Processes' },
+  performance: { panel: 'panel-performance', nav: 'nav-perf', title: 'Performance' },
+  logs: { panel: 'panel-logs', nav: 'nav-logs', title: 'Event Logs' },
+  settings: { panel: 'panel-settings', nav: 'nav-settings', title: 'Settings' },
+};
 
-  $('nav-proc').className = 'nav-item' + (tab === 'processes' ? ' active' : '');
-  $('nav-perf').className = 'nav-item' + (tab === 'performance' ? ' active' : '');
-  $('nav-logs').className = 'nav-item' + (tab === 'logs' ? ' active' : '');
-  $('nav-settings').className = 'nav-item' + (tab === 'settings' ? ' active' : '');
+function switchNav(tab) {
+  if (!NAV_TABS[tab]) return;
+  toggleSidebar(false);
+  Object.entries(NAV_TABS).forEach(([key, t]) => {
+    const active = key === tab;
+    $(t.panel).classList.toggle('hidden', !active);
+    const nav = $(t.nav);
+    nav.classList.toggle('active', active);
+    if (active) {
+      nav.setAttribute('aria-current', 'page');
+    } else {
+      nav.removeAttribute('aria-current');
+    }
+  });
 
   const filterWrap = $('filter-wrapper');
   if (filterWrap) {
     filterWrap.style.display = tab === 'processes' ? 'flex' : 'none';
   }
 
-  const titles = {
-    processes: 'Processes',
-    performance: 'Performance',
-    logs: 'Event Logs',
-    settings: 'Settings'
-  };
-  $('page-title').innerText = titles[tab] || 'Task Manager';
+  $('page-title').innerText = NAV_TABS[tab].title;
+  $(NAV_TABS[tab].panel).focus({ preventScroll: true });
 }
 
 function filterSensors(query) {
@@ -1848,12 +1950,25 @@ let activePollTimeout = null;
 let currentIntervalMs = 2000;
 let currentExpose = {};
 
-function onRateChange(val) {
-  const ms = parseInt(val, 10);
-  currentIntervalMs = ms;
+// Each poll gets a sequence number. Only the newest poll renders and
+// schedules the next one, so Save, Refresh and rate changes never leave two
+// polling loops running.
+let pollSeq = 0;
+
+function scheduleNextPoll() {
   clearTimeout(activePollTimeout);
-  if (ms > 0) {
+  if (currentIntervalMs > 0 && !sessionExpired) {
+    activePollTimeout = setTimeout(poll, currentIntervalMs);
+  }
+}
+
+function onRateChange(val) {
+  currentIntervalMs = parseInt(val, 10) || 0;
+  if (currentIntervalMs > 0) {
     poll();
+  } else {
+    pollSeq++;
+    clearTimeout(activePollTimeout);
   }
 }
 
@@ -1975,7 +2090,7 @@ function renderDrives(drives, exposeStorage) {
   let perfHtml = '';
 
   drives.forEach(d => {
-    const mount = d.mount || 'Disk';
+    const mount = escapeHtml(d.mount || 'Disk');
     const used = d.used_gb ? d.used_gb.toFixed(1) : '0';
     const total = d.total_gb ? d.total_gb.toFixed(1) : '0';
     const pct = d.used_percent ? Math.round(d.used_percent) : 0;
@@ -2001,6 +2116,9 @@ function renderDrives(drives, exposeStorage) {
 
   tbody.innerHTML = tableHtml;
   perfGrid.innerHTML = perfHtml;
+
+  const filterInput = $('filter-input');
+  if (filterInput && filterInput.value) filterSensors(filterInput.value);
 }
 
 let updateDismissed = false;
@@ -2026,7 +2144,10 @@ function handleUpdateStatus(status) {
     text.textContent = `A new version of Satellite (${status.latest_version}) is available!`;
   }
   if (link) {
-    link.href = status.release_url || 'https://github.com/aaronburt/satellite/releases';
+    const releaseUrl = typeof status.release_url === 'string' && /^https:\/\//i.test(status.release_url)
+      ? status.release_url
+      : 'https://github.com/aaronburt/satellite/releases';
+    link.href = releaseUrl;
   }
   banner.style.display = 'flex';
 }
@@ -2051,18 +2172,20 @@ async function checkUpdatesManual() {
   }
 }
 
-async function poll(manual = false) {
-  if (manual) {
-    clearTimeout(activePollTimeout);
-  }
+async function poll() {
+  if (sessionExpired) return;
+  const seq = ++pollSeq;
+  clearTimeout(activePollTimeout);
   try {
     const res = await authFetch('/api/status');
+    if (seq !== pollSeq) return;
     if (!res.ok) {
       setStaleUI();
-      if (currentIntervalMs > 0) activePollTimeout = setTimeout(poll, currentIntervalMs);
+      scheduleNextPoll();
       return;
     }
     const data = await res.json();
+    if (seq !== pollSeq) return;
     setStatusBadge(data.mqtt_status);
     if (data.update_status) {
       handleUpdateStatus(data.update_status);
@@ -2217,16 +2340,16 @@ async function poll(manual = false) {
       }
     }
   } catch (err) {
+    if (seq !== pollSeq) return;
     setStaleUI();
   }
-  if (currentIntervalMs > 0) {
-    activePollTimeout = setTimeout(poll, currentIntervalMs);
-  }
+  scheduleNextPoll();
 }
 
 async function loadConfig() {
   try {
     const res = await authFetch('/api/config');
+    if (!res.ok) throw new Error('server returned ' + res.status);
     const cfg = await res.json();
     $('node_id').value = cfg.node_id || '';
     $('broker').value = cfg.mqtt ? cfg.mqtt.broker : '';
@@ -2235,6 +2358,7 @@ async function loadConfig() {
     $('insecure_tls').checked = cfg.mqtt ? !!cfg.mqtt.insecure_tls : false;
     $('interval').value = cfg.interval_sec || 5;
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
+    updateBindWarning();
     $('port').value = cfg.port || cfg.webui_port || '';
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
@@ -2244,6 +2368,11 @@ async function loadConfig() {
     $('tw_url').value = tw.url || '';
     $('tw_token').value = '';
     $('tw_min_interval').value = tw.min_interval_sec || '';
+    const lw = cfg.webhook || {};
+    $('lw_enabled').checked = !!lw.enabled;
+    $('lw_url').value = lw.url || '';
+    $('lw_level').value = normalizeLogLevel(lw.min_level);
+    $('lw_secret').value = '';
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -2288,7 +2417,42 @@ async function loadConfig() {
       }
     } catch (e) {}
   } catch (err) {
+    if (!sessionExpired) showToast('Could not load settings: ' + err.message, true);
   }
+}
+
+function normalizeLogLevel(level) {
+  const l = (level || 'info').toLowerCase();
+  if (l === 'warning') return 'warn';
+  if (['info', 'warn', 'error'].includes(l)) return l;
+  return 'debug';
+}
+
+function isLoopback(addr) {
+  const a = (addr || '').trim().replace(/^\[|\]$/g, '').toLowerCase();
+  return a === '' || a === 'localhost' || a === '::1' || /^127\./.test(a);
+}
+
+function updateBindWarning() {
+  const el = $('bind-warning');
+  if (el) el.style.display = isLoopback($('bind_address').value) ? 'none' : 'block';
+}
+
+// After a save or import moves the server, reload the page at its new
+// address. The token stays the same.
+function moveToNewAddress(listen) {
+  let host = listen.host || location.hostname;
+  if (host.includes(':') && !host.startsWith('[')) host = '[' + host + ']';
+  const where = host + ':' + listen.port;
+  // The old address is closing: stop talking to it before the reload.
+  pollSeq++;
+  clearTimeout(activePollTimeout);
+  if (logStream) logStream.close();
+  showMessage('Saved. Moving to ' + where + '...', false);
+  showToast('Web UI moved to ' + where + '. Reloading...', false);
+  setTimeout(() => {
+    location.href = location.protocol + '//' + where + '/?token=' + encodeURIComponent(apiToken);
+  }, 1200);
 }
 
 function showMessage(text, isError) {
@@ -2336,6 +2500,26 @@ $('btn-test-tw').onclick = async () => {
     const result = await res.json();
     showMessage(result.success ? 'Webhook accepted the snapshot' : 'Error: ' + result.error, !result.success);
     showToast(result.success ? 'Telemetry webhook test sent' : 'Telemetry webhook failed: ' + result.error, !result.success);
+  } catch (err) {
+    showMessage('Error: ' + err.message, true);
+    showToast('Webhook error: ' + err.message, true);
+  }
+};
+
+$('btn-test-lw').onclick = async () => {
+  showMessage('Sending test event...', false);
+  try {
+    const res = await authFetch('/api/test-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: $('lw_url').value.trim(),
+        secret: $('lw_secret').value,
+      })
+    });
+    const result = await res.json();
+    showMessage(result.success ? 'Webhook accepted the test event' : 'Error: ' + result.error, !result.success);
+    showToast(result.success ? 'Log webhook test sent' : 'Log webhook failed: ' + result.error, !result.success);
   } catch (err) {
     showMessage('Error: ' + err.message, true);
     showToast('Webhook error: ' + err.message, true);
@@ -2396,10 +2580,10 @@ $('cfg-form').onsubmit = async (e) => {
       min_interval_sec: parseInt($('tw_min_interval').value, 10) || 0,
     },
     webhook: {
-      enabled: false,
-      url: '',
-      min_level: 'info',
-      secret: '',
+      enabled: $('lw_enabled').checked,
+      url: $('lw_url').value.trim(),
+      min_level: $('lw_level').value,
+      secret: $('lw_secret').value,
     },
   };
 
@@ -2412,9 +2596,12 @@ $('cfg-form').onsubmit = async (e) => {
     const result = await res.json();
     if (result.success) {
       currentExpose = newExpose;
+      if (result.listen && result.listen.moved) {
+        moveToNewAddress(result.listen);
+        return;
+      }
       showMessage('Saved. Reconnecting...', false);
       showToast('Configuration applied and saved', false);
-      clearTimeout(activePollTimeout);
       poll();
     } else {
       showMessage('Error: ' + result.error, true);
@@ -2497,6 +2684,11 @@ async function importConfig() {
     }
     msgEl.innerText = successText;
     msgEl.style.color = '#22c55e';
+    $('import_pass').value = '';
+    if (result.listen && result.listen.moved) {
+      moveToNewAddress(result.listen);
+      return;
+    }
     showToast('Configuration imported successfully', false);
     await loadConfig();
   } catch (err) {
@@ -2509,12 +2701,22 @@ async function importConfig() {
 const MAX_BROWSER_LOGS = 500;
 const browserLogs = [];
 
+// New events are appended one row at a time; the whole list is only rebuilt
+// when the filter changes or the log is cleared.
 function appendLog(ev) {
   browserLogs.push(ev);
-  if (browserLogs.length > MAX_BROWSER_LOGS) {
-    browserLogs.shift();
+  const dropped = browserLogs.length > MAX_BROWSER_LOGS ? browserLogs.shift() : null;
+  const streamEl = $('logs-stream');
+  if (streamEl) {
+    const filter = currentLogFilter();
+    if (dropped && logMatches(dropped, filter) && streamEl.firstElementChild) {
+      streamEl.firstElementChild.remove();
+    }
+    if (logMatches(ev, filter)) {
+      streamEl.appendChild(buildLogRow(ev));
+    }
   }
-  renderLogs();
+  updateLogChrome();
 }
 
 function clearLogs() {
@@ -2533,58 +2735,75 @@ function copyLogs() {
   copyText(lines.join('\n'));
 }
 
-function getFilteredLogs() {
-  const lvl = $('logs-level-filter') ? $('logs-level-filter').value : 'ALL';
-  const q = $('logs-search') ? $('logs-search').value.trim().toLowerCase() : '';
-  return browserLogs.filter(ev => {
-    if (lvl === 'MQTT' && ev.level !== 'MQTT') return false;
-    if (lvl === 'INFO' && !['INFO', 'WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
-    if (lvl === 'WARN' && !['WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
-    if (lvl === 'ERROR' && ev.level !== 'ERROR') return false;
-    if (q) {
-      const line = `${ev.level} ${ev.category} ${ev.message}`.toLowerCase();
-      if (!line.includes(q)) return false;
-    }
-    return true;
-  });
+function currentLogFilter() {
+  return {
+    lvl: $('logs-level-filter') ? $('logs-level-filter').value : 'ALL',
+    q: $('logs-search') ? $('logs-search').value.trim().toLowerCase() : '',
+  };
 }
 
-function renderLogs() {
-  const filtered = getFilteredLogs();
+function logMatches(ev, { lvl, q }) {
+  if (lvl === 'MQTT' && ev.level !== 'MQTT') return false;
+  if (lvl === 'INFO' && !['INFO', 'WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
+  if (lvl === 'WARN' && !['WARN', 'WARNING', 'ERROR'].includes(ev.level)) return false;
+  if (lvl === 'ERROR' && ev.level !== 'ERROR') return false;
+  if (q) {
+    const line = `${ev.level} ${ev.category} ${ev.message}`.toLowerCase();
+    if (!line.includes(q)) return false;
+  }
+  return true;
+}
+
+function getFilteredLogs() {
+  const filter = currentLogFilter();
+  return browserLogs.filter(ev => logMatches(ev, filter));
+}
+
+function buildLogRow(ev) {
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  const timeStr = ev.time ? (ev.time.length > 19 ? ev.time.substring(11, 19) : ev.time) : '';
+  const upLvl = String(ev.level || '').toUpperCase();
+  let badgeClass = 'log-info';
+  if (upLvl === 'MQTT') badgeClass = 'log-mqtt';
+  else if (upLvl === 'WARN' || upLvl === 'WARNING') badgeClass = 'log-warn';
+  else if (upLvl === 'ERROR') badgeClass = 'log-err';
+  const add = (cls, text) => {
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text;
+    row.appendChild(span);
+  };
+  add('log-time', timeStr);
+  add('log-badge ' + badgeClass, upLvl);
+  add('log-cat', ev.category ? `(${ev.category})` : '');
+  add('log-msg', ev.message || '');
+  return row;
+}
+
+function updateLogChrome() {
   const streamEl = $('logs-stream');
   const emptyEl = $('logs-empty');
   const counterEl = $('logs-counter');
+  const shown = streamEl ? streamEl.childElementCount : 0;
   if (counterEl) {
-    counterEl.innerText = `${browserLogs.length} events (${filtered.length} shown)`;
+    counterEl.innerText = `${browserLogs.length} events (${shown} shown)`;
   }
-  if (!streamEl || !emptyEl) return;
-  if (filtered.length === 0) {
-    emptyEl.style.display = 'block';
-    streamEl.innerHTML = '';
-    return;
-  }
-  emptyEl.style.display = 'none';
-  let html = '';
-  filtered.forEach(ev => {
-    const timeStr = ev.time ? (ev.time.length > 19 ? ev.time.substring(11, 19) : ev.time) : '';
-    let badgeClass = 'log-info';
-    const upLvl = (ev.level || '').toUpperCase();
-    if (upLvl === 'MQTT') badgeClass = 'log-mqtt';
-    else if (upLvl === 'WARN' || upLvl === 'WARNING') badgeClass = 'log-warn';
-    else if (upLvl === 'ERROR') badgeClass = 'log-err';
-    const catStr = ev.category ? `(${escapeHtml(ev.category)})` : '';
-    html += `<div class="log-row">
-      <span class="log-time">${escapeHtml(timeStr)}</span>
-      <span class="log-badge ${badgeClass}">${escapeHtml(upLvl)}</span>
-      <span class="log-cat">${catStr}</span>
-      <span class="log-msg">${escapeHtml(ev.message || '')}</span>
-    </div>`;
-  });
-  streamEl.innerHTML = html;
-  if ($('logs-autoscroll') && $('logs-autoscroll').checked) {
+  if (emptyEl) emptyEl.style.display = shown === 0 ? 'block' : 'none';
+  if (shown > 0 && $('logs-autoscroll') && $('logs-autoscroll').checked) {
     const consoleEl = $('logs-console');
     if (consoleEl) consoleEl.scrollTop = consoleEl.scrollHeight;
   }
+}
+
+function renderLogs() {
+  const streamEl = $('logs-stream');
+  if (streamEl) {
+    const frag = document.createDocumentFragment();
+    getFilteredLogs().forEach(ev => frag.appendChild(buildLogRow(ev)));
+    streamEl.replaceChildren(frag);
+  }
+  updateLogChrome();
 }
 
 function escapeHtml(str) {
@@ -2600,6 +2819,7 @@ function escapeHtml(str) {
 function initLogStream() {
   const url = '/api/logs/stream' + (apiToken ? '?token=' + encodeURIComponent(apiToken) : '');
   const es = new EventSource(url);
+  logStream = es;
   es.onmessage = e => {
     try {
       const ev = JSON.parse(e.data);
@@ -2608,7 +2828,52 @@ function initLogStream() {
   };
 }
 
+const clickHandlers = {
+  toggleSidebar: arg => toggleSidebar(arg === 'true'),
+  switchNav: arg => switchNav(arg),
+  refreshNow: () => poll(),
+  toggleActionsPopover: () => toggleActionsPopover(),
+  triggerAction: arg => triggerAction(arg),
+  checkUpdatesManual: () => checkUpdatesManual(),
+  dismissUpdateBanner: () => dismissUpdateBanner(),
+  copyFrom: arg => copyFrom(arg),
+  copyLogs: () => copyLogs(),
+  clearLogs: () => clearLogs(),
+  exportConfig: () => exportConfig(),
+  importConfig: () => importConfig(),
+  bulkToggleEntities: arg => bulkToggleEntities(arg === 'true'),
+  togglePassVis: arg => togglePassVis(arg),
+};
+
+// Buttons say what they do with data-click (and data-arg) instead of inline
+// onclick handlers, so the page can run under a strict Content-Security-Policy.
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-click]');
+  if (!el) return;
+  const handler = clickHandlers[el.dataset.click];
+  if (handler) handler(el.dataset.arg);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const popover = $('actions-popover');
+  if (popover && popover.classList.contains('open')) {
+    toggleActionsPopover(true);
+    $('btn-quick-actions').focus();
+    return;
+  }
+  const sidebar = $('sidebar');
+  if (sidebar && sidebar.classList.contains('open')) toggleSidebar(false);
+});
+
+$('filter-input').addEventListener('input', e => filterSensors(e.target.value));
+$('rate-select').addEventListener('change', e => onRateChange(e.target.value));
+$('logs-level-filter').addEventListener('change', renderLogs);
+$('logs-search').addEventListener('input', renderLogs);
+$('bind_address').addEventListener('input', updateBindWarning);
+
 loadConfig().then(() => {
+  if (sessionExpired) return;
   poll();
   initLogStream();
 });

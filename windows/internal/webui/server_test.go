@@ -433,8 +433,8 @@ func TestConfigExportAndImport(t *testing.T) {
 	reqImportBadPass, _ := http.NewRequest("POST", "/api/config/import?token="+token, bytes.NewReader(badPassReq))
 	rrImportBadPass := httptest.NewRecorder()
 	server.server.Handler.ServeHTTP(rrImportBadPass, reqImportBadPass)
-	if rrImportBadPass.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401 for wrong passphrase, got %d", rrImportBadPass.Code)
+	if rrImportBadPass.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422 for wrong passphrase, got %d", rrImportBadPass.Code)
 	}
 
 	goodPassReq, _ := json.Marshal(map[string]interface{}{
