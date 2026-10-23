@@ -8,15 +8,14 @@ import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
-import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -40,11 +39,7 @@ class WebhookReporter @Inject constructor(
 
     private var settingsJob: Job? = null
     private var periodicJob: Job? = null
-    private var intervalJob: Job? = null
     private var modeJob: Job? = null
-
-    @Volatile
-    private var intervalMillis: Long = UpdateInterval.FIVE_MINUTES.seconds * 1000
 
     private val changeWatcher = StateChangeWatcher(
         context = context,
@@ -60,16 +55,14 @@ class WebhookReporter @Inject constructor(
             settingsRepository.webhookSettings.collect { publish() }
         }
 
+        // The timer restarts whenever the interval setting changes, and the
+        // very first wait already uses the saved interval.
         periodicJob = appScope.launch {
-            while (isActive) {
-                delay(intervalMillis)
-                publish()
-            }
-        }
-
-        intervalJob = appScope.launch {
-            settingsRepository.updateInterval.collect { interval ->
-                intervalMillis = interval.seconds * 1000
+            settingsRepository.updateInterval.collectLatest { interval ->
+                while (true) {
+                    delay(interval.seconds * 1000)
+                    publish()
+                }
             }
         }
 
@@ -85,8 +78,6 @@ class WebhookReporter @Inject constructor(
         settingsJob = null
         periodicJob?.cancel()
         periodicJob = null
-        intervalJob?.cancel()
-        intervalJob = null
         modeJob?.cancel()
         modeJob = null
         changeWatcher.unregister()

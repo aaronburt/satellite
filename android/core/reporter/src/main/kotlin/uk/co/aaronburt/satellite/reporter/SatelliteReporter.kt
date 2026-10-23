@@ -18,8 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -50,12 +50,8 @@ class SatelliteReporter @Inject constructor(
 
     private var observerJob: Job? = null
     private var periodicJob: Job? = null
-    private var intervalJob: Job? = null
     private var modeJob: Job? = null
     private var controlsJob: Job? = null
-
-    @Volatile
-    private var intervalMillis: Long = UpdateInterval.FIVE_MINUTES.seconds * 1000
 
     private val changeWatcher = StateChangeWatcher(
         context = context,
@@ -73,18 +69,16 @@ class SatelliteReporter @Inject constructor(
             }
         }
 
+        // The timer restarts whenever the interval setting changes, and the
+        // very first wait already uses the saved interval.
         periodicJob = appScope.launch {
-            while (isActive) {
-                delay(intervalMillis)
-                if (client.connectionState.value is ConnectionState.Connected) {
-                    publishStates()
+            settingsRepository.updateInterval.collectLatest { interval ->
+                while (true) {
+                    delay(interval.seconds * 1000)
+                    if (client.connectionState.value is ConnectionState.Connected) {
+                        publishStates()
+                    }
                 }
-            }
-        }
-
-        intervalJob = appScope.launch {
-            settingsRepository.updateInterval.collect { interval ->
-                intervalMillis = interval.seconds * 1000
             }
         }
 
@@ -127,8 +121,6 @@ class SatelliteReporter @Inject constructor(
         observerJob = null
         periodicJob?.cancel()
         periodicJob = null
-        intervalJob?.cancel()
-        intervalJob = null
         modeJob?.cancel()
         modeJob = null
         controlsJob?.cancel()

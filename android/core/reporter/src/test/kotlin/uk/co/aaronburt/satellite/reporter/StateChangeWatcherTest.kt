@@ -21,6 +21,10 @@ class StateChangeWatcherTest {
     private var active = true
     private var changes = 0
 
+    // The application may hold receivers of its own; count only ours.
+    private val baselineReceivers = shadowOf(context).registeredReceivers.size
+    private fun ownReceivers() = shadowOf(context).registeredReceivers.size - baselineReceivers
+
     private fun TestScope.watcher() = StateChangeWatcher(
         context = context,
         scope = backgroundScope,
@@ -109,7 +113,7 @@ class StateChangeWatcherTest {
         watcher.register()
         watcher.register()
 
-        assertEquals(1, shadowOf(context).registeredReceivers.size)
+        assertEquals(1, ownReceivers())
         send(Intent.ACTION_POWER_CONNECTED)
         settle(3_000)
         assertEquals(1, changes)
@@ -127,7 +131,7 @@ class StateChangeWatcherTest {
         settle(5_000)
 
         assertEquals(0, changes)
-        assertEquals(0, shadowOf(context).registeredReceivers.size)
+        assertEquals(0, ownReceivers())
     }
 
     @Test
