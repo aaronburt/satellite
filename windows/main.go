@@ -14,6 +14,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
+	"satellite/internal/output"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -291,6 +292,13 @@ func main() {
 	updaterCtx, cancelUpdater := context.WithCancel(context.Background())
 	updaterInstance.StartBackground(updaterCtx, updater.DefaultCheckInterval)
 
+	// Every snapshot goes to each output: MQTT for Home Assistant, plus the
+	// optional generic telemetry webhook.
+	sinks := []output.Sink{
+		output.SinkFunc{SinkName: "mqtt", Fn: mqttClient.PublishTelemetry},
+		output.NewWebhook(config.Get),
+	}
+
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go func() {
 		interval := time.Duration(cfg.IntervalSec) * time.Second
@@ -309,7 +317,7 @@ func main() {
 				tickCount++
 				currentCfg := config.Get()
 				snap := collector.Collect(currentCfg.Expose)
-				_ = mqttClient.PublishTelemetry(snap)
+				output.PublishAll(sinks, snap)
 				if tickCount%12 == 0 {
 					telemetry.TrimWorkingSet()
 				}

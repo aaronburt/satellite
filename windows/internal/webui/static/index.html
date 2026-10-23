@@ -1434,7 +1434,7 @@ input:focus,select:focus{
               </div>
               <div class="field">
                 <label for="broker">Broker URI</label>
-                <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" required autocomplete="off">
+                <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883 (blank to disable)" autocomplete="off">
               </div>
             </div>
             <div class="field">
@@ -1586,6 +1586,37 @@ input:focus,select:focus{
                   <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div class="config-card">
+            <div class="card-head">
+              <span class="card-title">Telemetry Webhook (any HTTP endpoint)</span>
+            </div>
+            <div class="field">
+              <label class="toggle-item"><input type="checkbox" id="tw_enabled"><span>POST each telemetry snapshot as JSON (runs alongside MQTT)</span></label>
+            </div>
+            <div class="field">
+              <label for="tw_url">Webhook URL</label>
+              <input class="mono" id="tw_url" placeholder="https://example.com/satellite" autocomplete="off">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="tw_token">Bearer Token (optional)</label>
+                <div class="input-with-action">
+                  <input type="password" class="mono" id="tw_token" placeholder="Leave blank to keep current" autocomplete="new-password">
+                  <button type="button" class="input-btn" onclick="togglePassVis('tw_token')" title="Show / Hide Token">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="tw_min_interval">Minimum Seconds Between Posts (0 = on change)</label>
+                <input type="number" class="mono" id="tw_min_interval" min="0" max="86400" placeholder="0" autocomplete="off">
+              </div>
+            </div>
+            <div class="field">
+              <button type="button" id="btn-test-tw" class="btn-secondary">Send Test Snapshot</button>
             </div>
           </div>
 
@@ -2208,6 +2239,11 @@ async function loadConfig() {
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
     $('check_updates').checked = !!cfg.check_updates;
+    const tw = cfg.telemetry_webhook || {};
+    $('tw_enabled').checked = !!tw.enabled;
+    $('tw_url').value = tw.url || '';
+    $('tw_token').value = '';
+    $('tw_min_interval').value = tw.min_interval_sec || '';
 
     currentExpose = cfg.expose || {};
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -2286,6 +2322,26 @@ $('btn-test').onclick = async () => {
   }
 };
 
+$('btn-test-tw').onclick = async () => {
+  showMessage('Sending test snapshot...', false);
+  try {
+    const res = await authFetch('/api/test-telemetry-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: $('tw_url').value.trim(),
+        bearer_token: $('tw_token').value,
+      })
+    });
+    const result = await res.json();
+    showMessage(result.success ? 'Webhook accepted the snapshot' : 'Error: ' + result.error, !result.success);
+    showToast(result.success ? 'Telemetry webhook test sent' : 'Telemetry webhook failed: ' + result.error, !result.success);
+  } catch (err) {
+    showMessage('Error: ' + err.message, true);
+    showToast('Webhook error: ' + err.message, true);
+  }
+};
+
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
   const intervalSec = parseInt($('interval').value, 10) || 5;
@@ -2333,6 +2389,12 @@ $('cfg-form').onsubmit = async (e) => {
     json_enabled: $('json_enabled').checked,
     api_key: $('api_key').value.trim(),
     check_updates: $('check_updates').checked,
+    telemetry_webhook: {
+      enabled: $('tw_enabled').checked,
+      url: $('tw_url').value.trim(),
+      bearer_token: $('tw_token').value,
+      min_interval_sec: parseInt($('tw_min_interval').value, 10) || 0,
+    },
     webhook: {
       enabled: false,
       url: '',

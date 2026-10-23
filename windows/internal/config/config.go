@@ -55,6 +55,15 @@ type WebhookConfig struct {
 	Secret   string `json:"secret,omitempty"`
 }
 
+// TelemetryWebhookConfig sends each telemetry snapshot as JSON to any HTTP
+// endpoint. It runs alongside MQTT and does not replace it.
+type TelemetryWebhookConfig struct {
+	Enabled        bool   `json:"enabled"`
+	URL            string `json:"url"`
+	BearerToken    string `json:"bearer_token,omitempty"`
+	MinIntervalSec int    `json:"min_interval_sec,omitempty"`
+}
+
 type Config struct {
 	NodeID       string        `json:"node_id"`
 	MQTT         MQTTConfig    `json:"mqtt"`
@@ -69,6 +78,8 @@ type Config struct {
 	Webhook      WebhookConfig `json:"webhook"`
 	CheckUpdates bool          `json:"check_updates"`
 	UpdateRepo   string        `json:"update_repo,omitempty"`
+
+	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
 
 func (c Config) GetPort() int {
