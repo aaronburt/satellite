@@ -24,6 +24,7 @@ jobs:
   build:
     name: Build, lint and test
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -112,9 +113,12 @@ jobs:
       - name: ktlint and detekt
         run: scripts/kotlin-checks.sh
 
-  datastore-windows:
-    name: DataStore tests (Windows)
+  unit-tests-windows:
+    # JVM unit tests only (no emulator). Catches Windows filesystem and
+    # path-handling regressions that the Linux job cannot.
+    name: Unit tests (Windows)
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -135,6 +139,14 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0"
 
-      - name: DataStore unit tests
+      - name: Unit tests
         shell: bash
-        run: ./gradlew.bat :core:datastore:testDebugUnitTest --stacktrace
+        run: ./gradlew.bat test --stacktrace
+
+      - name: Upload unit test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports-windows
+          path: android/**/build/reports/tests/
+          if-no-files-found: ignore
