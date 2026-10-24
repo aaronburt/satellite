@@ -1,11 +1,13 @@
 package uk.co.aaronburt.satellite.update
 
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -17,7 +19,13 @@ import java.io.File
 class UpdateInstallerTest {
 
     private val context = RuntimeEnvironment.getApplication()
-    private val installer = UpdateInstaller(context)
+    private val authority = "${context.packageName}.fileprovider"
+
+    // The seam keeps the intent assertions OS-independent: androidx FileProvider
+    // assumes '/' separators and cannot resolve Windows paths.
+    private val installer = UpdateInstaller(context) { apk ->
+        Uri.parse("content://$authority/updates/${apk.name}")
+    }
     private val updates = File(context.filesDir, "updates").apply { mkdirs() }
 
     private fun allowInstalls(allowed: Boolean) =
@@ -74,8 +82,25 @@ class UpdateInstallerTest {
         assertEquals(Intent.ACTION_VIEW, intent.action)
         assertEquals("application/vnd.android.package-archive", intent.type)
         assertEquals("content", intent.data?.scheme)
-        assertEquals("${context.packageName}.fileprovider", intent.data?.authority)
+        assertEquals(authority, intent.data?.authority)
         assertTrue(intent.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION != 0)
         assertTrue(intent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
+    }
+
+    @Test
+    fun `the real file provider exposes files under the updates directory`() {
+        assumeFalse(
+            "androidx FileProvider cannot resolve Windows paths",
+            System.getProperty("os.name").startsWith("Windows"),
+        )
+        allowInstalls(true)
+        val apk = File(updates, "satellite.apk").apply { writeText("apk") }
+
+        val result = UpdateInstaller(context).install(apk)
+
+        assertTrue(result.exceptionOrNull()?.toString(), result.isSuccess)
+        val uri = nextActivity()!!.data!!
+        assertEquals(authority, uri.authority)
+        assertEquals("/updates/satellite.apk", uri.path)
     }
 }
