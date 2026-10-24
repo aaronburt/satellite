@@ -22,10 +22,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 /**
  * Reports device state by HTTP POSTing a JSON snapshot to a webhook endpoint.
  * Honours the same update mode/interval settings as the MQTT reporter.
+ *
+ * Failed posts are retried in the background per [WebhookDeliveryPolicy].
+ * A new publish, stop(), clearing the webhook or changing its URL cancels
+ * any retry in progress.
  */
 @Singleton
 class WebhookReporter @Inject constructor(
@@ -40,6 +45,11 @@ class WebhookReporter @Inject constructor(
     private var settingsJob: Job? = null
     private var periodicJob: Job? = null
     private var modeJob: Job? = null
+    private var retryJob: Job? = null
+
+    /** Source of retry jitter in [0,1). Tests pin it. */
+    internal var jitter: () -> Double = { Random.nextDouble() }
+    internal var clock: () -> Long = { System.currentTimeMillis() }
 
     private val changeWatcher = StateChangeWatcher(
         context = context,
@@ -80,12 +90,18 @@ class WebhookReporter @Inject constructor(
         periodicJob = null
         modeJob?.cancel()
         modeJob = null
+        retryJob?.cancel()
+        retryJob = null
         changeWatcher.unregister()
     }
 
     suspend fun refresh() = publish()
 
     private suspend fun publish(): Boolean {
+        // Newest snapshot wins: whatever is being retried is now stale.
+        retryJob?.cancel()
+        retryJob = null
+
         val settings = settingsRepository.webhookSettings.first()
         if (settings == null || settings.url.isBlank()) return false
 
@@ -93,6 +109,7 @@ class WebhookReporter @Inject constructor(
         val states = runCatching { telemetry.read() }
             .getOrDefault(emptyMap())
             .filterKeys { it in activeKeys }
+        val capturedAt = clock()
         val payload = WebhookPayloadBuilder.build(
             deviceId = settingsRepository.deviceId(),
             deviceName = settingsRepository.deviceName(),
@@ -101,18 +118,49 @@ class WebhookReporter @Inject constructor(
             appVersion = appVersion(),
             androidVersion = Build.VERSION.RELEASE ?: "unknown",
             states = states,
-            timestampEpochMillis = System.currentTimeMillis(),
+            timestampEpochMillis = capturedAt,
         )
 
-        val ok = post(settings.url, payload, settings.bearerToken)
-        if (ok) status.markPublished()
-        return ok
+        val result = post(settings.url, payload, settings.bearerToken)
+        if (result.ok) {
+            status.markPublished()
+        } else if (result.retryable) {
+            retryJob = appScope.launch { retry(settings.url, payload, capturedAt, result) }
+        }
+        return result.ok
     }
 
-    private suspend fun post(url: String, body: String, bearerToken: String?): Boolean =
+    /** Retries [payload] unchanged (original timestamp) until the policy gives up. */
+    private suspend fun retry(url: String, payload: String, capturedAt: Long, first: PostResult) {
+        var last = first
+        for (attempt in 2..WebhookDeliveryPolicy.MAX_ATTEMPTS) {
+            delay(WebhookDeliveryPolicy.delayMillis(attempt, last.retryAfterMillis, jitter()))
+            if (clock() - capturedAt > WebhookDeliveryPolicy.MAX_AGE_MILLIS) return
+            val current = settingsRepository.webhookSettings.first()
+            if (current == null || current.url != url) return
+            last = post(url, payload, current.bearerToken)
+            if (last.ok) {
+                status.markPublished()
+                return
+            }
+            if (!last.retryable) return
+        }
+    }
+
+    internal class PostResult(val code: Int?, val retryAfterMillis: Long = 0, val permanent: Boolean = false) {
+        val ok get() = code != null && code in 200..299
+        val retryable get() = !ok && !permanent && WebhookDeliveryPolicy.isRetryable(code)
+    }
+
+    private suspend fun post(url: String, body: String, bearerToken: String?): PostResult =
         withContext(dispatchers.io) {
-            runCatching {
-                val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+            val connection = try {
+                URL(url).openConnection() as HttpURLConnection
+            } catch (e: Exception) {
+                return@withContext PostResult(code = null, permanent = true) // malformed URL
+            }
+            try {
+                connection.apply {
                     requestMethod = "POST"
                     doOutput = true
                     connectTimeout = TIMEOUT_MILLIS
@@ -124,9 +172,14 @@ class WebhookReporter @Inject constructor(
                 }
                 connection.outputStream.use { it.write(body.toByteArray()) }
                 val code = connection.responseCode
+                PostResult(code, WebhookDeliveryPolicy.parseRetryAfterMillis(connection.getHeaderField("Retry-After")))
+            } catch (e: IllegalArgumentException) {
+                PostResult(code = null, permanent = true)
+            } catch (e: Exception) {
+                PostResult(code = null) // offline, timeout, reset: retryable
+            } finally {
                 connection.disconnect()
-                code in 200..299
-            }.getOrDefault(false)
+            }
         }
 
     private fun appVersion(): String = runCatching {

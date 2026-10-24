@@ -129,9 +129,10 @@ func main() {
 
 	// Every snapshot goes to each output: MQTT for Home Assistant, plus the
 	// optional generic telemetry webhook.
+	webhookSink := output.NewWebhook(config.Get)
 	sinks := []output.Sink{
 		output.SinkFunc{SinkName: "mqtt", Fn: mqttClient.PublishTelemetry},
-		output.NewWebhook(config.Get),
+		webhookSink,
 	}
 
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
@@ -164,6 +165,7 @@ func main() {
 		logger.Info("system", "Satellite agent shutting down")
 		cancelUpdater()
 		cancelTicker()
+		webhookSink.Close()
 		mqttClient.Stop()
 		server.Stop()
 	}
