@@ -150,15 +150,17 @@ wait_for_tick() { mqtt_sub -R -t "$(topic_base)/state/uptime" -C 1 -W $((INTERVA
 
 start_broker() {
   docker rm -f "$BROKER" > /dev/null 2>&1 || true
-  local data="$RESULTS_DIR/broker-data"
-  rm -rf "$data"; mkdir -p "$data"; chmod 777 "$data"
+  # Kept out of RESULTS_DIR: files written by the container are not readable
+  # by the artifact upload.
+  local data; data=$(mktemp -d)
+  chmod 777 "$data"
+  # The broker refuses to start without the password file, so create it first.
+  docker run --rm -v "$data:/mosquitto/data" eclipse-mosquitto:2 sh -c \
+    "mosquitto_passwd -b -c /mosquitto/data/passwd $MQTT_USER $MQTT_PASS &&
+     chown mosquitto:mosquitto /mosquitto/data/passwd && chmod 0700 /mosquitto/data/passwd"
   docker run -d --name "$BROKER" -p 1883:1883 \
     -v "$ANDROID_DIR/docker/mosquitto/config:/mosquitto/config:ro" \
     -v "$data:/mosquitto/data" eclipse-mosquitto:2 > /dev/null
-  docker exec "$BROKER" mosquitto_passwd -b -c /mosquitto/data/passwd "$MQTT_USER" "$MQTT_PASS"
-  docker exec "$BROKER" chown mosquitto:mosquitto /mosquitto/data/passwd
-  docker exec "$BROKER" chmod 0700 /mosquitto/data/passwd
-  docker restart "$BROKER" > /dev/null
   local i
   for i in $(seq 1 30); do
     mqtt_sub -t '$SYS/broker/version' -C 1 -W 2 > /dev/null 2>&1 && return 0
