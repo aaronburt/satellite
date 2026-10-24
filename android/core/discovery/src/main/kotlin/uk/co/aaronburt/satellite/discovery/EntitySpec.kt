@@ -12,7 +12,10 @@ data class CommandSpec(val action: String, val kind: Kind) {
         NUMBER,
 
         /** `ON` / `OFF`. */
-        ON_OFF
+        ON_OFF,
+
+        /** `PRESS`, from a Home Assistant button. Stateless: the entity has no state topic. */
+        PRESS
     }
 }
 
@@ -33,6 +36,8 @@ data class CommandSpec(val action: String, val kind: Kind) {
  * @property icon MDI icon
  * @property options allowed values, required for `device_class: enum`
  * @property command present for controllable entities
+ * @property requires key of a control that must be enabled for this entity to be
+ *   exposed; it follows that control in and out of Home Assistant
  * @property min inclusive minimum for `number` platforms
  * @property max inclusive maximum for `number` platforms
  * @property step increment for `number` platforms
@@ -50,7 +55,8 @@ data class EntitySpec(
     val command: CommandSpec? = null,
     val min: Int? = null,
     val max: Int? = null,
-    val step: Int? = null
+    val step: Int? = null,
+    val requires: String? = null
 ) {
     /** Controllable entities are opt-in and off by default. */
     val isControl: Boolean get() = command != null

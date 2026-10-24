@@ -57,6 +57,9 @@ class CommandRouter @Inject constructor(
                     true
                 }
             }
+
+            // Accepting is all the router does: the reporter owns the republish.
+            SatelliteCommand.RefreshDiscovery -> EntityCatalog.CONTROL_REFRESH in enabled
         }
     }
 

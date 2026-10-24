@@ -6,6 +6,9 @@ import uk.co.aaronburt.satellite.discovery.Topics
 sealed interface SatelliteCommand {
     data class SetVolume(val percent: Int) : SatelliteCommand
     data class SetMicrophoneMuted(val muted: Boolean) : SatelliteCommand
+
+    /** Republish discovery and state; the command a Home Assistant button sends. */
+    data object RefreshDiscovery : SatelliteCommand
 }
 
 /**
@@ -32,6 +35,8 @@ object CommandParser {
                 "OFF" -> SatelliteCommand.SetMicrophoneMuted(false)
                 else -> null
             }
+
+            "refresh" -> SatelliteCommand.RefreshDiscovery.takeIf { value.uppercase() == "PRESS" }
 
             else -> null
         }
