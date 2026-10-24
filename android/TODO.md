@@ -181,7 +181,9 @@ Single big feature: the app can update itself from GitHub Releases.
       (one tap; Android will not allow a silent self-install for a normal app).
 - [x] Verified end to end on the emulator: 0.4.2 → check → download → checksum →
       signature → Install → system prompt → InstallSuccess → 0.4.3.
-- [ ] Expose an HA `update` entity (installed/latest version + install command).
+- [x] Expose an HA `update` entity (installed/latest version, status, progress) — see
+      [`docs/update-entity.md`](docs/update-entity.md). Install command deliberately not
+      included yet: Android still needs on-device confirmation.
 - [ ] Strip Markdown from release notes in the UI (raw `**Full Changelog**` shows).
 - [ ] Optional: silent install when the app is a device owner (dedicated tablets).
 - [ ] Optional: gate self-update off for an F-Droid build (F-Droid discourages it).

@@ -24,6 +24,8 @@ import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import uk.co.aaronburt.satellite.update.NoUpdateStates
+import uk.co.aaronburt.satellite.update.UpdateStatesSource
 
 /**
  * Reports device state by HTTP POSTing a JSON snapshot to a webhook endpoint.
@@ -40,7 +42,8 @@ class WebhookReporter @Inject constructor(
     private val status: ReporterStatus,
     private val dispatchers: DispatchersProvider,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope
+    @ApplicationScope private val appScope: CoroutineScope,
+    private val updateStates: UpdateStatesSource = NoUpdateStates
 ) {
 
     private var settingsJob: Job? = null
@@ -107,7 +110,7 @@ class WebhookReporter @Inject constructor(
         if (settings == null || settings.url.isBlank()) return false
 
         val activeKeys = EntityCatalog.activeKeys(settingsRepository.enabledControls.first())
-        val states = runCatching { telemetry.read() }
+        val states = runCatching { telemetry.read() + updateStates.read() }
             .getOrDefault(emptyMap())
             .filterKeys { it in activeKeys }
         val capturedAt = clock()

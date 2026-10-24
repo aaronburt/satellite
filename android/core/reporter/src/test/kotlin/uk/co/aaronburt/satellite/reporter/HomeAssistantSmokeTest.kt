@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -39,6 +40,9 @@ import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
 import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.setBattery
+import uk.co.aaronburt.satellite.update.UpdateEntityPayload
+import uk.co.aaronburt.satellite.update.UpdateState
+import uk.co.aaronburt.satellite.update.UpdateStatesSource
 
 /**
  * Issue #21: the real reporter, MQTT client and connection manager against a
@@ -116,6 +120,10 @@ class HomeAssistantSmokeTest {
             status = ReporterStatus(),
             context = context,
             appScope = scope,
+            updateStates = object : UpdateStatesSource {
+                override fun read() = UpdateEntityPayload.states("0.5.1", UpdateState.Idle)
+                override val changes = emptyFlow<Unit>()
+            },
         ).start()
         manager.start()
         withTimeout(30_000) { client.connectionState.first { it is ConnectionState.Connected } }
