@@ -94,6 +94,7 @@ These are the checks that will validate the foreground-service design in M1/M5.
 ## CI
 
 - Unit tests + lint + debug assemble on every push/PR (`.github/workflows/android-ci.yml` at the repo root).
+- Test and lint reports are uploaded as the `android-unit-test-reports` and `android-lint-reports` artifacts (kept 14 days), even when the run fails. Open the run's Summary page and download them from Artifacts; files keep their module path, e.g. `core/mqtt/build/reports/tests/testDebugUnitTest/index.html`.
 - Instrumented tests via Gradle-managed devices (planned).
 - MQTT integration via a Mosquitto service container (planned for M1).
 - Discovery golden tests run as plain JVM tests, so HA compatibility regressions fail fast in CI.
