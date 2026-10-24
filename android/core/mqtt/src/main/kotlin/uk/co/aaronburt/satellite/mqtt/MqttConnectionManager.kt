@@ -1,17 +1,17 @@
 package uk.co.aaronburt.satellite.mqtt
 
-import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.discovery.Topics
-import uk.co.aaronburt.satellite.model.BrokerSettings
-import uk.co.aaronburt.satellite.model.ConnectionState
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
+import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.discovery.Topics
+import uk.co.aaronburt.satellite.model.BrokerSettings
+import uk.co.aaronburt.satellite.model.ConnectionState
 
 /**
  * Owns the MQTT connection lifecycle. Observes saved settings and connects
@@ -29,7 +29,7 @@ import javax.inject.Singleton
 class MqttConnectionManager @Inject constructor(
     private val client: MqttClient,
     private val settingsRepository: SettingsRepository,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     val connectionState: StateFlow<ConnectionState> = client.connectionState
@@ -102,8 +102,7 @@ class MqttConnectionManager @Inject constructor(
         )
     }
 
-    private suspend fun availabilityTopic(): String =
-        Topics(settingsRepository.deviceId()).availability
+    private suspend fun availabilityTopic(): String = Topics(settingsRepository.deviceId()).availability
 
     companion object {
         const val ONLINE = "online"

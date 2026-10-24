@@ -1,13 +1,13 @@
 package uk.co.aaronburt.satellite.reporter
 
 import android.util.Log
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.first
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.telemetry.AudioControls
-import kotlinx.coroutines.flow.first
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Turns parsed [SatelliteCommand]s into device changes.
@@ -23,7 +23,7 @@ import javax.inject.Singleton
 @Singleton
 class CommandRouter @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val audio: AudioControls,
+    private val audio: AudioControls
 ) {
 
     suspend fun handle(topic: String, payload: String, topics: Topics): Boolean {

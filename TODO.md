@@ -35,7 +35,7 @@ and discussion.
 
 ## Reliability and maintenance
 
-- [ ] **Apply desktop collection-interval changes while running.** ([#11](https://github.com/aaronburt/satellite/issues/11)) Reconfigure
+- [x] **Apply desktop collection-interval changes while running.** ([#11](https://github.com/aaronburt/satellite/issues/11)) Reconfigure
   the collection timer when `interval_sec` changes through the WebUI/API, so a
   process restart is unnecessary. Verify repeated changes and shutdown do not
   leave extra timers running. [Startup and collection](windows/main.go)

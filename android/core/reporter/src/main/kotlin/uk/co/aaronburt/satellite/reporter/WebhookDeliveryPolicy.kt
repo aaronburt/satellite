@@ -15,6 +15,12 @@ object WebhookDeliveryPolicy {
     const val MAX_RETRY_AFTER_MILLIS = 5 * 60_000L
     const val MAX_AGE_MILLIS = 5 * 60_000L
 
+    private const val HTTP_SERVER_ERROR = 500
+    private const val MILLIS_PER_SECOND = 1000L
+
+    /** 408 Request Timeout, 425 Too Early, 429 Too Many Requests. */
+    private val RETRYABLE_CLIENT_CODES = setOf(408, 425, 429)
+
     /**
      * [code] is the HTTP status, or null when no response arrived (offline,
      * timeout, connection reset). Network failures, 408, 425, 429 and 5xx are
@@ -22,8 +28,8 @@ object WebhookDeliveryPolicy {
      */
     fun isRetryable(code: Int?): Boolean = when {
         code == null -> true
-        code == 408 || code == 425 || code == 429 -> true
-        code >= 500 -> true
+        code in RETRYABLE_CLIENT_CODES -> true
+        code >= HTTP_SERVER_ERROR -> true
         else -> false
     }
 
@@ -47,5 +53,5 @@ object WebhookDeliveryPolicy {
 
     /** Parses a delta-seconds Retry-After header; anything else is ignored. */
     fun parseRetryAfterMillis(value: String?): Long =
-        value?.trim()?.toLongOrNull()?.takeIf { it > 0 }?.times(1000) ?: 0L
+        value?.trim()?.toLongOrNull()?.takeIf { it > 0 }?.times(MILLIS_PER_SECOND) ?: 0L
 }

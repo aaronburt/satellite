@@ -1,6 +1,11 @@
 package uk.co.aaronburt.satellite.reporter
 
 import android.content.Intent
+import java.net.ServerSocket
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import mockwebserver3.RecordedRequest
@@ -29,11 +34,6 @@ import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.idleMainLooper
 import uk.co.aaronburt.satellite.testing.setBattery
 import uk.co.aaronburt.satellite.testing.settle
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
-import java.net.ServerSocket
-import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
 class WebhookReporterTest {
@@ -71,7 +71,13 @@ class WebhookReporterTest {
     }
 
     private fun status(code: Int, retryAfter: String? = null) = server.enqueue(
-        MockResponse.Builder().code(code).apply { if (retryAfter != null) addHeader("Retry-After", retryAfter) }.build(),
+        MockResponse.Builder().code(code).apply {
+            if (retryAfter !=
+                null
+            ) {
+                addHeader("Retry-After", retryAfter)
+            }
+        }.build(),
     )
 
     private fun ok() = server.enqueue(MockResponse.Builder().code(200).build())

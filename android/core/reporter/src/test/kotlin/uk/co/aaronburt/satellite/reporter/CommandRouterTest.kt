@@ -1,6 +1,7 @@
 package uk.co.aaronburt.satellite.reporter
 
 import android.media.AudioManager
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -16,7 +17,6 @@ import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
 import uk.co.aaronburt.satellite.testing.RefusingMicrophoneShadow
-import kotlinx.coroutines.test.runTest
 
 @RunWith(RobolectricTestRunner::class)
 class CommandRouterTest {

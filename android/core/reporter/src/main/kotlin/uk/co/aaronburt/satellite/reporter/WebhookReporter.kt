@@ -3,13 +3,12 @@ package uk.co.aaronburt.satellite.reporter
 import android.content.Context
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
-import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
-import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.discovery.EntityCatalog
-import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
-import uk.co.aaronburt.satellite.model.UpdateMode
-import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,11 +17,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlin.random.Random
+import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
+import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.discovery.EntityCatalog
+import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
+import uk.co.aaronburt.satellite.model.UpdateMode
+import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 
 /**
  * Reports device state by HTTP POSTing a JSON snapshot to a webhook endpoint.
@@ -39,7 +40,7 @@ class WebhookReporter @Inject constructor(
     private val status: ReporterStatus,
     private val dispatchers: DispatchersProvider,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     private var settingsJob: Job? = null
@@ -152,12 +153,16 @@ class WebhookReporter @Inject constructor(
         val retryable get() = !ok && !permanent && WebhookDeliveryPolicy.isRetryable(code)
     }
 
+    // Exceptions are deliberately reduced to a retryable/permanent verdict.
+    @Suppress("SwallowedException")
     private suspend fun post(url: String, body: String, bearerToken: String?): PostResult =
         withContext(dispatchers.io) {
             val connection = try {
                 URL(url).openConnection() as HttpURLConnection
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 return@withContext PostResult(code = null, permanent = true) // malformed URL
+            } catch (e: IllegalArgumentException) {
+                return@withContext PostResult(code = null, permanent = true)
             }
             try {
                 connection.apply {
@@ -175,7 +180,7 @@ class WebhookReporter @Inject constructor(
                 PostResult(code, WebhookDeliveryPolicy.parseRetryAfterMillis(connection.getHeaderField("Retry-After")))
             } catch (e: IllegalArgumentException) {
                 PostResult(code = null, permanent = true)
-            } catch (e: Exception) {
+            } catch (e: IOException) {
                 PostResult(code = null) // offline, timeout, reset: retryable
             } finally {
                 connection.disconnect()

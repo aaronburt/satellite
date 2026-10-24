@@ -61,6 +61,10 @@ From `android/` on Windows:
 .\gradlew.bat test lint :app:assembleDebug
 ```
 
+Before pushing Kotlin changes, run `scripts/kotlin-checks.sh` from `android/`
+(ktlint formatting and detekt; add `--format` to fix formatting). See
+[Kotlin code quality](android/docs/code-quality.md) for the rules.
+
 JVM tests that touch DataStore files must give the store an explicit
 `OkioStorage` (see `DataStoreSettingsRepositoryTest`). The default JVM
 `FileStorage`, used by both `create` and `createWithPath`, commits writes with

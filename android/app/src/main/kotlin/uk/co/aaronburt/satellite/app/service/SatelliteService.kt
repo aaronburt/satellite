@@ -12,13 +12,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import dagger.hilt.android.AndroidEntryPoint
-import uk.co.aaronburt.satellite.app.MainActivity
-import uk.co.aaronburt.satellite.app.R
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.model.ConnectionState
-import uk.co.aaronburt.satellite.model.Transport
-import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
-import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,7 +22,13 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import uk.co.aaronburt.satellite.app.MainActivity
+import uk.co.aaronburt.satellite.app.R
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.model.ConnectionState
+import uk.co.aaronburt.satellite.model.Transport
+import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
+import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 
 /**
  * Keeps the MQTT connection / webhook reporter alive while the app is in the
@@ -139,8 +139,7 @@ class SatelliteService : Service() {
         notificationManager().createNotificationChannel(channel)
     }
 
-    private fun notificationManager(): NotificationManager =
-        getSystemService(NotificationManager::class.java)
+    private fun notificationManager(): NotificationManager = getSystemService(NotificationManager::class.java)
 
     companion object {
         const val CHANNEL_ID = "mqtt_connection"

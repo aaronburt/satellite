@@ -9,12 +9,7 @@ sealed interface ConnectionState {
 
     data object Connecting : ConnectionState
 
-    data class Connected(
-        val broker: String,
-        val connectedSinceEpochMillis: Long,
-    ) : ConnectionState
+    data class Connected(val broker: String, val connectedSinceEpochMillis: Long) : ConnectionState
 
-    data class Error(
-        val message: String,
-    ) : ConnectionState
+    data class Error(val message: String) : ConnectionState
 }

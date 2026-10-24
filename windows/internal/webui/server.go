@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -506,7 +507,22 @@ func (s *Server) Stop() {
 	}
 }
 
+// requireGET rejects anything but GET with 405 and an Allow header. HEAD is
+// rejected too: these endpoints are read by the page and scripts with GET,
+// and a HEAD on the log stream would otherwise hold a connection open.
+func requireGET(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method == http.MethodGet {
+		return true
+	}
+	w.Header().Set("Allow", http.MethodGet)
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	return false
+}
+
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	s.mu.Lock()
 	u := s.updater
 	s.mu.Unlock()
@@ -524,6 +540,9 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	s.mu.Lock()
 	caps := s.caps
 	s.mu.Unlock()
@@ -580,6 +599,59 @@ func redactConfig(cfg config.Config) config.Config {
 	cfg.MQTT.Password = ""
 	cfg.TelemetryWebhook.BearerToken = ""
 	cfg.Webhook.Secret = ""
+	return cfg
+}
+
+// Secret names accepted in a save request's "clear_secrets" list.
+const (
+	clearMQTTPassword    = "mqtt.password"
+	clearTelemetryBearer = "telemetry_webhook.bearer_token"
+	clearWebhookSecret   = "webhook.secret"
+)
+
+// secretField reads the secret a clear_secrets name refers to.
+var secretField = map[string]func(*config.Config) *string{
+	clearMQTTPassword:    func(c *config.Config) *string { return &c.MQTT.Password },
+	clearTelemetryBearer: func(c *config.Config) *string { return &c.TelemetryWebhook.BearerToken },
+	clearWebhookSecret:   func(c *config.Config) *string { return &c.Webhook.Secret },
+}
+
+// parseClearSecrets reads the optional "clear_secrets" list from a save
+// request. Unknown names are an error, and so is a request that both sets a
+// secret to a non-empty value and asks to clear it. Errors name the field,
+// never its value.
+func parseClearSecrets(raw []byte) (map[string]bool, error) {
+	var req struct {
+		ClearSecrets *[]string `json:"clear_secrets"`
+	}
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return nil, fmt.Errorf("clear_secrets must be a list of strings")
+	}
+	if req.ClearSecrets == nil {
+		return nil, nil
+	}
+	var sent config.Config
+	_ = json.Unmarshal(raw, &sent) // already decoded once, so this succeeds
+	clear := map[string]bool{}
+	for _, name := range *req.ClearSecrets {
+		field, ok := secretField[name]
+		if !ok {
+			return nil, fmt.Errorf("clear_secrets: unknown secret %q (allowed: %s, %s, %s)",
+				name, clearMQTTPassword, clearTelemetryBearer, clearWebhookSecret)
+		}
+		if *field(&sent) != "" {
+			return nil, fmt.Errorf("clear_secrets: %s is both set and cleared in the same request", name)
+		}
+		clear[name] = true
+	}
+	return clear, nil
+}
+
+// applyClearSecrets empties every secret named in clear.
+func applyClearSecrets(cfg config.Config, clear map[string]bool) config.Config {
+	for name := range clear {
+		*secretField[name](&cfg) = ""
+	}
 	return cfg
 }
 
@@ -700,11 +772,22 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		prev := config.Get()
 		next := prev
-		if err := json.NewDecoder(r.Body).Decode(&next); err != nil {
+		raw, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := json.Unmarshal(raw, &next); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		toClear, err := parseClearSecrets(raw)
+		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		next = mergeIncomingConfig(prev, next)
+		next = applyClearSecrets(next, toClear)
 
 		moved, err := s.prepareListen(prev, next)
 		if err != nil {
@@ -1002,6 +1085,9 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 // goroutine writes to w: the logger listener just queues events, so nothing
 // can write after the handler has returned.
 func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
