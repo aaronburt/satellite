@@ -23,4 +23,7 @@ abstract class UpdateModule {
 
     @Binds
     abstract fun installedVersion(impl: PackageInstalledVersion): InstalledVersion
+
+    @Binds
+    abstract fun updateStates(impl: UpdateEntityStates): UpdateStatesSource
 }

@@ -27,6 +27,7 @@ dependencies {
     implementation(project(":core:mqtt"))
     implementation(project(":core:discovery"))
     implementation(project(":core:telemetry"))
+    implementation(project(":core:update"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)

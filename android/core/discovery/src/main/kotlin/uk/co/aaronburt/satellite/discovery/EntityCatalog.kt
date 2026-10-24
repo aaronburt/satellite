@@ -75,6 +75,21 @@ object EntityCatalog {
             icon = "mdi:cellphone-arrow-down",
         ),
         EntitySpec(
+            key = "app_update",
+            platform = "update",
+            name = "App update",
+            deviceClass = "firmware",
+            icon = "mdi:update",
+        ),
+        EntitySpec(
+            key = "update_status",
+            platform = "sensor",
+            name = "Update status",
+            deviceClass = "enum",
+            icon = "mdi:cloud-download",
+            options = listOf("idle", "checking", "up_to_date", "downloading", "ready", "failed"),
+        ),
+        EntitySpec(
             key = "android_version",
             platform = "sensor",
             name = "Android version",

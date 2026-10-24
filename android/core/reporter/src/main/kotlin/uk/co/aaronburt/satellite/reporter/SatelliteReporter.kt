@@ -24,6 +24,8 @@ import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.mqtt.MqttClient
 import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import uk.co.aaronburt.satellite.update.NoUpdateStates
+import uk.co.aaronburt.satellite.update.UpdateStatesSource
 
 /**
  * MQTT reporter: publishes the discovery payload and device state on connect,
@@ -38,6 +40,7 @@ import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
  * has enabled are ever published — controls are off by default.
  */
 @Singleton
+@Suppress("LongParameterList", "TooManyFunctions") // Hilt-injected collaborators; one reporter lifecycle
 class SatelliteReporter @Inject constructor(
     private val client: MqttClient,
     private val settingsRepository: SettingsRepository,
@@ -46,13 +49,15 @@ class SatelliteReporter @Inject constructor(
     private val audioControls: AudioControls,
     private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope
+    @ApplicationScope private val appScope: CoroutineScope,
+    private val updateStates: UpdateStatesSource = NoUpdateStates
 ) {
 
     private var observerJob: Job? = null
     private var periodicJob: Job? = null
     private var modeJob: Job? = null
     private var controlsJob: Job? = null
+    private var updateJob: Job? = null
 
     /** Held while a Home Assistant refresh request runs, so repeats cannot pile up. */
     private val refreshGate = Mutex()
@@ -92,6 +97,14 @@ class SatelliteReporter @Inject constructor(
             }
         }
 
+        // The update flow only runs on an explicit check, so its progress is
+        // pushed as it happens instead of waiting for the next interval.
+        updateJob = appScope.launch {
+            updateStates.changes.collect {
+                if (client.connectionState.value is ConnectionState.Connected) publishStates()
+            }
+        }
+
         controlsJob = appScope.launch {
             var previous: Set<String>? = null
             settingsRepository.enabledControls.collect { enabled ->
@@ -124,6 +137,8 @@ class SatelliteReporter @Inject constructor(
     }
 
     fun stop() {
+        updateJob?.cancel()
+        updateJob = null
         observerJob?.cancel()
         observerJob = null
         periodicJob?.cancel()
@@ -280,7 +295,7 @@ class SatelliteReporter @Inject constructor(
     private suspend fun publishStates(): Boolean {
         val topics = Topics(settingsRepository.deviceId())
         val activeKeys = EntityCatalog.activeKeys(settingsRepository.enabledControls.first())
-        val states = runCatching { telemetry.read() }.getOrDefault(emptyMap())
+        val states = runCatching { telemetry.read() + updateStates.read() }.getOrDefault(emptyMap())
             .filterKeys { it in activeKeys }
         if (states.isEmpty()) return false
 
