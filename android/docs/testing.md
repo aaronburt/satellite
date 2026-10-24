@@ -11,6 +11,7 @@ batch wrapper; on Linux/macOS use `./gradlew` instead.
 | JVM unit tests | Dispatcher provider, discovery/webhook payload builders, command parser, GitHub release parser | JDK, SDK, Gradle dependencies |
 | Static analysis | Android Lint | JDK, SDK, Gradle dependencies |
 | Dashboard instrumented tests | Connected, paused, and first-run UI states in `StatusScreenTest` | Device/emulator |
+| MQTT reconnect recovery | `ReconnectRecoveryTest` runs the real client and connection manager against an in-process HiveMQ broker: network loss (Last Will then retained `online`), broker restart with empty state, a command handled once after three reconnects, clean stop leaves `offline` | JDK, Gradle dependencies (runs in CI) |
 | Broker configuration E2E | `BrokerConfigurationE2ETest` drives settings and checks connection to Mosquitto | API 33+ emulator, development broker, fresh app setup |
 
 Connection-manager and reporter lifecycle behavior does not currently have
@@ -77,7 +78,19 @@ Use a development device and broker, then check:
    notification. Resume and verify discovery/state plus `online` availability.
 4. Interrupt the network or restart the broker, then restore it. Verify state,
    subscriptions, and availability separately; connection status alone is not
-   proof of complete recovery.
+   proof of complete recovery. `ReconnectRecoveryTest` covers the MQTT side of
+   this automatically; the device run is still needed for Android's own network
+   handling (Wi-Fi off/on, Doze) and is tracked in
+   [issue #8](https://github.com/aaronburt/satellite/issues/8).
+5. Restart Home Assistant (`docker compose restart homeassistant`). Verify the
+   device and entities return with current values without touching the phone
+   (the reporter republishes discovery and state on HA's `online` birth
+   message).
+6. Toggle Wi-Fi off and on three times, then send one volume command from Home
+   Assistant. It must change the volume once (one confirming state message).
+
+Record the app version, Android version, broker and Home Assistant versions,
+and the observed messages from the `mosquitto_sub` window in issue #8.
 5. Restart Home Assistant and verify its `online` birth triggers discovery/state.
 6. Switch to Webhook. Verify MQTT disconnects and the receiver gets JSON with
    the selected settings. Test a failed request as well as a 2xx response.
