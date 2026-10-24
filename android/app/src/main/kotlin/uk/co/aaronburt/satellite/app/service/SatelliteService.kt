@@ -21,6 +21,7 @@ import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
 import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
@@ -49,6 +50,10 @@ class SatelliteService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    // Every startService call lands here (activity re-creation, START_STICKY
+    // restarts, rapid resume toggles); only one watcher may run at a time.
+    private var watchJob: Job? = null
+
     @Volatile
     private var transport: Transport = Transport.MQTT
 
@@ -60,7 +65,9 @@ class SatelliteService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(connectionManager.connectionState.value, transport)
 
-        serviceScope.launch {
+        if (watchJob?.isActive == true) return START_STICKY
+
+        watchJob = serviceScope.launch {
             if (!settingsRepository.reportingEnabled.first()) {
                 stopSelf()
                 return@launch
@@ -111,11 +118,7 @@ class SatelliteService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        val text = if (transport == Transport.WEBHOOK) {
-            getString(R.string.notification_state_webhook)
-        } else {
-            state.notificationText()
-        }
+        val text = serviceNotificationText(state, transport)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_satellite)
@@ -138,13 +141,6 @@ class SatelliteService : Service() {
 
     private fun notificationManager(): NotificationManager =
         getSystemService(NotificationManager::class.java)
-
-    private fun ConnectionState.notificationText(): String = when (this) {
-        ConnectionState.Disconnected -> getString(R.string.notification_state_disconnected)
-        ConnectionState.Connecting -> getString(R.string.notification_state_connecting)
-        is ConnectionState.Connected -> getString(R.string.notification_state_connected, broker)
-        is ConnectionState.Error -> getString(R.string.notification_state_error, message)
-    }
 
     companion object {
         const val CHANNEL_ID = "mqtt_connection"

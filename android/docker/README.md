@@ -6,7 +6,7 @@ validating the app's MQTT discovery behavior. Nothing here talks to the cloud.
 ```
 docker/
   compose.yaml                      # Mosquitto + Home Assistant
-  mosquitto/config/mosquitto.conf   # Broker config (anonymous access, dev only)
+  mosquitto/config/mosquitto.conf   # Broker config (password authentication, dev only)
   homeassistant/config/             # HA config dir (only configuration.yaml is committed)
   samples/                          # Example discovery payloads for smoke tests
 ```
@@ -18,7 +18,22 @@ docker/
 
 ## 1. Start
 
-From this directory:
+From this directory, create the password file before the first start. It is
+ignored by Git, so a fresh clone does not include it. Run this once when
+`mosquitto/data/passwd` does not exist:
+
+```powershell
+if (-not (Test-Path -LiteralPath mosquitto/data/passwd)) {
+    docker compose run --rm --no-deps mosquitto mosquitto_passwd -b -c /mosquitto/data/passwd satellite satellite
+}
+```
+
+The `-c` flag creates a new file; do not use it to update an existing password
+file because it replaces the existing users. These credentials are for local
+development. The Compose ports bind on the host's available interfaces, so keep
+this environment on a trusted development network.
+
+Then start the services:
 
 ```powershell
 docker compose up -d

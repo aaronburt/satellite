@@ -119,8 +119,8 @@ func TestChecker_DraftAndPrerelease(t *testing.T) {
 
 func TestChecker_HTTPErrorCodes(t *testing.T) {
 	codeMap := map[int]string{
-		http.StatusForbidden: "rate limit",
-		http.StatusNotFound:  "not found",
+		http.StatusForbidden:           "rate limit",
+		http.StatusNotFound:            "not found",
 		http.StatusInternalServerError: "failed with status 500",
 	}
 

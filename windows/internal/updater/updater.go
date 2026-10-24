@@ -17,6 +17,10 @@ const (
 	DefaultRepo           = "aaronburt/satellite"
 	DefaultCheckInterval  = 24 * time.Hour
 	DefaultRequestTimeout = 10 * time.Second
+
+	// maxReleaseBody caps how much of the GitHub response is read. A release
+	// is a few KB; anything far larger is not a valid answer.
+	maxReleaseBody = 1 << 20
 )
 
 type GitHubRelease struct {
@@ -131,9 +135,12 @@ func (c *Checker) Check(ctx context.Context) (CheckStatus, error) {
 		return c.recordError(statusErr)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxReleaseBody+1))
 	if err != nil {
 		return c.recordError(err)
+	}
+	if len(body) > maxReleaseBody {
+		return c.recordError(fmt.Errorf("github api response too large"))
 	}
 
 	var release GitHubRelease

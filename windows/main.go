@@ -14,6 +14,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
+	"satellite/internal/output"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -39,145 +40,13 @@ func runCLI(collector *telemetry.Collector, cfg config.Config, updaterInstance *
 		case <-ticker.C:
 			snap := collector.Collect(cfg.Expose)
 
-			fmt.Print("\033[H\033[2J")
-			fmt.Printf("========================================\n")
-			fmt.Printf("       SATELLITE AGENT (v%s CLI)       \n", config.Version)
-			fmt.Printf("========================================\n")
+			var update *updater.CheckStatus
 			if updaterInstance != nil {
-				if updateStatus := updaterInstance.Status(); updateStatus.Available {
-					fmt.Printf(" Update       : v%s available! (%s)\n", updateStatus.LatestVersion, updateStatus.ReleaseURL)
-				}
+				st := updaterInstance.Status()
+				update = &st
 			}
-			if snap.CPUPercent != nil {
-				fmt.Printf(" Processor    : %6.1f %%\n", *snap.CPUPercent)
-			}
-			if snap.MemoryUsedGB != nil && snap.MemoryTotalGB != nil && snap.MemoryPercent != nil {
-				fmt.Printf(" Memory (RAM) : %6.2f / %6.2f GB (%5.1f %%)\n", *snap.MemoryUsedGB, *snap.MemoryTotalGB, *snap.MemoryPercent)
-			}
-			for _, g := range snap.GPUs {
-				gpuStr := ""
-				if g.CoreUsagePercent != nil {
-					gpuStr += fmt.Sprintf("%5.1f %%", *g.CoreUsagePercent)
-				}
-				if g.MemoryUsedMB != nil && g.MemoryTotalMB != nil {
-					usedGB := *g.MemoryUsedMB / 1024
-					totGB := *g.MemoryTotalMB / 1024
-					gpuStr += fmt.Sprintf(" | VRAM: %4.1f / %4.1f GB", usedGB, totGB)
-					if g.MemoryPercent != nil {
-						gpuStr += fmt.Sprintf(" (%4.1f %%)", *g.MemoryPercent)
-					}
-				}
-				if g.TemperatureC != nil {
-					gpuStr += fmt.Sprintf(" | %2.0f °C", *g.TemperatureC)
-				}
-				name := g.Name
-				if name == "" {
-					name = fmt.Sprintf("GPU %d", g.Index)
-				}
-				fmt.Printf(" GPU (%s) : %s\n", name, gpuStr)
-			}
-			for _, d := range snap.Drives {
-				fmt.Printf(" Storage (%s) : %6.1f / %6.1f GB (%5.1f %%)\n", d.Mount, d.UsedGB, d.TotalGB, d.UsedPercent)
-			}
-			if snap.NetworkRxKBs != nil && snap.NetworkTxKBs != nil {
-				fmt.Printf(" Network I/O  : ↓ %7.1f kB/s | ↑ %7.1f kB/s\n", *snap.NetworkRxKBs, *snap.NetworkTxKBs)
-			}
-			if snap.LocalIP != "" {
-				fmt.Printf(" Local IP     : %s\n", snap.LocalIP)
-			}
-			if snap.UptimeSeconds != nil {
-				fmt.Printf(" Uptime       : %d hours\n", *snap.UptimeSeconds/3600)
-			}
-			if snap.UserIdleSeconds != nil && snap.UserActive != nil {
-				status := "Active"
-				if !*snap.UserActive {
-					status = "Idle"
-				}
-				fmt.Printf(" User Status  : %s (%d sec idle)\n", status, *snap.UserIdleSeconds)
-			}
-			if snap.SessionLocked != nil {
-				lockStr := "Unlocked"
-				if *snap.SessionLocked {
-					lockStr = "LOCKED"
-				}
-				fmt.Printf(" Screen Lock  : %s\n", lockStr)
-			}
-			if snap.MicrophoneInUse != nil {
-				micStr := "Inactive"
-				if *snap.MicrophoneInUse {
-					micStr = "ACTIVE (On Air)"
-				}
-				fmt.Printf(" Microphone   : %s\n", micStr)
-			}
-			if snap.WebcamInUse != nil {
-				camStr := "Inactive"
-				if *snap.WebcamInUse {
-					camStr = "ACTIVE (On Air)"
-					if snap.WebcamActiveApp != "" {
-						camStr += fmt.Sprintf(" [%s]", snap.WebcamActiveApp)
-					}
-				}
-				fmt.Printf(" Webcam       : %s\n", camStr)
-			}
-			if snap.FullscreenActive != nil {
-				fsStr := "No"
-				if *snap.FullscreenActive {
-					fsStr = "YES"
-				}
-				fmt.Printf(" Fullscreen   : %s\n", fsStr)
-			}
-			if snap.SystemTheme != "" {
-				fmt.Printf(" Theme        : %s\n", snap.SystemTheme)
-			}
-			if snap.AudioOutputName != "" {
-				fmt.Printf(" Audio Output : %s\n", snap.AudioOutputName)
-			}
-			if snap.WifiSSID != "" {
-				wifiStr := snap.WifiSSID
-				if snap.WifiSignalPercent != nil {
-					wifiStr += fmt.Sprintf(" (%d%%)", *snap.WifiSignalPercent)
-				}
-				fmt.Printf(" Wi-Fi / Net  : %s\n", wifiStr)
-			}
-			if snap.DisplayPowered != nil {
-				dispStr := "Standby / Asleep"
-				if *snap.DisplayPowered {
-					dispStr = "Powered On"
-				}
-				fmt.Printf(" Display      : %s\n", dispStr)
-			}
-			if snap.HasBattery && snap.BatteryPercent != nil && snap.PowerPlugged != nil {
-				pwr := "Battery"
-				if *snap.PowerPlugged {
-					pwr = "AC Power"
-				}
-				fmt.Printf(" Battery      : %d %% (%s)\n", *snap.BatteryPercent, pwr)
-			}
-			if snap.ActiveProcess != "" {
-				fmt.Printf(" Active App   : %s\n", snap.ActiveProcess)
-			}
-			if snap.ActiveWindowTitle != "" {
-				fmt.Printf(" Window Title : %s\n", snap.ActiveWindowTitle)
-			}
-			if snap.UpdatePending != nil {
-				reboot := "No"
-				if *snap.UpdatePending {
-					reboot = "YES (Restart Required)"
-				}
-				fmt.Printf(" Reboot Req.  : %s\n", reboot)
-			}
-			if snap.Media != nil {
-				mediaStr := snap.Media.Status
-				if snap.Media.Title != "" {
-					mediaStr += fmt.Sprintf(" - %s (%s)", snap.Media.Title, snap.Media.Artist)
-				}
-				if snap.Media.AppID != "" {
-					mediaStr += fmt.Sprintf(" [%s]", snap.Media.AppID)
-				}
-				fmt.Printf(" Media Player : %s\n", mediaStr)
-			}
-			fmt.Println("========================================")
-			fmt.Println(" Press Ctrl+C to exit")
+			fmt.Print("\033[H\033[2J")
+			renderCLI(os.Stdout, snap, update)
 		}
 	}
 }
@@ -201,41 +70,9 @@ func main() {
 		cfg = config.DefaultConfig()
 	}
 
-	if *exportPath != "" {
-		data, err := config.ExportConfig(cfg, *passwordFlag)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error exporting configuration: %v\n", err)
-			os.Exit(1)
-		}
-		if err := os.WriteFile(*exportPath, data, 0600); err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing exported file: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Configuration exported successfully to %s\n", *exportPath)
-		return
-	}
-
-	if *importPath != "" {
-		raw, err := os.ReadFile(*importPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading import file: %v\n", err)
-			os.Exit(1)
-		}
-		res, err := config.ImportConfig(raw, config.ImportOptions{
-			Passphrase:  *passwordFlag,
-			ResetNodeID: *resetNodeID,
-		})
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error importing configuration: %v\n", err)
-			os.Exit(1)
-		}
-		if err := config.Save(res.Config); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving imported configuration: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Printf("Configuration imported successfully from Satellite v%s (Active Node ID: %s)\n", res.SourceAppVersion, res.Config.NodeID)
-		if res.IsNewerVersion {
-			fmt.Printf("Notice: Configuration was created by a newer version of Satellite (v%s)\n", res.SourceAppVersion)
+	if handled, code := runConfigCommand(cfg, *exportPath, *importPath, *passwordFlag, *resetNodeID, os.Stdout, os.Stderr); handled {
+		if code != 0 {
+			os.Exit(code)
 		}
 		return
 	}
@@ -272,11 +109,10 @@ func main() {
 	server.SetCapabilities(caps)
 	server.SetUpdater(updaterInstance)
 	server.SetWebUIEnabled(*debugMode)
+	server.SetDevMode(*debugMode)
 	if *debugMode {
-		port, err := server.Start(cfg.GetPort())
-		if err == nil {
-			url := fmt.Sprintf("http://127.0.0.1:%d/?token=%s", port, server.Token())
-			fmt.Printf("\n[DEBUG] WebUI running with live disk reload at: %s\n\n", url)
+		if _, err := server.Start(cfg.GetPort()); err == nil {
+			fmt.Printf("\n[DEBUG] WebUI running with live disk reload at: %s\n\n", server.URL())
 		}
 	} else if cfg.JSONEnabled {
 		if cfg.APIKey == "" {
@@ -290,6 +126,13 @@ func main() {
 
 	updaterCtx, cancelUpdater := context.WithCancel(context.Background())
 	updaterInstance.StartBackground(updaterCtx, updater.DefaultCheckInterval)
+
+	// Every snapshot goes to each output: MQTT for Home Assistant, plus the
+	// optional generic telemetry webhook.
+	sinks := []output.Sink{
+		output.SinkFunc{SinkName: "mqtt", Fn: mqttClient.PublishTelemetry},
+		output.NewWebhook(config.Get),
+	}
 
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go func() {
@@ -309,7 +152,7 @@ func main() {
 				tickCount++
 				currentCfg := config.Get()
 				snap := collector.Collect(currentCfg.Expose)
-				_ = mqttClient.PublishTelemetry(snap)
+				output.PublishAll(sinks, snap)
 				if tickCount%12 == 0 {
 					telemetry.TrimWorkingSet()
 				}

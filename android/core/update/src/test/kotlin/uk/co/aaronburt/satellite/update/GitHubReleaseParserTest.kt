@@ -57,20 +57,3 @@ class GitHubReleaseParserTest {
         assertNull(release.apk)
     }
 }
-
-class VersionCodesTest {
-
-    @Test
-    fun `encodes a semver tag the same way the release workflow does`() {
-        assertEquals(10_203, VersionCodes.fromTag("v1.2.3"))
-        assertEquals(300, VersionCodes.fromTag("v0.3.0"))
-        assertEquals(400, VersionCodes.fromTag("0.4.0"))
-    }
-
-    @Test
-    fun `rejects tags that are not semver`() {
-        assertNull(VersionCodes.fromTag("v1.2"))
-        assertNull(VersionCodes.fromTag("nightly"))
-        assertNull(VersionCodes.fromTag("v1.x.0"))
-    }
-}

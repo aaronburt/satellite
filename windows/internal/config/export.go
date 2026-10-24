@@ -24,6 +24,13 @@ var (
 
 const EnvelopeFormat = "satellite-config"
 
+const (
+	exportIterations = 100000
+	// maxImportIterations bounds the PBKDF2 cost an imported file can ask for,
+	// so a crafted file cannot hang the agent.
+	maxImportIterations = 10_000_000
+)
+
 type ImportOptions struct {
 	Passphrase  string
 	ResetNodeID bool
@@ -35,6 +42,7 @@ type ExportData struct {
 	MQTT         MQTTConfig    `json:"mqtt"`
 	Expose       ExposeConfig  `json:"expose"`
 	IntervalSec  int           `json:"interval_sec"`
+	HeartbeatSec int           `json:"heartbeat_sec,omitempty"`
 	Port         int           `json:"port,omitempty"`
 	WebUIPort    int           `json:"webui_port,omitempty"`
 	BindAddress  string        `json:"bind_address,omitempty"`
@@ -43,6 +51,8 @@ type ExportData struct {
 	Webhook      WebhookConfig `json:"webhook"`
 	CheckUpdates bool          `json:"check_updates"`
 	UpdateRepo   string        `json:"update_repo,omitempty"`
+
+	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
 
 type ExportEnvelope struct {
@@ -103,6 +113,7 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		MQTT:         cfg.MQTT,
 		Expose:       cfg.Expose,
 		IntervalSec:  cfg.IntervalSec,
+		HeartbeatSec: cfg.HeartbeatSec,
 		Port:         cfg.Port,
 		WebUIPort:    cfg.WebUIPort,
 		BindAddress:  cfg.BindAddress,
@@ -111,6 +122,8 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		Webhook:      cfg.Webhook,
 		CheckUpdates: cfg.CheckUpdates,
 		UpdateRepo:   cfg.UpdateRepo,
+
+		TelemetryWebhook: cfg.TelemetryWebhook,
 	}
 
 	trimmedPass := strings.TrimSpace(passphrase)
@@ -135,8 +148,7 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		return nil, err
 	}
 
-	const iterations = 100000
-	key, err := pbkdf2.Key(sha256.New, trimmedPass, salt, iterations, 32)
+	key, err := pbkdf2.Key(sha256.New, trimmedPass, salt, exportIterations, 32)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +176,7 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		ExportedAt: time.Now().Unix(),
 		Encrypted:  true,
 		KDF:        "pbkdf2-sha256",
-		Iterations: iterations,
+		Iterations: exportIterations,
 		Salt:       hex.EncodeToString(salt),
 		Nonce:      hex.EncodeToString(nonce),
 		Payload:    base64.StdEncoding.EncodeToString(ciphertext),
@@ -206,8 +218,11 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		}
 
 		iters := env.Iterations
-		if iters <= 0 {
-			iters = 100000
+		if iters == 0 {
+			iters = exportIterations
+		}
+		if iters < 0 || iters > maxImportIterations {
+			return ImportResult{}, ErrInvalidEnvelope
 		}
 
 		key, err := pbkdf2.Key(sha256.New, trimmedPass, salt, iters, 32)
@@ -250,6 +265,7 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		MQTT:         data.MQTT,
 		Expose:       data.Expose,
 		IntervalSec:  data.IntervalSec,
+		HeartbeatSec: data.HeartbeatSec,
 		Port:         data.Port,
 		WebUIPort:    data.WebUIPort,
 		BindAddress:  data.BindAddress,
@@ -258,10 +274,15 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		Webhook:      data.Webhook,
 		CheckUpdates: data.CheckUpdates,
 		UpdateRepo:   data.UpdateRepo,
+
+		TelemetryWebhook: data.TelemetryWebhook,
 	}
 
 	if cfg.IntervalSec <= 0 {
 		cfg.IntervalSec = def.IntervalSec
+	}
+	if cfg.HeartbeatSec <= 0 {
+		cfg.HeartbeatSec = def.HeartbeatSec
 	}
 	if cfg.BindAddress == "" {
 		cfg.BindAddress = def.BindAddress

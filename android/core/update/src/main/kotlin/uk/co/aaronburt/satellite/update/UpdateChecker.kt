@@ -12,10 +12,15 @@ import javax.inject.Singleton
  * deliberately called only on an explicit user action (60 requests/hour limit).
  */
 @Singleton
-class UpdateChecker @Inject constructor() {
+class UpdateChecker internal constructor(
+    private val latestReleaseUrl: String,
+) : ReleaseSource {
 
-    suspend fun latestRelease(): GitHubRelease = withContext(Dispatchers.IO) {
-        val connection = (URL(LATEST_RELEASE_URL).openConnection() as HttpURLConnection).apply {
+    @Inject
+    constructor() : this(LATEST_RELEASE_URL)
+
+    override suspend fun latestRelease(): GitHubRelease = withContext(Dispatchers.IO) {
+        val connection = (URL(latestReleaseUrl).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = CONNECT_TIMEOUT_MILLIS
             readTimeout = READ_TIMEOUT_MILLIS

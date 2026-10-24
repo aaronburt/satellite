@@ -36,8 +36,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          build-root-directory: android
 
       - name: Install SDK packages
         run: |
@@ -60,3 +58,30 @@ jobs:
           name: app-debug
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  datastore-windows:
+    name: DataStore tests (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install SDK packages
+        shell: bash
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name 'sdkmanager.bat' -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0"
+
+      - name: DataStore unit tests
+        shell: bash
+        run: ./gradlew.bat :core:datastore:testDebugUnitTest --stacktrace

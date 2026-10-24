@@ -1,10 +1,10 @@
 # TODO / Handoff — Satellite (Android)
 
-> **Historical note (handoff notes written 2026-10-07 to 2026-10-09; reconciled 2026-10-24).** This file records how the Android app was planned and built. It is not the active backlog: open work is tracked in [GitHub issues](https://github.com/aaronburt/satellite/issues). The project is now the `aaronburt/satellite` monorepo (Android app in `android/`), licensed under the [MIT License](../LICENSE) at the repo root.
+> **Historical note (handoff notes written 2026-10-07 to 2026-10-09; reconciled 2026-10-24).** These notes record how the Android app was planned and built and can include completed or superseded plans. They are not the active backlog: open work is tracked in the [project TODO](../TODO.md) and its linked [GitHub issues](https://github.com/aaronburt/satellite/issues). See the [current documentation](../docs/README.md) for setup and implemented behavior. The project is now the `aaronburt/satellite` monorepo (Android app in `android/`), licensed under the [MIT License](../LICENSE) at the repo root.
 
-Original pick-up notes follow. Items still unchecked below are only ideas from that time; check [GitHub issues](https://github.com/aaronburt/satellite/issues) before treating any of them as open.
+Original pick-up notes follow. Items still unchecked below are only ideas from that time; check the [project TODO](../TODO.md) before treating any of them as open.
 
- The app is an Android companion for Home Assistant
+The app is an Android companion for Home Assistant
 that reports device state over **MQTT** or a **webhook**.
 
 ---

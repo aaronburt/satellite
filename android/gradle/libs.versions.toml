@@ -18,6 +18,9 @@ orgJson = "20240303"
 androidxTestJunit = "1.2.1"
 androidxTestRunner = "1.6.2"
 androidxTestRules = "1.6.1"
+robolectric = "4.17"
+okhttp = "5.5.1"
+hivemqEmbedded = "2026.5"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +59,10 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
+okhttp-tls = { group = "com.squareup.okhttp3", name = "okhttp-tls", version.ref = "okhttp" }
+hivemq-embedded = { group = "com.hivemq", name = "hivemq-community-edition-embedded", version.ref = "hivemqEmbedded" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

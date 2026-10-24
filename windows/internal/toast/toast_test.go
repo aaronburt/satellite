@@ -1,47 +1,41 @@
 package toast
 
-import (
-	"testing"
-	"time"
-)
+import "testing"
 
-func TestNotificationFields(t *testing.T) {
-	n := Notification{
-		Title:   "Test Alert",
-		Message: "Hello from test",
-		URL:     "https://example.com",
-		Silent:  true,
+func TestSafeURL(t *testing.T) {
+	allowed := map[string]string{
+		"https://github.com/aaronburt/satellite/releases": "https://github.com/aaronburt/satellite/releases",
+		"  http://homeassistant.local:8123/lovelace  ":    "http://homeassistant.local:8123/lovelace",
+		"https://example.com/path?q=1#frag":               "https://example.com/path?q=1#frag",
+	}
+	for in, want := range allowed {
+		got, ok := SafeURL(in)
+		if !ok || got != want {
+			t.Errorf("SafeURL(%q) = %q, %v; want %q", in, got, ok, want)
+		}
 	}
 
-	if n.Title != "Test Alert" {
-		t.Fatalf("expected title 'Test Alert', got %s", n.Title)
+	rejected := []string{
+		"",
+		"   ",
+		"file:///C:/Windows/System32/calc.exe",
+		"C:\\Windows\\System32\\calc.exe",
+		"javascript:alert(1)",
+		"ms-settings:privacy",
+		"https://example.com&calc.exe",
+		"https://example.com/|calc",
+		"https://example.com/^&calc",
+		"https://example.com/%COMSPEC%",
+		"https://example.com/\" & calc",
+		"https://exa mple.com",
+		"https://example.com/\ncalc",
+		"https://user:pass@example.com",
+		"https://",
+		"//example.com",
 	}
-	if n.Message != "Hello from test" {
-		t.Fatalf("expected message 'Hello from test', got %s", n.Message)
+	for _, in := range rejected {
+		if got, ok := SafeURL(in); ok {
+			t.Errorf("SafeURL(%q) accepted as %q, want rejected", in, got)
+		}
 	}
-	if n.URL != "https://example.com" {
-		t.Fatalf("expected url 'https://example.com', got %s", n.URL)
-	}
-	if !n.Silent {
-		t.Fatalf("expected silent to be true")
-	}
-}
-
-func TestShow(t *testing.T) {
-	n := Notification{
-		Title:   "",
-		Message: "Silent test toast",
-		URL:     "",
-	}
-	_ = Show(n)
-}
-
-func TestShowWithURL(t *testing.T) {
-	n := Notification{
-		Title:   "Test",
-		Message: "Toast with URL",
-		URL:     "http://127.0.0.1:65535/nonexistent",
-	}
-	_ = Show(n)
-	time.Sleep(50 * time.Millisecond)
 }
