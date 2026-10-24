@@ -80,6 +80,12 @@ Use the following HTTP methods. JSON request bodies should use
 | GET | `/api/logs/stream` | None | Server-sent event stream of new logs |
 | GET | `/json` | None | Last telemetry snapshot; uses `X-API-Key` |
 
+Every `/api/*` endpoint accepts only the methods listed for it; anything
+else returns HTTP 405. `/api/status`, `/api/capabilities` and
+`/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
+returns 405. The WebUI-enabled check (404) and token check (401) run
+before the method check.
+
 ## Status and capabilities
 
 `GET /api/status` returns an object with:
@@ -379,7 +385,7 @@ also decode the response JSON and check `success`, even when HTTP is 200.
 | 400 | Invalid JSON/settings/import data, or an unknown/failed action |
 | 401 | Missing or invalid WebUI token or `/json` API key |
 | 404 | WebUI/API disabled, JSON endpoint disabled, or unknown route |
-| 405 | Unsupported method on handlers that enforce methods |
+| 405 | Unsupported method for the endpoint |
 | 422 | Configuration import requires a passphrase, or decryption failed |
 | 500 | Configuration save/export failure, unavailable action registry, or failed update check |
 | 503 | Update checker unavailable for a manual check |
