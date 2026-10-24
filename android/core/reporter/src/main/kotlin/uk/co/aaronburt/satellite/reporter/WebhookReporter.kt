@@ -3,26 +3,25 @@ package uk.co.aaronburt.satellite.reporter
 import android.content.Context
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.net.HttpURLConnection
+import java.net.URL
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.WebhookPayloadBuilder
-import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Reports device state by HTTP POSTing a JSON snapshot to a webhook endpoint.
@@ -35,16 +34,12 @@ class WebhookReporter @Inject constructor(
     private val status: ReporterStatus,
     private val dispatchers: DispatchersProvider,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     private var settingsJob: Job? = null
     private var periodicJob: Job? = null
-    private var intervalJob: Job? = null
     private var modeJob: Job? = null
-
-    @Volatile
-    private var intervalMillis: Long = UpdateInterval.FIVE_MINUTES.seconds * 1000
 
     private val changeWatcher = StateChangeWatcher(
         context = context,
@@ -60,16 +55,14 @@ class WebhookReporter @Inject constructor(
             settingsRepository.webhookSettings.collect { publish() }
         }
 
+        // The timer restarts whenever the interval setting changes, and the
+        // very first wait already uses the saved interval.
         periodicJob = appScope.launch {
-            while (isActive) {
-                delay(intervalMillis)
-                publish()
-            }
-        }
-
-        intervalJob = appScope.launch {
-            settingsRepository.updateInterval.collect { interval ->
-                intervalMillis = interval.seconds * 1000
+            settingsRepository.updateInterval.collectLatest { interval ->
+                while (true) {
+                    delay(interval.seconds * 1000)
+                    publish()
+                }
             }
         }
 
@@ -85,8 +78,6 @@ class WebhookReporter @Inject constructor(
         settingsJob = null
         periodicJob?.cancel()
         periodicJob = null
-        intervalJob?.cancel()
-        intervalJob = null
         modeJob?.cancel()
         modeJob = null
         changeWatcher.unregister()
@@ -118,25 +109,24 @@ class WebhookReporter @Inject constructor(
         return ok
     }
 
-    private suspend fun post(url: String, body: String, bearerToken: String?): Boolean =
-        withContext(dispatchers.io) {
-            runCatching {
-                val connection = (URL(url).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    doOutput = true
-                    connectTimeout = TIMEOUT_MILLIS
-                    readTimeout = TIMEOUT_MILLIS
-                    setRequestProperty("Content-Type", "application/json")
-                    if (!bearerToken.isNullOrBlank()) {
-                        setRequestProperty("Authorization", "Bearer $bearerToken")
-                    }
+    private suspend fun post(url: String, body: String, bearerToken: String?): Boolean = withContext(dispatchers.io) {
+        runCatching {
+            val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                doOutput = true
+                connectTimeout = TIMEOUT_MILLIS
+                readTimeout = TIMEOUT_MILLIS
+                setRequestProperty("Content-Type", "application/json")
+                if (!bearerToken.isNullOrBlank()) {
+                    setRequestProperty("Authorization", "Bearer $bearerToken")
                 }
-                connection.outputStream.use { it.write(body.toByteArray()) }
-                val code = connection.responseCode
-                connection.disconnect()
-                code in 200..299
-            }.getOrDefault(false)
-        }
+            }
+            connection.outputStream.use { it.write(body.toByteArray()) }
+            val code = connection.responseCode
+            connection.disconnect()
+            code in 200..299
+        }.getOrDefault(false)
+    }
 
     private fun appVersion(): String = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName

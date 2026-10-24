@@ -21,6 +21,8 @@ type Event struct {
 	Message   string `json:"message"`
 }
 
+// Listener receives every log event. It is called synchronously and must
+// return quickly without blocking or logging.
 type Listener func(Event)
 
 var (
@@ -47,6 +49,13 @@ func AddListener(fn Listener) func() {
 		defer listenersMu.Unlock()
 		delete(listeners, id)
 	}
+}
+
+// ListenerCount reports how many listeners are registered.
+func ListenerCount() int {
+	listenersMu.RLock()
+	defer listenersMu.RUnlock()
+	return len(listeners)
 }
 
 func Init(cfg config.WebhookConfig, id string) {
@@ -114,11 +123,17 @@ func Log(level, category, message string) {
 	}
 
 	if hasListeners {
+		// Listeners run in order on the caller's goroutine, so they must not
+		// block. Copy them first so a listener can unsubscribe safely.
 		listenersMu.RLock()
+		fns := make([]Listener, 0, len(listeners))
 		for _, fn := range listeners {
-			go fn(event)
+			fns = append(fns, fn)
 		}
 		listenersMu.RUnlock()
+		for _, fn := range fns {
+			fn(event)
+		}
 	}
 
 	if webhookEnabled {

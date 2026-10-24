@@ -6,16 +6,13 @@ package uk.co.aaronburt.satellite.discovery
  * @property action topic segment under `<base>/cmd/` and the handler key
  * @property kind payload contract the handler expects
  */
-data class CommandSpec(
-    val action: String,
-    val kind: Kind,
-) {
+data class CommandSpec(val action: String, val kind: Kind) {
     enum class Kind {
         /** Integer 0–100. */
         NUMBER,
 
         /** `ON` / `OFF`. */
-        ON_OFF,
+        ON_OFF
     }
 }
 
@@ -53,7 +50,7 @@ data class EntitySpec(
     val command: CommandSpec? = null,
     val min: Int? = null,
     val max: Int? = null,
-    val step: Int? = null,
+    val step: Int? = null
 ) {
     /** Controllable entities are opt-in and off by default. */
     val isControl: Boolean get() = command != null

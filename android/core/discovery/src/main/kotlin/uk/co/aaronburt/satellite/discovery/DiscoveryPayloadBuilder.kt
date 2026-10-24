@@ -13,6 +13,10 @@ import org.json.JSONObject
  * first publish the component stub (`{ "platform": … }`), then publish the config
  * without it. [stubControls] drives the first half of that.
  *
+ * Topics are written out in full. Home Assistant 2026.10 rejects the whole
+ * device payload when the `~` base-topic abbreviation sits at its root, so the
+ * abbreviation is not used (found by HomeAssistantSmokeTest, issue #21).
+ *
  * Reference: https://www.home-assistant.io/integrations/mqtt/#device-discovery-payload
  */
 object DiscoveryPayloadBuilder {
@@ -29,7 +33,7 @@ object DiscoveryPayloadBuilder {
         androidVersion: String,
         specs: List<EntitySpec> = EntityCatalog.all,
         enabledControls: Set<String> = emptySet(),
-        stubControls: Set<String> = emptySet(),
+        stubControls: Set<String> = emptySet()
     ): String {
         val topics = Topics(deviceId)
 
@@ -58,21 +62,15 @@ object DiscoveryPayloadBuilder {
         }
 
         return JSONObject().apply {
-            put("~", topics.base)
             put("device", device)
             put("origin", origin)
-            put("availability_topic", "~/availability")
+            put("availability_topic", topics.availability)
             put("qos", 1)
             put("components", components)
         }.toString()
     }
 
-    private fun component(
-        spec: EntitySpec,
-        deviceId: String,
-        topics: Topics,
-        stub: Boolean,
-    ): JSONObject {
+    private fun component(spec: EntitySpec, deviceId: String, topics: Topics, stub: Boolean): JSONObject {
         if (stub) {
             return JSONObject().put("platform", spec.platform)
         }
@@ -81,8 +79,8 @@ object DiscoveryPayloadBuilder {
             put("platform", spec.platform)
             put("unique_id", "${deviceId}_${spec.key}")
             put("name", spec.name)
-            put("state_topic", topics.state(spec.key).removePrefix("${topics.base}/").let { "~/$it" })
-            spec.command?.let { put("command_topic", "~/cmd/${it.action}") }
+            put("state_topic", topics.state(spec.key))
+            spec.command?.let { put("command_topic", topics.command(it.action)) }
             spec.deviceClass?.let { put("device_class", it) }
             spec.unit?.let { put("unit_of_measurement", it) }
             spec.stateClass?.let { put("state_class", it) }

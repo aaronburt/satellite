@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"satellite/internal/capabilities"
@@ -432,8 +433,8 @@ func TestConfigExportAndImport(t *testing.T) {
 	reqImportBadPass, _ := http.NewRequest("POST", "/api/config/import?token="+token, bytes.NewReader(badPassReq))
 	rrImportBadPass := httptest.NewRecorder()
 	server.server.Handler.ServeHTTP(rrImportBadPass, reqImportBadPass)
-	if rrImportBadPass.Code != http.StatusUnauthorized {
-		t.Errorf("expected 401 for wrong passphrase, got %d", rrImportBadPass.Code)
+	if rrImportBadPass.Code != http.StatusUnprocessableEntity {
+		t.Errorf("expected 422 for wrong passphrase, got %d", rrImportBadPass.Code)
 	}
 
 	goodPassReq, _ := json.Marshal(map[string]interface{}{
@@ -464,5 +465,65 @@ func TestConfigExportAndImport(t *testing.T) {
 	server.server.Handler.ServeHTTP(rrImportPlain, reqImportPlain)
 	if rrImportPlain.Code != http.StatusOK {
 		t.Fatalf("expected 200 for plain import, got %d", rrImportPlain.Code)
+	}
+}
+
+func TestTelemetryWebhookConfigAndTest(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("APPDATA", tmpDir)
+	t.Setenv("XDG_CONFIG_HOME", tmpDir)
+
+	var gotAuth string
+	var gotBody map[string]interface{}
+	hook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer hook.Close()
+
+	server := NewServer(telemetry.NewCollector(), mqtt.NewClient())
+	_, _ = server.Start(0)
+	defer server.Stop()
+	token := server.Token()
+
+	post := func(path, body string) *httptest.ResponseRecorder {
+		req, _ := http.NewRequest("POST", path+"?token="+token, bytes.NewReader([]byte(body)))
+		rr := httptest.NewRecorder()
+		server.server.Handler.ServeHTTP(rr, req)
+		return rr
+	}
+
+	// Save with a token, then save again with a blank token: the token is kept.
+	cfgBody := fmt.Sprintf(`{"node_id":"n1","interval_sec":5,"telemetry_webhook":{"enabled":true,"url":" %s ","bearer_token":"secret"}}`, hook.URL)
+	if rr := post("/api/config", cfgBody); rr.Code != http.StatusOK {
+		t.Fatalf("save failed: %d %s", rr.Code, rr.Body.String())
+	}
+	cfgBody = fmt.Sprintf(`{"node_id":"n1","interval_sec":5,"telemetry_webhook":{"enabled":true,"url":"%s","bearer_token":""}}`, hook.URL)
+	post("/api/config", cfgBody)
+	saved := config.Get().TelemetryWebhook
+	if saved.BearerToken != "secret" || saved.URL != hook.URL || !saved.Enabled {
+		t.Fatalf("unexpected saved webhook config: %+v", saved)
+	}
+
+	// GET must not leak the token.
+	req, _ := http.NewRequest("GET", "/api/config?token="+token, nil)
+	rr := httptest.NewRecorder()
+	server.server.Handler.ServeHTTP(rr, req)
+	if strings.Contains(rr.Body.String(), "secret") {
+		t.Fatalf("bearer token leaked in GET /api/config")
+	}
+
+	// Test endpoint falls back to the saved URL and token.
+	rr = post("/api/test-telemetry-webhook", `{}`)
+	if !strings.Contains(rr.Body.String(), `"success":true`) {
+		t.Fatalf("expected success, got %s", rr.Body.String())
+	}
+	if gotAuth != "Bearer secret" || gotBody["device_id"] != "n1" || gotBody["state"] == nil {
+		t.Fatalf("unexpected webhook request: auth=%q body=%v", gotAuth, gotBody)
+	}
+
+	if rr := post("/api/test-telemetry-webhook", "invalid"); rr.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for bad json, got %d", rr.Code)
 	}
 }

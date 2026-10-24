@@ -10,11 +10,7 @@ import androidx.compose.ui.graphics.Color
  * hardcoding hex values.
  */
 @Immutable
-data class ExtendedColors(
-    val success: Color,
-    val successContainer: Color,
-    val onSuccessContainer: Color,
-)
+data class ExtendedColors(val success: Color, val successContainer: Color, val onSuccessContainer: Color)
 
 internal val LightExtendedColors = ExtendedColors(
     success = Color(0xFF1B873F),

@@ -22,6 +22,18 @@ Each app has its own README with build and setup instructions:
 - [`windows/README.md`](windows/README.md)
 - [`android/README.md`](android/README.md)
 
+## Documentation
+
+Start with the [documentation index](docs/README.md) for setup and integration guides.
+
+- [Project TODO](TODO.md): prioritized fixes, verification work, and feature candidates.
+- [Architecture](docs/architecture.md): components, data flow, and lifecycle.
+- [HTTP API](docs/http-api.md): desktop endpoint access, authentication, and PowerShell/Go examples.
+- [MQTT and webhooks](docs/mqtt-and-webhooks.md): topics, commands, payloads, and platform differences.
+- [Troubleshooting](docs/troubleshooting.md): connectivity, discovery, reporting, and current limitations.
+- [Contributing](CONTRIBUTING.md): development, testing, versioning, and releases.
+- [Security policy](SECURITY.md): private vulnerability reporting.
+
 ## Releases
 
 Both apps ship in one release. Bump `Version` in `windows/internal/config/config.go` and push to `main`, and [`release.yml`](.github/workflows/release.yml) builds everything and publishes a single `vX.Y.Z` release containing:
@@ -30,7 +42,7 @@ Both apps ship in one release. Bump `Version` in `windows/internal/config/config
 - `satellite-linux-amd64` (Linux)
 - `satellite-vX.Y.Z.apk` (Android, signed)
 
-Each app updates itself from the latest release: the Windows app checks the release tag, and the Android app downloads the `.apk` attached to it.
+The desktop agent checks the release tag and links to the release for download. The Android app can download, verify, and install the `.apk` attached to the latest release.
 
 ## Disclaimer
 

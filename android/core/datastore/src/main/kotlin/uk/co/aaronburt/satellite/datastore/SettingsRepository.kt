@@ -1,12 +1,12 @@
 package uk.co.aaronburt.satellite.datastore
 
+import kotlinx.coroutines.flow.Flow
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
 import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
-import kotlinx.coroutines.flow.Flow
 
 /**
  * Persisted app configuration.

@@ -1,21 +1,24 @@
 package uk.co.aaronburt.satellite.update
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Reads the latest published release from GitHub. Unauthenticated, so it is
  * deliberately called only on an explicit user action (60 requests/hour limit).
  */
 @Singleton
-class UpdateChecker @Inject constructor() {
+class UpdateChecker internal constructor(private val latestReleaseUrl: String) : ReleaseSource {
 
-    suspend fun latestRelease(): GitHubRelease = withContext(Dispatchers.IO) {
-        val connection = (URL(LATEST_RELEASE_URL).openConnection() as HttpURLConnection).apply {
+    @Inject
+    constructor() : this(LATEST_RELEASE_URL)
+
+    override suspend fun latestRelease(): GitHubRelease = withContext(Dispatchers.IO) {
+        val connection = (URL(latestReleaseUrl).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = CONNECT_TIMEOUT_MILLIS
             readTimeout = READ_TIMEOUT_MILLIS

@@ -1,6 +1,10 @@
 # TODO / Handoff — Satellite (Android)
 
-Pick-up notes for tomorrow. The app is an Android companion for Home Assistant
+> **Historical note (handoff notes written 2026-10-07 to 2026-10-09; reconciled 2026-10-24).** These notes record how the Android app was planned and built and can include completed or superseded plans. They are not the active backlog: open work is tracked in the [project TODO](../TODO.md) and its linked [GitHub issues](https://github.com/aaronburt/satellite/issues). See the [current documentation](../docs/README.md) for setup and implemented behavior. The project is now the `aaronburt/satellite` monorepo (Android app in `android/`), licensed under the [MIT License](../LICENSE) at the repo root.
+
+Original pick-up notes follow. Items still unchecked below are only ideas from that time; check the [project TODO](../TODO.md) before treating any of them as open.
+
+The app is an Android companion for Home Assistant
 that reports device state over **MQTT** or a **webhook**.
 
 ---
@@ -18,7 +22,10 @@ that reports device state over **MQTT** or a **webhook**.
 - Settings: System/Light/Dark theme, random-but-editable device name, update
   mode (periodic vs event-driven) + interval, permission onboarding.
 - **Release** `v0.1.0` published (signed with the project release keystore).
-- Repo is **public**: <https://github.com/aaronburt/SatelliteAndroid>
+  *(Historical: releases now ship from the monorepo, Windows and Android in one
+  combined GitHub Release — see [releases](https://github.com/aaronburt/satellite/releases).)*
+- Repo is **public**: originally `aaronburt/SatelliteAndroid`, now merged into
+  <https://github.com/aaronburt/satellite> under `android/`.
 - **CI is green.**
 
 Verified on a real phone (Galaxy S23 Ultra): device `Satellite-AB68` online,
@@ -90,8 +97,8 @@ Entities screen, and commands for disabled entities are ignored.
 - [ ] Webhook: retry with backoff + optional offline queue (currently a failed
       POST is dropped).
 - [ ] Webhook: optional basic auth as an alternative to the bearer token.
-- [ ] `DiscoveryPayloadBuilder.SUPPORT_URL` is a placeholder
-      (`https://github.com/`) — set it to the real repo URL.
+- [x] `DiscoveryPayloadBuilder.SUPPORT_URL` set to the real repo URL
+      (`https://github.com/aaronburt/satellite`). ✅ Done.
 - [ ] Replace deprecated `WifiManager.connectionInfo` with a `NetworkCallback`.
 - [ ] Retained-message expiry verification + automatic ghost cleanup.
 - [ ] Consider a watchdog (`setAndAllowWhileIdle`) for aggressive OEMs.
@@ -114,8 +121,8 @@ Entities screen, and commands for disabled entities are ignored.
 - [ ] F-Droid listing + reproducible build notes (decided distribution).
 
 ### 6. Housekeeping
-- [ ] Add a **LICENSE** — the repo is public with none (defaults to
-      all-rights-reserved). **Decided: GPL-3.0.**
+- [x] Add a **LICENSE**. ✅ Done — the repo is licensed under **MIT** (root
+      `LICENSE`). The earlier GPL-3.0 decision below was superseded.
 - [x] Clear the stale emulator ghost topics (`satellite/<old-id>/availability`).
       ✅ Done — cleared retained discovery/availability/state for the old device id.
 - [ ] Keep `README.md` / `docs/development-plan.md` in sync as things land.
@@ -143,7 +150,7 @@ Still open:
 - [ ] Snackbar instead of inline "Saved." text.
 - [ ] Input validation + password reveal toggle.
 - [ ] Localize UI strings into `strings.xml` (currently hardcoded in Compose).
-- [ ] Per-entity enable/disable.
+- [x] Per-entity enable/disable for controls (see §1, M3).
 
 ### 8. Reporting master switch (done)
 - [x] `SettingsRepository.reportingEnabled` persisted in DataStore.
@@ -183,7 +190,8 @@ Single big feature: the app can update itself from GitHub Releases.
 
 ## Decisions (2026-10-07)
 
-1. **License** — **GPL-3.0**. Add `LICENSE` + copyright header policy.
+1. **License** — ~~GPL-3.0~~ *superseded:* the repo ships under the **MIT**
+   License (root `LICENSE`).
 2. **Voice satellite (Wyoming)** — **permanently out of scope**. Remove from the
    roadmap; note the rationale in `docs/development-plan.md`.
 3. **Multi-broker / multi-server** — **single broker for v1**; defer.

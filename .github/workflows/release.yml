@@ -108,6 +108,11 @@ jobs:
             choco install innosetup --no-progress -y --skip-if-installed
           }
 
+      # Never publish a release whose tests fail.
+      - name: Run tests
+        shell: pwsh
+        run: go test -count=1 ./...
+
       - name: Build Binaries
         shell: pwsh
         run: |
@@ -189,8 +194,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          build-root-directory: android
 
       - name: Install SDK packages
         run: |
@@ -215,6 +218,9 @@ jobs:
           printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/satellite-release.jks
           printf 'storeFile=keystore/satellite-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+
+      - name: Unit tests
+        run: ./gradlew test --stacktrace
 
       - name: Assemble release APK
         run: |

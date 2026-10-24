@@ -21,7 +21,7 @@ internal class StateChangeWatcher(
     private val context: Context,
     private val scope: CoroutineScope,
     private val isActive: () -> Boolean,
-    private val onChanged: suspend () -> Unit,
+    private val onChanged: suspend () -> Unit
 ) {
 
     private var receiver: BroadcastReceiver? = null

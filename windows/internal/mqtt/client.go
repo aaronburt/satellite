@@ -30,20 +30,32 @@ const (
 	StatusConnected    Status = "Connected"
 )
 
+// Seams for tests: reconnect timing and the desktop notification call.
+var (
+	initialBackoff = 2 * time.Second
+	maxBackoff     = 30 * time.Second
+	stableAfter    = 10 * time.Second
+	showToast      = toast.Show
+)
+
 type Client struct {
-	mu           sync.RWMutex
-	cfg          config.Config
-	pahoClient   *paho.Client
-	netConn      net.Conn
-	status       Status
-	cancelLoop   context.CancelFunc
+	mu               sync.RWMutex
+	cfg              config.Config
+	pahoClient       *paho.Client
+	netConn          net.Conn
+	status           Status
+	cancelLoop       context.CancelFunc
 	lastSnapshot     telemetry.Snapshot
 	lastSentTime     time.Time
 	forcePublishNext bool
 	hasBattery       bool
-	caps         capabilities.PlatformCapabilities
-	registry     *actions.Registry
-	notifyChan   chan toast.Notification
+	caps             capabilities.PlatformCapabilities
+	registry         *actions.Registry
+	notifyChan       chan toast.Notification
+	showToast        func(toast.Notification) error
+	initialBackoff   time.Duration
+	maxBackoff       time.Duration
+	stableAfter      time.Duration
 }
 
 func NewClient() *Client {
@@ -54,6 +66,10 @@ func NewClient() *Client {
 		caps:             capabilities.Detect(),
 		notifyChan:       make(chan toast.Notification, 5),
 		forcePublishNext: true,
+		showToast:        showToast,
+		initialBackoff:   initialBackoff,
+		maxBackoff:       maxBackoff,
+		stableAfter:      stableAfter,
 	}
 	reg.SetStatusProvider(func() string {
 		c.mu.RLock()
@@ -142,7 +158,7 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) runLoop(ctx context.Context) {
-	backoff := 2 * time.Second
+	backoff := c.initialBackoff
 	for {
 		select {
 		case <-ctx.Done():
@@ -157,15 +173,15 @@ func (c *Client) runLoop(ctx context.Context) {
 				logger.Warn("mqtt", fmt.Sprintf("MQTT connection error: %v", err))
 			}
 
-			if time.Since(startTime) >= 10*time.Second {
-				backoff = 2 * time.Second
+			if time.Since(startTime) >= c.stableAfter {
+				backoff = c.initialBackoff
 			}
 
 			select {
 			case <-ctx.Done():
 				return
 			case <-time.After(backoff):
-				if backoff < 30*time.Second {
+				if backoff < c.maxBackoff {
 					backoff *= 2
 				}
 			}
@@ -230,16 +246,24 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	router := paho.NewStandardRouter()
 	router.RegisterHandler(commandTopic, func(p *paho.Publish) {
 		c.mu.RLock()
-		allowed := c.cfg.Expose.RemoteLock || c.cfg.Expose.MediaControl
+		expose := c.cfg.Expose
 		reg := c.registry
 		c.mu.RUnlock()
 
-		if !allowed || reg == nil {
+		if reg == nil {
+			return
+		}
+		action, err := actions.ParsePayload(p.Payload)
+		if err != nil {
+			return
+		}
+		if !commandAllowed(expose, action) {
+			logger.Warn("mqtt", fmt.Sprintf("Ignoring remote command %q: not enabled in settings", action))
 			return
 		}
 
 		logger.Log("MQTT", "command", fmt.Sprintf("Received remote command on %s: %s", commandTopic, string(p.Payload)))
-		_ = reg.ExecutePayload(p.Payload)
+		_ = reg.Execute(action)
 	})
 	router.RegisterHandler(notifyTopic, func(p *paho.Publish) {
 		logger.Log("MQTT", "notify", fmt.Sprintf("Received notification on %s: %s", notifyTopic, string(p.Payload)))
@@ -315,7 +339,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	pubCancel()
 
 	var subscriptions []paho.SubscribeOptions
-	if cfg.Expose.RemoteLock || cfg.Expose.MediaControl {
+	if acceptsCommands(cfg.Expose) {
 		subscriptions = append(subscriptions, paho.SubscribeOptions{
 			Topic: commandTopic,
 			QoS:   1,
@@ -378,6 +402,28 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 		c.mu.Unlock()
 		return fmt.Errorf("mqtt connection closed")
 	}
+}
+
+// acceptsCommands reports whether any setting that exposes a remote command
+// (a Home Assistant button or media player) is enabled.
+func acceptsCommands(e config.ExposeConfig) bool {
+	return e.RemoteLock || e.MediaControl || e.DisplayState
+}
+
+// commandAllowed reports whether a canonical action may be triggered over
+// MQTT. Each action is gated by the setting that exposes it in Home
+// Assistant, so enabling media controls does not also allow locking the PC.
+func commandAllowed(e config.ExposeConfig, action string) bool {
+	switch action {
+	case "lock":
+		return e.RemoteLock
+	case "display_sleep":
+		return e.DisplayState
+	case "media_play_pause", "media_play", "media_pause", "media_next", "media_prev",
+		"media_stop", "volume_mute", "volume_up", "volume_down":
+		return e.MediaControl
+	}
+	return false
 }
 
 func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
@@ -509,7 +555,7 @@ func (c *Client) notifyWorker(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case n := <-c.notifyChan:
-			if err := toast.Show(n); err != nil {
+			if err := c.showToast(n); err != nil {
 				logger.Error("toast", fmt.Sprintf("Failed to show toast notification: %v", err))
 			}
 			select {
@@ -557,4 +603,3 @@ func (c *Client) handleNotify(payload []byte) {
 		logger.Warn("mqtt", fmt.Sprintf("Dropping toast notification '%s': queue full", n.Title))
 	}
 }
-

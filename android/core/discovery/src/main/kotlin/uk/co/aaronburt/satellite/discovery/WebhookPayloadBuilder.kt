@@ -23,7 +23,7 @@ object WebhookPayloadBuilder {
         appVersion: String,
         androidVersion: String,
         states: Map<String, String>,
-        timestampEpochMillis: Long,
+        timestampEpochMillis: Long
     ): String {
         val state = JSONObject().apply {
             states.forEach { (key, value) -> put(key, value) }

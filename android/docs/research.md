@@ -1,5 +1,7 @@
 # SatelliteAndroid — Research Notes
 
+> **Historical research (2026-10-07).** Background notes from before the app was built; names like `SatelliteAndroid` are from that time. The app is now **Satellite** in the [`aaronburt/satellite`](https://github.com/aaronburt/satellite) monorepo, MIT licensed. Active work is tracked in the [project TODO](../../TODO.md); see the [current documentation](../../docs/README.md) for implemented behavior.
+
 **Date:** 2026-10-07
 **Status:** Research complete, plan pending owner decisions
 **Scope:** An Android app that announces itself and its state to Home Assistant (HA) over MQTT, with a HACS-like presence (device, entities, update notifications).
@@ -77,12 +79,12 @@ Since HA 2024.11, a device can publish **one discovery message** exposing all of
     "hw": "Pixel Tablet",
     "sn": "ab12cd34",
     "sa": "Kitchen",
-    "cu": "https://github.com/<owner>/SatelliteAndroid"
+    "cu": "https://github.com/aaronburt/satellite"
   },
   "o": {
     "name": "SatelliteAndroid",
     "sw": "0.1.0",
-    "url": "https://github.com/<owner>/SatelliteAndroid"
+    "url": "https://github.com/aaronburt/satellite"
   },
   "avty_t": "~/availability",
   "qos": 1,

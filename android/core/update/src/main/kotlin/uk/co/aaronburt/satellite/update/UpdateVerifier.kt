@@ -21,17 +21,15 @@ import javax.inject.Singleton
  * anyway, but verifying first means we never hand the user an APK we cannot trust.
  */
 @Singleton
-class UpdateVerifier @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class UpdateVerifier @Inject constructor(@ApplicationContext private val context: Context) : ApkVerifier {
 
-    fun verifySha256(file: File, expected: String?): Boolean {
+    override fun verifySha256(file: File, expected: String?): Boolean {
         if (expected.isNullOrBlank()) return true
         val actual = sha256(file) ?: return false
         return actual.equals(expected, ignoreCase = true)
     }
 
-    fun signatureMatchesInstalledApp(apk: File): Boolean = runCatching {
+    override fun signatureMatchesInstalledApp(apk: File): Boolean = runCatching {
         val packageManager = context.packageManager
         val flags = signatureFlags()
 
@@ -45,12 +43,11 @@ class UpdateVerifier @Inject constructor(
     }.getOrDefault(false)
 
     @Suppress("DEPRECATION")
-    private fun signatureFlags(): Int =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageManager.GET_SIGNING_CERTIFICATES
-        } else {
-            PackageManager.GET_SIGNATURES
-        }
+    private fun signatureFlags(): Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        PackageManager.GET_SIGNING_CERTIFICATES
+    } else {
+        PackageManager.GET_SIGNATURES
+    }
 
     @Suppress("DEPRECATION")
     private fun certDigests(info: PackageInfo): Set<String> {
@@ -78,6 +75,5 @@ class UpdateVerifier @Inject constructor(
     private fun sha256(bytes: ByteArray): String? =
         runCatching { MessageDigest.getInstance("SHA-256").digest(bytes).toHex() }.getOrNull()
 
-    private fun ByteArray.toHex(): String =
-        joinToString(separator = "") { byte -> "%02x".format(byte) }
+    private fun ByteArray.toHex(): String = joinToString(separator = "") { byte -> "%02x".format(byte) }
 }

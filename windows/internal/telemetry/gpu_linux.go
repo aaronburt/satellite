@@ -78,17 +78,38 @@ func readDrmGpu(cardDir string, index int) (GPUInfo, bool) {
 	return gpu, true
 }
 
-func queryNvidiaSmi() []GPUInfo {
+// nvidiaSmiOutput is a seam so tests can feed canned nvidia-smi output.
+var nvidiaSmiOutput = func() (string, error) {
 	cmd := exec.Command("nvidia-smi", "--query-gpu=index,name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw", "--format=csv,noheader,nounits")
 	var out bytes.Buffer
 	cmd.Stdout = &out
-	if err := cmd.Run(); err != nil {
+	err := cmd.Run()
+	return out.String(), err
+}
+
+func queryNvidiaSmi() []GPUInfo {
+	out, err := nvidiaSmiOutput()
+	if err != nil {
 		return nil
 	}
+	return parseNvidiaSmiCSV(out)
+}
 
-	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+// optionalFloat parses an nvidia-smi field, returning nil for values the
+// driver can't report ("[N/A]", "[Not Supported]", empty).
+func optionalFloat(field string) *float64 {
+	v, err := strconv.ParseFloat(strings.TrimSpace(field), 64)
+	if err != nil {
+		return nil
+	}
+	return &v
+}
+
+// parseNvidiaSmiCSV parses `nvidia-smi --format=csv,noheader,nounits` output
+// for the fields index,name,utilization,mem used,mem total,temp,power.
+func parseNvidiaSmiCSV(out string) []GPUInfo {
 	var gpus []GPUInfo
-	for _, line := range lines {
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
 		fields := strings.Split(line, ",")
 		if len(fields) < 7 {
 			continue
@@ -97,25 +118,18 @@ func queryNvidiaSmi() []GPUInfo {
 		if err != nil {
 			continue
 		}
-		name := strings.TrimSpace(fields[1])
-		core, _ := strconv.ParseFloat(strings.TrimSpace(fields[2]), 64)
-		memUsed, _ := strconv.ParseFloat(strings.TrimSpace(fields[3]), 64)
-		memTotal, _ := strconv.ParseFloat(strings.TrimSpace(fields[4]), 64)
-		temp, _ := strconv.ParseFloat(strings.TrimSpace(fields[5]), 64)
-		power, _ := strconv.ParseFloat(strings.TrimSpace(fields[6]), 64)
-
 		gpu := GPUInfo{
 			Index:            idx,
-			Name:             name,
+			Name:             strings.TrimSpace(fields[1]),
 			Vendor:           "NVIDIA",
-			CoreUsagePercent: &core,
-			MemoryUsedMB:     &memUsed,
-			MemoryTotalMB:    &memTotal,
-			TemperatureC:     &temp,
-			PowerWatts:       &power,
+			CoreUsagePercent: optionalFloat(fields[2]),
+			MemoryUsedMB:     optionalFloat(fields[3]),
+			MemoryTotalMB:    optionalFloat(fields[4]),
+			TemperatureC:     optionalFloat(fields[5]),
+			PowerWatts:       optionalFloat(fields[6]),
 		}
-		if memTotal > 0 {
-			pct := (memUsed / memTotal) * 100.0
+		if gpu.MemoryUsedMB != nil && gpu.MemoryTotalMB != nil && *gpu.MemoryTotalMB > 0 {
+			pct := (*gpu.MemoryUsedMB / *gpu.MemoryTotalMB) * 100.0
 			gpu.MemoryPercent = &pct
 		}
 		gpus = append(gpus, gpu)
@@ -135,14 +149,19 @@ func GetGPUInfo(enableNVML ...bool) []GPUInfo {
 		}
 	}
 
-	matches, err := filepath.Glob("/sys/class/drm/card[0-9]")
+	matches, err := filepath.Glob(hostPath("/sys/class/drm/card[0-9]*"))
 	if err != nil || len(matches) == 0 {
 		return nil
 	}
 
 	var gpus []GPUInfo
-	for i, cardPath := range matches {
-		if gpu, ok := readDrmGpu(cardPath, i); ok {
+	for _, cardPath := range matches {
+		// card[0-9]* also matches connectors such as card0-HDMI-A-1.
+		index, err := strconv.Atoi(strings.TrimPrefix(filepath.Base(cardPath), "card"))
+		if err != nil {
+			continue
+		}
+		if gpu, ok := readDrmGpu(cardPath, index); ok {
 			gpus = append(gpus, gpu)
 		}
 	}

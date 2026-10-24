@@ -1,16 +1,14 @@
 package uk.co.aaronburt.satellite.update
 
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageInfo
-import android.os.Build
-import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Orchestrates the whole update flow: check → download → verify → install.
@@ -21,11 +19,11 @@ import javax.inject.Singleton
  */
 @Singleton
 class UpdateManager @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val checker: UpdateChecker,
-    private val downloader: UpdateDownloader,
-    private val verifier: UpdateVerifier,
-    private val installer: UpdateInstaller,
+    private val installed: InstalledVersion,
+    private val checker: ReleaseSource,
+    private val downloader: ApkDownloader,
+    private val verifier: ApkVerifier,
+    private val installer: ApkInstaller
 ) {
 
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
@@ -33,16 +31,11 @@ class UpdateManager @Inject constructor(
 
     private val downloadedApk = MutableStateFlow<File?>(null)
 
-    val installedVersionName: String get() = packageInfo()?.versionName ?: "unknown"
+    private val inFlight = AtomicBoolean(false)
 
-    val installedVersionCode: Long
-        get() = packageInfo()?.let { info ->
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                info.longVersionCode
-            } else {
-                @Suppress("DEPRECATION") info.versionCode.toLong()
-            }
-        } ?: 0L
+    val installedVersionName: String get() = installed.name
+
+    val installedVersionCode: Long get() = installed.code
 
     /** False until the user allows Satellite to install unknown apps. */
     fun canInstall(): Boolean = installer.canInstall()
@@ -54,9 +47,12 @@ class UpdateManager @Inject constructor(
      * straight away so the user only has to confirm the install.
      */
     suspend fun checkAndDownload() {
-        if (_state.value is UpdateState.Checking || _state.value is UpdateState.Downloading) return
+        // Atomic, so two quick taps (or a tap plus a Home Assistant command)
+        // cannot start two downloads of the same file.
+        if (!inFlight.compareAndSet(false, true)) return
 
         _state.value = UpdateState.Checking
+        downloadedApk.value = null
         try {
             val release = checker.latestRelease()
             val latestCode = release.versionCode
@@ -89,10 +85,15 @@ class UpdateManager @Inject constructor(
                 notes = release.notes,
                 releaseUrl = release.htmlUrl,
             )
+        } catch (cancelled: CancellationException) {
+            _state.value = UpdateState.Idle
+            throw cancelled
         } catch (throwable: Throwable) {
             _state.value = UpdateState.Failed(
                 throwable.message ?: throwable::class.simpleName ?: "Update check failed",
             )
+        } finally {
+            inFlight.set(false)
         }
     }
 
@@ -102,8 +103,4 @@ class UpdateManager @Inject constructor(
             ?: return Result.failure(IllegalStateException("No update has been downloaded yet"))
         return installer.install(apk)
     }
-
-    private fun packageInfo(): PackageInfo? = runCatching {
-        context.packageManager.getPackageInfo(context.packageName, 0)
-    }.getOrNull()
 }

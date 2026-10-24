@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const Version = "0.25.0"
+const Version = "0.26.1"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`
@@ -55,6 +55,15 @@ type WebhookConfig struct {
 	Secret   string `json:"secret,omitempty"`
 }
 
+// TelemetryWebhookConfig sends each telemetry snapshot as JSON to any HTTP
+// endpoint. It runs alongside MQTT and does not replace it.
+type TelemetryWebhookConfig struct {
+	Enabled        bool   `json:"enabled"`
+	URL            string `json:"url"`
+	BearerToken    string `json:"bearer_token,omitempty"`
+	MinIntervalSec int    `json:"min_interval_sec,omitempty"`
+}
+
 type Config struct {
 	NodeID       string        `json:"node_id"`
 	MQTT         MQTTConfig    `json:"mqtt"`
@@ -69,6 +78,8 @@ type Config struct {
 	Webhook      WebhookConfig `json:"webhook"`
 	CheckUpdates bool          `json:"check_updates"`
 	UpdateRepo   string        `json:"update_repo,omitempty"`
+
+	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
 
 func (c Config) GetPort() int {
@@ -84,6 +95,10 @@ func (c Config) GetPort() int {
 var (
 	cfgLock sync.RWMutex
 	current Config
+
+	listenersLock  sync.Mutex
+	listeners      []listener
+	nextListenerID int
 )
 
 func DefaultExpose() ExposeConfig {
@@ -202,7 +217,47 @@ func Load() (Config, error) {
 	return current, nil
 }
 
+// OnChange registers fn to run after every successful Save, with the saved
+// config. Listeners run synchronously on the saving goroutine, after the
+// config lock is released, so they must be quick and must not call Save.
+// The returned func unregisters fn.
+func OnChange(fn func(Config)) (remove func()) {
+	listenersLock.Lock()
+	defer listenersLock.Unlock()
+	nextListenerID++
+	id := nextListenerID
+	listeners = append(listeners, listener{id, fn})
+	return func() {
+		listenersLock.Lock()
+		defer listenersLock.Unlock()
+		for i, l := range listeners {
+			if l.id == id {
+				listeners = append(listeners[:i:i], listeners[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+type listener struct {
+	id int
+	fn func(Config)
+}
+
 func Save(cfg Config) error {
+	if err := save(cfg); err != nil {
+		return err
+	}
+	listenersLock.Lock()
+	ls := append([]listener(nil), listeners...)
+	listenersLock.Unlock()
+	for _, l := range ls {
+		l.fn(cfg)
+	}
+	return nil
+}
+
+func save(cfg Config) error {
 	cfgLock.Lock()
 	defer cfgLock.Unlock()
 

@@ -1,0 +1,89 @@
+name: Go CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'windows/**'
+      - '.github/workflows/go-ci.yml'
+  pull_request:
+    paths:
+      - 'windows/**'
+      - '.github/workflows/go-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: go-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: windows
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+    env:
+      GOTOOLCHAIN: local
+      GOFLAGS: -mod=readonly
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: 'windows/go.mod'
+          cache: true
+          cache-dependency-path: windows/go.sum
+
+      - name: Check formatting
+        if: runner.os == 'Linux'
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Check go.mod is tidy
+        if: runner.os == 'Linux'
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Vet other platforms
+        if: runner.os == 'Linux'
+        run: |
+          GOOS=windows go vet ./...
+          GOOS=darwin go vet ./...
+
+      # The race detector needs cgo, which the Windows runner is not set up for.
+      - name: Test (with race detector)
+        if: runner.os == 'Linux'
+        run: go test -race -count=1 -coverprofile=coverage.out ./...
+
+      - name: Test
+        if: runner.os == 'Windows'
+        run: go test -count=1 "-coverprofile=coverage.out" ./...
+
+      - name: Coverage summary
+        if: always() && hashFiles('windows/coverage.out') != ''
+        shell: bash
+        run: |
+          {
+            echo "### Go coverage (${{ runner.os }})"
+            echo '```'
+            go tool cover -func=coverage.out | tail -n 1
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

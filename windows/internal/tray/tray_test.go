@@ -1,3 +1,5 @@
+//go:build windows
+
 package tray
 
 import (
@@ -175,4 +177,3 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal("expected eventLoop to terminate on quitItem click")
 	}
 }
-
