@@ -26,6 +26,7 @@ Each app has its own README with build and setup instructions:
 
 Start with the [documentation index](docs/README.md) for setup and integration guides.
 
+- [Project TODO](TODO.md): prioritized fixes, verification work, and feature candidates.
 - [Architecture](docs/architecture.md): components, data flow, and lifecycle.
 - [HTTP API](docs/http-api.md): desktop endpoint access, authentication, and PowerShell/Go examples.
 - [MQTT and webhooks](docs/mqtt-and-webhooks.md): topics, commands, payloads, and platform differences.

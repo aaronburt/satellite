@@ -8,6 +8,7 @@ webhooks provide an alternative destination for telemetry.
 
 | Task | Guide |
 | --- | --- |
+| Find current priorities and planned work | [Project TODO](../TODO.md) |
 | Install, build, or configure the desktop agent | [Windows and Linux](../windows/README.md) |
 | Install, build, or configure the Android app | [Android](../android/README.md) |
 | Understand components and runtime behavior | [Architecture](architecture.md) |

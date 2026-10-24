@@ -1,5 +1,8 @@
 # TODO / Handoff — Satellite (Android)
 
+> Active work is tracked in the [project TODO](../TODO.md). These handoff notes
+> remain historical reference and can include completed or superseded plans.
+
 > Planning/reference material: includes historical decisions and proposed features.
 > See the [current documentation](../docs/README.md) for setup and implemented behavior.
 
