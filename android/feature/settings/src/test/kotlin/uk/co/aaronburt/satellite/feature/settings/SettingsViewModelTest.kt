@@ -3,6 +3,7 @@ package uk.co.aaronburt.satellite.feature.settings
 import android.content.Intent
 import androidx.lifecycle.viewModelScope
 import java.io.File
+import java.io.IOException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -17,6 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
 import uk.co.aaronburt.satellite.model.Transport
@@ -97,7 +99,7 @@ class SettingsViewModelTest {
         vm?.viewModelScope?.cancel()
     }
 
-    private fun TestScope.viewModel(settings: FakeSettingsRepository): SettingsViewModel {
+    private fun TestScope.viewModel(settings: SettingsRepository): SettingsViewModel {
         val audio = AudioControls(context)
         val telemetry = DeviceStateReader(context, audio)
         val status = ReporterStatus()
@@ -232,7 +234,7 @@ class SettingsViewModelTest {
             BrokerSettings("broker.local", 1883, "user", " pass with spaces ", useTls = false),
             settings.brokerState.value,
         )
-        assertEquals(WebhookSettings("https://ha.local/hook", "tok"), settings.webhookState.value)
+        assertNull("hidden webhook fields are not saved", settings.webhookState.value)
         assertTrue(vm.uiState.value.saved)
     }
 
@@ -241,7 +243,6 @@ class SettingsViewModelTest {
         val settings = FakeSettingsRepository(deviceName = "Original")
         val vm = viewModel(settings)
 
-        vm.onDeviceNameChange("   ")
         vm.onUsernameChange("  ")
         vm.onPasswordChange("")
         vm.onWebhookUrlChange("  ")
@@ -255,7 +256,7 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `an invalid port falls back to 8883`() = runTest {
+    fun `an invalid port preserves the saved configuration`() = runTest {
         val settings = FakeSettingsRepository()
         val vm = viewModel(settings)
 
@@ -263,11 +264,13 @@ class SettingsViewModelTest {
         vm.save()
         runCurrent()
 
-        assertEquals(8883, settings.brokerState.value!!.port)
+        assertNull(settings.brokerState.value)
+        assertEquals(R.string.error_port, vm.uiState.value.errors["port"])
+        assertFalse(vm.uiState.value.saved)
     }
 
     @Test
-    fun `switches and choices are saved straight away`() = runTest {
+    fun `preferences save immediately but transport waits for validation`() = runTest {
         val settings = FakeSettingsRepository()
         val vm = viewModel(settings)
 
@@ -282,7 +285,7 @@ class SettingsViewModelTest {
         assertFalse(settings.reportingState.value)
         assertEquals(UpdateMode.EVENT_DRIVEN, settings.updateModeState.value)
         assertEquals(UpdateInterval.FIFTEEN_MINUTES, settings.updateIntervalState.value)
-        assertEquals(Transport.WEBHOOK, settings.transportState.value)
+        assertEquals(Transport.MQTT, settings.transportState.value)
         val state = vm.uiState.value
         assertEquals(ThemePreference.LIGHT, state.themePreference)
         assertEquals(Transport.WEBHOOK, state.transport)
@@ -298,12 +301,89 @@ class SettingsViewModelTest {
         runCurrent()
 
         assertEquals("broker.local", settings.brokerState.value?.host)
-        assertEquals("Test failed — check the URL/token and that you're connected", vm.uiState.value.testStatus)
+        assertEquals(R.string.test_failed, vm.uiState.value.testStatus)
 
         client.setConnected()
         vm.onTest()
         runCurrent()
-        assertEquals("Test sent ✓", vm.uiState.value.testStatus)
+        assertEquals(R.string.test_sent, vm.uiState.value.testStatus)
+    }
+
+    @Test
+    fun `invalid save and test leave every saved value intact`() = runTest {
+        val broker = BrokerSettings("working.local", 8883, null, null, true)
+        val webhook = WebhookSettings("https://ha.local/hook", "secret")
+        val settings = FakeSettingsRepository(broker = broker, webhook = webhook, deviceName = "Original")
+        val vm = viewModel(settings)
+        vm.onDeviceNameChange("Changed")
+        vm.onHostChange("mqtt://bad/host")
+        vm.onPortChange("0")
+        vm.save()
+        vm.onTest()
+        runCurrent()
+
+        assertEquals(broker, settings.brokerState.value)
+        assertEquals(webhook, settings.webhookState.value)
+        assertEquals("Original", settings.deviceNameState.value)
+        assertEquals(setOf("host", "port"), vm.uiState.value.errors.keys)
+        assertNull(vm.uiState.value.testStatus)
+        assertFalse(vm.uiState.value.busy)
+        assertFalse(vm.uiState.value.saved)
+    }
+
+    @Test
+    fun `invalid webhook cannot activate a different transport`() = runTest {
+        val settings = FakeSettingsRepository(broker = BrokerSettings("working.local", 8883, null, null, true))
+        val vm = viewModel(settings)
+        vm.onTransportChange(Transport.WEBHOOK)
+        vm.onWebhookUrlChange("http://public.example/hook")
+        vm.save()
+        runCurrent()
+        assertEquals(Transport.MQTT, settings.transportState.value)
+        assertNull(settings.webhookState.value)
+        assertEquals(R.string.error_webhook_https, vm.uiState.value.errors["webhookUrl"])
+
+        vm.onWebhookUrlChange(" https://ha.local/hook ")
+        vm.onBearerTokenChange(" token ")
+        vm.save()
+        runCurrent()
+        assertEquals(Transport.WEBHOOK, settings.transportState.value)
+        assertEquals(WebhookSettings("https://ha.local/hook", "token"), settings.webhookState.value)
+        assertTrue(vm.uiState.value.saved)
+        assertTrue(vm.uiState.value.errors.isEmpty())
+    }
+
+    @Test
+    fun `save failures are visible and duplicate submissions are ignored`() = runTest {
+        val backing = FakeSettingsRepository()
+        var writes = 0
+        val failing = object : SettingsRepository by backing {
+            override suspend fun saveDeviceName(name: String) {
+                writes++
+                throw IOException("Storage unavailable")
+            }
+        }
+        val vm = viewModel(failing)
+        vm.save()
+        assertTrue(vm.uiState.value.busy)
+        vm.save()
+        vm.onTest()
+        runCurrent()
+        assertEquals(1, writes)
+        assertEquals(R.string.save_failed, vm.uiState.value.feedback)
+        assertFalse(vm.uiState.value.saved)
+        assertFalse(vm.uiState.value.busy)
+        assertNull(backing.brokerState.value)
+    }
+
+    @Test
+    fun `test while reporting is disabled does not write settings`() = runTest {
+        val settings = FakeSettingsRepository(reportingEnabled = false)
+        val vm = viewModel(settings)
+        vm.onTest()
+        runCurrent()
+        assertNull(settings.brokerState.value)
+        assertNull(vm.uiState.value.testStatus)
     }
 
     @Test

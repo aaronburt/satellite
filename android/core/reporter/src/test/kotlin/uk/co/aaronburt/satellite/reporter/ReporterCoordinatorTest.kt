@@ -192,6 +192,20 @@ class ReporterCoordinatorTest {
     }
 
     @Test
+    fun `test now reads saved transport before the coordinator observes it`() = runTest {
+        val coordinator = coordinator()
+        settings.saveTransport(Transport.WEBHOOK)
+
+        assertTrue(coordinator.testNow())
+        assertNotNull(webhookRequest())
+        assertTrue(client.connects.isEmpty())
+
+        settings.saveReportingEnabled(false)
+        assertFalse(coordinator.testNow())
+        assertNull(webhookRequest())
+    }
+
+    @Test
     fun `stop shuts everything down and start is idempotent`() = runTest {
         val coordinator = coordinator()
         coordinator.start()

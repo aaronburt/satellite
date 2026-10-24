@@ -5,6 +5,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
@@ -31,9 +32,6 @@ class ReporterCoordinator @Inject constructor(
 
     private var job: Job? = null
 
-    @Volatile
-    private var currentTransport: Transport = Transport.MQTT
-
     fun start() {
         if (job?.isActive == true) return
 
@@ -56,14 +54,15 @@ class ReporterCoordinator @Inject constructor(
      * Fires one payload immediately using the active transport. Returns false if
      * it could not be delivered (not connected / bad URL / reporting disabled).
      */
-    suspend fun testNow(): Boolean = when (currentTransport) {
-        Transport.MQTT -> mqttReporter.refresh()
-        Transport.WEBHOOK -> webhookReporter.refresh()
+    suspend fun testNow(): Boolean {
+        if (!settingsRepository.reportingEnabled.first()) return false
+        return when (settingsRepository.transport.first()) {
+            Transport.MQTT -> mqttReporter.refresh()
+            Transport.WEBHOOK -> webhookReporter.refresh()
+        }
     }
 
     private fun apply(transport: Transport, enabled: Boolean) {
-        currentTransport = transport
-
         if (!enabled) {
             stopAll()
             return

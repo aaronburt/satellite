@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,7 +75,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onDeviceNameChange(value: String) = _uiState.update { it.copy(deviceName = value, saved = false) }
+    fun onDeviceNameChange(value: String) = _uiState.update {
+        it.copy(deviceName = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
 
     fun onThemeChange(preference: ThemePreference) {
         _uiState.update { it.copy(themePreference = preference) }
@@ -97,44 +100,78 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun onTransportChange(transport: Transport) {
-        _uiState.update { it.copy(transport = transport, saved = false) }
-        viewModelScope.launch { settingsRepository.saveTransport(transport) }
-    }
-
-    fun onWebhookUrlChange(value: String) = _uiState.update { it.copy(webhookUrl = value, saved = false) }
-
-    fun onBearerTokenChange(value: String) = _uiState.update { it.copy(bearerToken = value, saved = false) }
-
-    fun onHostChange(value: String) = _uiState.update { it.copy(host = value, saved = false) }
-
-    fun onPortChange(value: String) = _uiState.update { it.copy(port = value, saved = false) }
-
-    fun onUsernameChange(value: String) = _uiState.update { it.copy(username = value, saved = false) }
-
-    fun onPasswordChange(value: String) = _uiState.update { it.copy(password = value, saved = false) }
-
-    fun onUseTlsChange(value: Boolean) = _uiState.update { it.copy(useTls = value, saved = false) }
-
-    fun save() {
-        viewModelScope.launch {
-            persist()
-            _uiState.update { it.copy(saved = true) }
+        _uiState.update {
+            it.copy(transport = transport, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
         }
     }
 
-    fun onTest() {
-        viewModelScope.launch {
-            persist()
-            _uiState.update { it.copy(testStatus = "Sending\u2026") }
-            val ok = coordinator.testNow()
+    fun onWebhookUrlChange(value: String) = _uiState.update {
+        it.copy(webhookUrl = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onBearerTokenChange(value: String) = _uiState.update {
+        it.copy(bearerToken = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onHostChange(value: String) = _uiState.update {
+        it.copy(host = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onPortChange(value: String) = _uiState.update {
+        it.copy(port = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onUsernameChange(value: String) = _uiState.update {
+        it.copy(username = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onPasswordChange(value: String) = _uiState.update {
+        it.copy(password = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun onUseTlsChange(value: Boolean) = _uiState.update {
+        it.copy(useTls = value, saved = false, errors = emptyMap(), feedback = null, testStatus = null)
+    }
+
+    fun save() = submit(test = false)
+
+    fun onTest() = submit(test = true)
+
+    private fun submit(test: Boolean) {
+        val snapshot = _uiState.value
+        if (snapshot.busy || (test && !snapshot.reportingEnabled)) return
+        val errors = snapshot.validationErrors()
+        if (errors.isNotEmpty()) {
             _uiState.update {
-                it.copy(
-                    testStatus = if (ok) {
-                        "Test sent \u2713"
-                    } else {
-                        "Test failed \u2014 check the URL/token and that you're connected"
-                    },
-                )
+                it.copy(errors = errors, saved = false, feedback = R.string.error_correct_fields, testStatus = null)
+            }
+            return
+        }
+        _uiState.update {
+            it.copy(busy = true, saved = false, feedback = R.string.saving, testStatus = null)
+        }
+        viewModelScope.launch {
+            try {
+                persist(snapshot)
+                _uiState.update { it.copy(saved = true, feedback = R.string.saved) }
+                if (test) {
+                    _uiState.update { it.copy(testStatus = R.string.test_sending) }
+                    val ok = coordinator.testNow()
+                    _uiState.update {
+                        it.copy(testStatus = if (ok) R.string.test_sent else R.string.test_failed)
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _uiState.update {
+                    it.copy(
+                        feedback = if (it.saved) R.string.saved else R.string.save_failed,
+                        testStatus = if (test) R.string.test_failed else null,
+                    )
+                }
+            } finally {
+                _uiState.update { it.copy(busy = false) }
             }
         }
     }
@@ -151,47 +188,37 @@ class SettingsViewModel @Inject constructor(
     fun onInstallUpdate() {
         updateManager.install().onFailure { error ->
             _uiState.update {
-                it.copy(update = UpdateState.Failed(error.message ?: "Install failed"))
+                it.copy(update = UpdateState.Failed(error.message ?: context.getString(R.string.install_failed)))
             }
         }
     }
 
     fun unknownSourcesIntent(): Intent = updateManager.unknownSourcesIntent()
 
-    private suspend fun persist() {
-        val state = _uiState.value
-
-        state.deviceName.trim()
-            .takeIf { it.isNotBlank() }
-            ?.let { settingsRepository.saveDeviceName(it) }
-
-        settingsRepository.saveBrokerSettings(
-            BrokerSettings(
-                host = state.host.trim(),
-                port = state.port.trim().toIntOrNull() ?: DEFAULT_PORT,
-                username = state.username.trim().ifBlank { null },
-                password = state.password.ifBlank { null },
-                useTls = state.useTls,
-            ),
-        )
-
-        state.webhookUrl.trim()
-            .takeIf { it.isNotBlank() }
-            ?.let {
-                settingsRepository.saveWebhookSettings(
-                    WebhookSettings(
-                        url = it,
-                        bearerToken = state.bearerToken.trim().ifBlank { null },
-                    ),
-                )
-            }
+    private suspend fun persist(state: SettingsUiState) {
+        settingsRepository.saveDeviceName(state.deviceName.trim())
+        if (state.transport == Transport.MQTT) {
+            settingsRepository.saveBrokerSettings(
+                BrokerSettings(
+                    host = state.host.trim(),
+                    port = state.port.trim().toInt(),
+                    username = state.username.trim().ifBlank { null },
+                    password = state.password.ifBlank { null },
+                    useTls = state.useTls,
+                ),
+            )
+        } else {
+            settingsRepository.saveWebhookSettings(
+                WebhookSettings(
+                    url = state.webhookUrl.trim(),
+                    bearerToken = state.bearerToken.trim().ifBlank { null },
+                ),
+            )
+        }
+        settingsRepository.saveTransport(state.transport)
     }
 
     private fun appVersion(): String = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0).versionName
-    }.getOrNull() ?: "unknown"
-
-    private companion object {
-        const val DEFAULT_PORT = 8883
-    }
+    }.getOrNull() ?: context.getString(R.string.version_unknown)
 }
