@@ -3,14 +3,7 @@ package uk.co.aaronburt.satellite.feature.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.discovery.EntityCatalog
-import uk.co.aaronburt.satellite.model.ConnectionState
-import uk.co.aaronburt.satellite.model.Transport
-import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
-import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
-import uk.co.aaronburt.satellite.reporter.ReporterStatus
-import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +13,14 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.discovery.EntityCatalog
+import uk.co.aaronburt.satellite.model.ConnectionState
+import uk.co.aaronburt.satellite.model.Transport
+import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
+import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
+import uk.co.aaronburt.satellite.reporter.ReporterStatus
+import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
@@ -28,7 +28,7 @@ class StatusViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
     private val coordinator: ReporterCoordinator,
-    status: ReporterStatus,
+    status: ReporterStatus
 ) : ViewModel() {
 
     private val telemetryValues = flow {
@@ -104,7 +104,7 @@ class StatusViewModel @Inject constructor(
         val transport: Transport,
         val connection: ConnectionState,
         val enabled: Boolean,
-        val lastPublished: Long?,
+        val lastPublished: Long?
     )
 
     private companion object {

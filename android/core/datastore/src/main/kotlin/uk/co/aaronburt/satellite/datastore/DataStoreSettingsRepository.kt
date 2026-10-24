@@ -10,17 +10,17 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.util.UUID
+import javax.inject.Inject
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
 import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import java.util.UUID
-import javax.inject.Inject
 
 private val Context.dataStore by preferencesDataStore(
     name = "satellite_settings",
@@ -39,7 +39,7 @@ private val sharedCipher: SecretCipher by lazy { KeystoreSecretCipher() }
 class DataStoreSettingsRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
     private val cipher: SecretCipher,
-    private val randomHex: () -> String = { UUID.randomUUID().toString().replace("-", "") },
+    private val randomHex: () -> String = { UUID.randomUUID().toString().replace("-", "") }
 ) : SettingsRepository {
 
     @Inject
@@ -68,13 +68,12 @@ class DataStoreSettingsRepository internal constructor(
         }
     }
 
-    private fun encryptOrNull(secret: String?): String? =
-        secret?.takeIf { it.isNotBlank() }?.let(cipher::encrypt)
+    private fun encryptOrNull(secret: String?): String? = secret?.takeIf { it.isNotBlank() }?.let(cipher::encrypt)
 
     private fun MutablePreferences.putSecret(
         encrypted: Preferences.Key<String>,
         legacy: Preferences.Key<String>,
-        ciphertext: String?,
+        ciphertext: String?
     ) {
         if (ciphertext == null) remove(encrypted) else this[encrypted] = ciphertext
         remove(legacy)
@@ -87,15 +86,14 @@ class DataStoreSettingsRepository internal constructor(
     private fun readSecret(
         prefs: Preferences,
         encrypted: Preferences.Key<String>,
-        legacy: Preferences.Key<String>,
+        legacy: Preferences.Key<String>
     ): String? {
         val stored = prefs[encrypted]
         val value = if (stored != null) cipher.decrypt(stored) else prefs[legacy]
         return value?.takeIf { it.isNotBlank() }
     }
 
-    override suspend fun deviceId(): String =
-        getOrCreate(Keys.DeviceId) { randomHex().take(DEVICE_ID_LENGTH) }
+    override suspend fun deviceId(): String = getOrCreate(Keys.DeviceId) { randomHex().take(DEVICE_ID_LENGTH) }
 
     override suspend fun deviceName(): String =
         getOrCreate(Keys.DeviceName) { "Satellite-" + randomHex().take(4).uppercase() }
@@ -106,10 +104,7 @@ class DataStoreSettingsRepository internal constructor(
      * (the reporter and the connection manager both ask for the device id) all
      * get the same value instead of each saving their own.
      */
-    private suspend fun getOrCreate(
-        key: Preferences.Key<String>,
-        generate: () -> String,
-    ): String {
+    private suspend fun getOrCreate(key: Preferences.Key<String>, generate: () -> String): String {
         dataStore.data.first()[key]?.let { return it }
         val saved = dataStore.edit { prefs ->
             if (prefs[key] == null) prefs[key] = generate()

@@ -25,7 +25,7 @@ class Topics(private val deviceId: String) {
     fun command(action: String): String = commandPrefix + action
 
     /** Matches every command topic for this device. */
-    val commandWildcard: String = "${commandPrefix}#"
+    val commandWildcard: String = "$commandPrefix#"
 
     companion object {
         const val DISCOVERY_PREFIX = "homeassistant"

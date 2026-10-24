@@ -1,0 +1,21 @@
+# Kotlin formatting rules enforced by ktlint (see docs/code-quality.md).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+# Android Studio style matches the existing code and Android Studio's formatter,
+# which keeps the one-off formatting change small.
+ktlint_code_style = android_studio
+# Compose functions are PascalCase by convention.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+# Call-site trailing commas are used inconsistently; enforcing them would touch
+# hundreds of lines for no behavioural benefit. Declaration-site commas stay on.
+ktlint_standard_trailing-comma-on-call-site = disabled

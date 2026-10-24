@@ -12,12 +12,8 @@ sealed interface UpdateState {
     data class Downloading(val versionName: String, val progress: Int) : UpdateState
 
     /** Downloaded and verified; waiting for the user to confirm the install. */
-    data class Ready(
-        val versionName: String,
-        val versionCode: Int,
-        val notes: String?,
-        val releaseUrl: String,
-    ) : UpdateState
+    data class Ready(val versionName: String, val versionCode: Int, val notes: String?, val releaseUrl: String) :
+        UpdateState
 
     data class Failed(val message: String) : UpdateState
 }

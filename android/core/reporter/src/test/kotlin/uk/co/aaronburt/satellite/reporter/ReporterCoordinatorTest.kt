@@ -1,5 +1,9 @@
 package uk.co.aaronburt.satellite.reporter
 
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
 import org.junit.After
@@ -27,10 +31,6 @@ import uk.co.aaronburt.satellite.testing.FakeSettingsRepository.Companion.DEVICE
 import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.setBattery
 import uk.co.aaronburt.satellite.testing.settle
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
-import java.util.concurrent.TimeUnit
 
 /** The real reporters and connection manager, wired as in the app, over a fake broker and a local webhook. */
 @RunWith(RobolectricTestRunner::class)
@@ -65,10 +65,22 @@ class ReporterCoordinatorTest {
         return ReporterCoordinator(
             settingsRepository = settings,
             mqttReporter = SatelliteReporter(
-                client, settings, telemetry, CommandRouter(settings, audio), audio, status, context, backgroundScope,
+                client,
+                settings,
+                telemetry,
+                CommandRouter(settings, audio),
+                audio,
+                status,
+                context,
+                backgroundScope,
             ),
             webhookReporter = WebhookReporter(
-                settings, telemetry, status, TestDispatchers(StandardTestDispatcher(testScheduler)), context, backgroundScope,
+                settings,
+                telemetry,
+                status,
+                TestDispatchers(StandardTestDispatcher(testScheduler)),
+                context,
+                backgroundScope,
             ),
             connectionManager = MqttConnectionManager(client, settings, backgroundScope),
             status = status,

@@ -1,7 +1,7 @@
 package uk.co.aaronburt.satellite.app.service
 
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import kotlinx.coroutines.flow.first
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
 
 /**
  * Whether the service should come back after a reboot: only once something

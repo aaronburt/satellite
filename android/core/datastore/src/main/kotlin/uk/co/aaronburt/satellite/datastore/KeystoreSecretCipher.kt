@@ -17,9 +17,7 @@ import javax.crypto.spec.GCMParameterSpec
  * onto another device (or after the key is wiped) fails to decrypt and the
  * secret reads as absent.
  */
-class KeystoreSecretCipher(
-    private val alias: String = DEFAULT_ALIAS,
-) : SecretCipher {
+class KeystoreSecretCipher(private val alias: String = DEFAULT_ALIAS) : SecretCipher {
 
     private val keyStore: KeyStore by lazy { KeyStore.getInstance(PROVIDER).apply { load(null) } }
 

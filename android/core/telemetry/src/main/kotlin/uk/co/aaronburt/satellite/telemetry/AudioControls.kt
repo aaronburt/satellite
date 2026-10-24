@@ -3,12 +3,12 @@ package uk.co.aaronburt.satellite.telemetry
 import android.content.Context
 import android.media.AudioManager
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.roundToInt
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Read and write access to the phone's audio state, used by both telemetry (for
@@ -20,9 +20,7 @@ import javax.inject.Singleton
  * succeeded.
  */
 @Singleton
-class AudioControls @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
+class AudioControls @Inject constructor(@ApplicationContext private val context: Context) {
 
     fun mediaVolumePercent(): Int? = runCatching {
         val audio = audioManager() ?: return null
@@ -86,6 +84,5 @@ class AudioControls @Inject constructor(
         _microphoneMuteSupported.value = false
     }
 
-    private fun audioManager(): AudioManager? =
-        context.getSystemService(AudioManager::class.java)
+    private fun audioManager(): AudioManager? = context.getSystemService(AudioManager::class.java)
 }

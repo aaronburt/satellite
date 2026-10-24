@@ -1,10 +1,10 @@
 package uk.co.aaronburt.satellite.reporter
 
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Shared, in-memory view of reporting health for the UI: when the last

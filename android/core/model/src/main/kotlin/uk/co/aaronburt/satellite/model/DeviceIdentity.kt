@@ -11,5 +11,5 @@ data class DeviceIdentity(
     val manufacturer: String,
     val model: String,
     val appVersion: String,
-    val androidVersion: String,
+    val androidVersion: String
 )

@@ -33,7 +33,7 @@ object DiscoveryPayloadBuilder {
         androidVersion: String,
         specs: List<EntitySpec> = EntityCatalog.all,
         enabledControls: Set<String> = emptySet(),
-        stubControls: Set<String> = emptySet(),
+        stubControls: Set<String> = emptySet()
     ): String {
         val topics = Topics(deviceId)
 
@@ -70,12 +70,7 @@ object DiscoveryPayloadBuilder {
         }.toString()
     }
 
-    private fun component(
-        spec: EntitySpec,
-        deviceId: String,
-        topics: Topics,
-        stub: Boolean,
-    ): JSONObject {
+    private fun component(spec: EntitySpec, deviceId: String, topics: Topics, stub: Boolean): JSONObject {
         if (stub) {
             return JSONObject().put("platform", spec.platform)
         }

@@ -23,11 +23,7 @@ import androidx.compose.ui.unit.dp
 import uk.co.aaronburt.satellite.designsystem.theme.SatelliteTheme
 
 @Composable
-fun EntitiesScreen(
-    state: EntitiesUiState,
-    onControlToggled: (String, Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun EntitiesScreen(state: EntitiesUiState, onControlToggled: (String, Boolean) -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()

@@ -2,6 +2,11 @@ package uk.co.aaronburt.satellite.feature.settings
 
 import android.content.Intent
 import androidx.lifecycle.viewModelScope
+import java.io.File
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,11 +44,6 @@ import uk.co.aaronburt.satellite.update.ReleaseAsset
 import uk.co.aaronburt.satellite.update.ReleaseSource
 import uk.co.aaronburt.satellite.update.UpdateManager
 import uk.co.aaronburt.satellite.update.UpdateState
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsViewModelTest {
@@ -104,10 +104,22 @@ class SettingsViewModelTest {
         val coordinator = ReporterCoordinator(
             settingsRepository = settings,
             mqttReporter = SatelliteReporter(
-                client, settings, telemetry, CommandRouter(settings, audio), audio, status, context, backgroundScope,
+                client,
+                settings,
+                telemetry,
+                CommandRouter(settings, audio),
+                audio,
+                status,
+                context,
+                backgroundScope,
             ),
             webhookReporter = WebhookReporter(
-                settings, telemetry, status, TestDispatchers(main.dispatcher), context, backgroundScope,
+                settings,
+                telemetry,
+                status,
+                TestDispatchers(main.dispatcher),
+                context,
+                backgroundScope,
             ),
             connectionManager = MqttConnectionManager(client, settings, backgroundScope),
             status = status,
@@ -173,10 +185,18 @@ class SettingsViewModelTest {
         assertEquals("new.host", vm.uiState.value.host)
         assertFalse(vm.uiState.value.saved)
 
-        vm.onPortChange("1"); vm.onUsernameChange("u"); vm.onPasswordChange("p"); vm.onUseTlsChange(false)
-        vm.onDeviceNameChange("n"); vm.onWebhookUrlChange("w"); vm.onBearerTokenChange("b")
+        vm.onPortChange("1")
+        vm.onUsernameChange("u")
+        vm.onPasswordChange("p")
+        vm.onUseTlsChange(false)
+        vm.onDeviceNameChange("n")
+        vm.onWebhookUrlChange("w")
+        vm.onBearerTokenChange("b")
         val state = vm.uiState.value
-        assertEquals(listOf("1", "u", "p", "n", "w", "b"), listOf(state.port, state.username, state.password, state.deviceName, state.webhookUrl, state.bearerToken))
+        assertEquals(
+            listOf("1", "u", "p", "n", "w", "b"),
+            listOf(state.port, state.username, state.password, state.deviceName, state.webhookUrl, state.bearerToken)
+        )
         assertFalse(state.useTls)
     }
 

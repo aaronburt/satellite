@@ -9,5 +9,5 @@ package uk.co.aaronburt.satellite.model
  */
 enum class Transport {
     MQTT,
-    WEBHOOK,
+    WEBHOOK
 }
