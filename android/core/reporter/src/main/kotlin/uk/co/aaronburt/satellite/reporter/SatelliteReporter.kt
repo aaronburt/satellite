@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.DiscoveryPayloadBuilder
@@ -52,6 +53,9 @@ class SatelliteReporter @Inject constructor(
     private var periodicJob: Job? = null
     private var modeJob: Job? = null
     private var controlsJob: Job? = null
+
+    /** Held while a Home Assistant refresh request runs, so repeats cannot pile up. */
+    private val refreshGate = Mutex()
 
     private val changeWatcher = StateChangeWatcher(
         context = context,
@@ -106,7 +110,10 @@ class SatelliteReporter @Inject constructor(
                 val deviceId = settingsRepository.deviceId()
                 val topics = Topics(deviceId)
 
-                removed.forEach { key ->
+                val cleared = removed + EntityCatalog.companionEntities
+                    .filter { it.requires in removed }
+                    .map { it.key }
+                cleared.forEach { key ->
                     client.publish(topics.state(key), "", qos = 1, retain = true)
                 }
 
@@ -134,18 +141,54 @@ class SatelliteReporter @Inject constructor(
      */
     suspend fun refresh(): Boolean {
         if (client.connectionState.value !is ConnectionState.Connected) return false
-        return onConnected()
+        return republishAll(Topics(settingsRepository.deviceId())) == RefreshOutcome.OK
+    }
+
+    private suspend fun republishAll(topics: Topics): RefreshOutcome {
+        // A control disabled while offline could not clear its retained state
+        // at the time, so clear every inactive control's state on each connect.
+        clearInactiveControlStates(topics)
+        val discovered = publishDiscovery(settingsRepository.deviceId(), topics)
+        val published = publishStates()
+        return when {
+            discovered && published -> RefreshOutcome.OK
+            discovered || published -> RefreshOutcome.PARTIAL
+            else -> RefreshOutcome.FAILED
+        }
+    }
+
+    /**
+     * Serves the Home Assistant "Refresh discovery" button. A press that
+     * arrives while a refresh (or its cooldown) is running is dropped rather
+     * than queued, so mashing the button republishes once. Reuses the existing
+     * subscriptions and reports the outcome on the refresh result sensor.
+     */
+    private suspend fun refreshFromCommand(topics: Topics) {
+        if (!refreshGate.tryLock()) return
+        try {
+            val outcome = if (client.connectionState.value is ConnectionState.Connected) {
+                republishAll(topics)
+            } else {
+                RefreshOutcome.FAILED
+            }
+            client.publish(topics.state(EntityCatalog.REFRESH_RESULT), outcome.payload, qos = 1, retain = true)
+            delay(REFRESH_COOLDOWN_MILLIS)
+        } finally {
+            refreshGate.unlock()
+        }
+    }
+
+    private enum class RefreshOutcome(val payload: String) {
+        OK("ok"),
+        PARTIAL("partial"),
+        FAILED("failed"),
     }
 
     private suspend fun onConnected(): Boolean {
         val deviceId = settingsRepository.deviceId()
         val topics = Topics(deviceId)
 
-        // A control disabled while offline could not clear its retained state
-        // at the time, so clear every inactive control's state on each connect.
-        clearInactiveControlStates(topics)
-        val discovered = publishDiscovery(deviceId, topics)
-        val published = publishStates()
+        val outcome = republishAll(topics)
 
         client.subscribe(Topics.BIRTH_TOPIC, qos = 0) { message ->
             if (message.payload.trim() == "online") {
@@ -159,11 +202,16 @@ class SatelliteReporter @Inject constructor(
         client.subscribe(topics.commandWildcard, qos = 1) { message ->
             appScope.launch {
                 val accepted = commandRouter.handle(message.topic, message.payload, topics)
-                if (accepted) publishStates()
+                if (!accepted) return@launch
+                if (CommandParser.parse(message.topic, message.payload, topics) == SatelliteCommand.RefreshDiscovery) {
+                    refreshFromCommand(topics)
+                } else {
+                    publishStates()
+                }
             }
         }
 
-        return discovered && published
+        return outcome == RefreshOutcome.OK
     }
 
     /**
@@ -189,19 +237,16 @@ class SatelliteReporter @Inject constructor(
 
     private suspend fun clearInactiveControlStates(topics: Topics) {
         val enabled = settingsRepository.enabledControls.first()
-        EntityCatalog.controlEntities
-            .filterNot { it.key in enabled }
-            .forEach { client.publish(topics.state(it.key), "", qos = 1, retain = true) }
+        EntityCatalog.unexposedKeys(enabled)
+            .forEach { client.publish(topics.state(it), "", qos = 1, retain = true) }
     }
 
     private suspend fun publishDiscovery(deviceId: String, topics: Topics): Boolean {
         val enabledControls = settingsRepository.enabledControls.first()
-        val unexposed = EntityCatalog.controlEntities
-            .map { it.key }
-            .filterNot { it in enabledControls }
+        val unexposed = EntityCatalog.unexposedKeys(enabledControls)
 
         if (unexposed.isNotEmpty()) {
-            publishDiscoveryPayload(deviceId, topics, enabledControls, unexposed.toSet())
+            publishDiscoveryPayload(deviceId, topics, enabledControls, unexposed)
         }
         return publishDiscoveryPayload(deviceId, topics, enabledControls, emptySet()).isSuccess
     }
@@ -263,5 +308,6 @@ class SatelliteReporter @Inject constructor(
     companion object {
         const val DISCOVERY_EXPIRY_SECONDS = 7 * 24 * 60 * 60L
         const val STATE_EXPIRY_SECONDS = 60 * 60L
+        const val REFRESH_COOLDOWN_MILLIS = 2_000L
     }
 }
