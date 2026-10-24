@@ -232,7 +232,7 @@ The body shares common envelope fields with Android, but metadata and state valu
   "device_id": "my-pc",
   "device_name": "MY-PC",
   "platform": "windows",
-  "app_version": "0.26.0",
+  "app_version": "0.26.1",
   "timestamp": 1761259200000,
   "state": { "cpu_percent": 12.5, "memory_percent": 48.1, "timestamp": 1761259200 }
 }
