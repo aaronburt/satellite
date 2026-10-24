@@ -3,6 +3,15 @@ package uk.co.aaronburt.satellite.reporter
 import android.content.Context
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.DiscoveryPayloadBuilder
@@ -14,15 +23,6 @@ import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.mqtt.MqttClient
 import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * MQTT reporter: publishes the discovery payload and device state on connect,
@@ -45,7 +45,7 @@ class SatelliteReporter @Inject constructor(
     private val audioControls: AudioControls,
     private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     private var observerJob: Job? = null
@@ -179,7 +179,7 @@ class SatelliteReporter @Inject constructor(
         deviceId: String,
         topics: Topics,
         enabledControls: Set<String>,
-        stubControls: Set<String>,
+        stubControls: Set<String>
     ): Result<Unit> {
         val payload = DiscoveryPayloadBuilder.build(
             deviceId = deviceId,

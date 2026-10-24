@@ -1,6 +1,13 @@
 package uk.co.aaronburt.satellite.feature.dashboard
 
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,13 +37,6 @@ import uk.co.aaronburt.satellite.testing.FakeSettingsRepository.Companion.BROKER
 import uk.co.aaronburt.satellite.testing.MainDispatcherRule
 import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.setBattery
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
 
 @RunWith(RobolectricTestRunner::class)
 class StatusViewModelTest {
@@ -61,10 +61,22 @@ class StatusViewModelTest {
         val coordinator = ReporterCoordinator(
             settingsRepository = settings,
             mqttReporter = SatelliteReporter(
-                client, settings, telemetry, CommandRouter(settings, audio), audio, status, context, backgroundScope,
+                client,
+                settings,
+                telemetry,
+                CommandRouter(settings, audio),
+                audio,
+                status,
+                context,
+                backgroundScope,
             ),
             webhookReporter = WebhookReporter(
-                settings, telemetry, status, TestDispatchers(main.dispatcher), context, backgroundScope,
+                settings,
+                telemetry,
+                status,
+                TestDispatchers(main.dispatcher),
+                context,
+                backgroundScope,
             ),
             connectionManager = connection,
             status = status,

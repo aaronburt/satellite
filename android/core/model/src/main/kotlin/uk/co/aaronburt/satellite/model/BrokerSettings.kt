@@ -8,7 +8,7 @@ data class BrokerSettings(
     val port: Int,
     val username: String?,
     val password: String?,
-    val useTls: Boolean,
+    val useTls: Boolean
 ) {
     val serverUri: String
         get() = "${if (useTls) "ssl" else "tcp"}://$host:$port"

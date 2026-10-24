@@ -9,5 +9,5 @@ package uk.co.aaronburt.satellite.model
  */
 enum class UpdateMode {
     PERIODIC,
-    EVENT_DRIVEN,
+    EVENT_DRIVEN
 }

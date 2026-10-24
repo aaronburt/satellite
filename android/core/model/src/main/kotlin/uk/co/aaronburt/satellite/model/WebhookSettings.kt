@@ -7,7 +7,4 @@ package uk.co.aaronburt.satellite.model
  * `http://homeassistant.local:8123/api/webhook/<id>`.
  * @property bearerToken optional `Authorization: Bearer <token>` value.
  */
-data class WebhookSettings(
-    val url: String,
-    val bearerToken: String? = null,
-)
+data class WebhookSettings(val url: String, val bearerToken: String? = null)

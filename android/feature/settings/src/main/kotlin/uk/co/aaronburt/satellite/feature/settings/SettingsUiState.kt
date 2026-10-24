@@ -35,7 +35,7 @@ data class SettingsUiState(
     val saved: Boolean = false,
     val appVersion: String = "",
     val update: UpdateState = UpdateState.Idle,
-    val canInstallUpdates: Boolean = false,
+    val canInstallUpdates: Boolean = false
 ) {
     companion object {
         const val DEFAULT_HOST = "10.0.2.2"

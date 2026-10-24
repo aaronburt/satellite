@@ -6,10 +6,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
-fun StatusRoute(
-    onOpenSettings: () -> Unit,
-    viewModel: StatusViewModel = hiltViewModel(),
-) {
+fun StatusRoute(onOpenSettings: () -> Unit, viewModel: StatusViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val testStatus by viewModel.testStatus.collectAsStateWithLifecycle()
 

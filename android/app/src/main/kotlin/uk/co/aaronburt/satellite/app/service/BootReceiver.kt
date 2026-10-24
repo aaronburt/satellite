@@ -5,12 +5,12 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.AndroidEntryPoint
-import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
 
 /**
  * Restarts the satellite service after a reboot, but only if a broker has been

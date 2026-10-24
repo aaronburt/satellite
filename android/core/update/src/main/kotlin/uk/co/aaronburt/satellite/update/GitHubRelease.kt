@@ -7,7 +7,7 @@ data class ReleaseAsset(
     val downloadUrl: String,
     val size: Long,
     /** SHA-256 of the asset as reported by GitHub, when available. */
-    val sha256: String?,
+    val sha256: String?
 )
 
 data class GitHubRelease(
@@ -17,7 +17,7 @@ data class GitHubRelease(
     val title: String,
     val notes: String?,
     val htmlUrl: String,
-    val apk: ReleaseAsset?,
+    val apk: ReleaseAsset?
 )
 
 /**

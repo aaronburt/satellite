@@ -18,8 +18,8 @@ import android.os.SystemClock
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlin.math.roundToInt
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 /**
  * Reads the current device state as a map of entity key → MQTT payload.
@@ -29,7 +29,7 @@ import javax.inject.Inject
  */
 class DeviceStateReader @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val audioControls: AudioControls,
+    private val audioControls: AudioControls
 ) {
 
     @Suppress("InlinedApi")

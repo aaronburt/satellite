@@ -1,13 +1,10 @@
 package uk.co.aaronburt.satellite.mqtt
 
+import kotlinx.coroutines.flow.StateFlow
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ConnectionState
-import kotlinx.coroutines.flow.StateFlow
 
-data class MqttMessage(
-    val topic: String,
-    val payload: String,
-)
+data class MqttMessage(val topic: String, val payload: String)
 
 /**
  * Thin abstraction over the MQTT client so the concrete library (HiveMQ) can be
@@ -31,12 +28,8 @@ interface MqttClient {
         payload: String,
         qos: Int = 1,
         retain: Boolean = false,
-        expirySeconds: Long? = null,
+        expirySeconds: Long? = null
     ): Result<Unit>
 
-    suspend fun subscribe(
-        topicFilter: String,
-        qos: Int = 0,
-        onMessage: (MqttMessage) -> Unit,
-    ): Result<Unit>
+    suspend fun subscribe(topicFilter: String, qos: Int = 0, onMessage: (MqttMessage) -> Unit): Result<Unit>
 }
