@@ -20,6 +20,7 @@ import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
 import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 import uk.co.aaronburt.satellite.reporter.ReporterStatus
+import uk.co.aaronburt.satellite.telemetry.ConnectivityReadings
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 
 @HiltViewModel
@@ -116,7 +117,8 @@ class StatusViewModel @Inject constructor(
 
 /**
  * The at-a-glance values for the Status screen: battery, charging, and the
- * Wi-Fi network name when known, otherwise the network type.
+ * Wi-Fi network name when known (not a placeholder like "disconnected"),
+ * otherwise the network type.
  */
 internal fun statusHighlights(values: Map<String, String>): List<StatusHighlight> = buildList {
     values["battery"]?.let { add(StatusHighlight("battery", "Battery", "$it%")) }
@@ -124,7 +126,7 @@ internal fun statusHighlights(values: Map<String, String>): List<StatusHighlight
         add(StatusHighlight("charging", "Charging", if (it == "ON") "On" else "Off"))
     }
     val wifi = values["wifi_ssid"]
-    if (wifi != null) {
+    if (wifi != null && !ConnectivityReadings.isPlaceholder(wifi)) {
         add(StatusHighlight("wifi_ssid", "Wi-Fi", wifi))
     } else {
         values["network_transport"]?.let {

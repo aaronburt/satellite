@@ -75,6 +75,12 @@ GitHub release signing; see [Contributing](../../CONTRIBUTING.md).
 
 [Android CI](../../.github/workflows/android-ci.yml) runs unit tests, lint, and
 assembleDebug on relevant pushes and pull requests. It uploads the debug APK.
+JVM unit tests run on both Linux (`ubuntu-latest`) and Windows (`windows-latest`) hosts.
+Linux test and lint reports are uploaded as the `android-unit-test-reports` and
+`android-lint-reports` artifacts (kept 14 days), even when the run fails. The
+Windows job uploads `unit-test-reports-windows` when it fails. Open the
+run's Summary page and download them from Artifacts; files keep their module path,
+e.g. `core/mqtt/build/reports/tests/testDebugUnitTest/index.html`.
 Device tests are not run by that workflow. The Home Assistant smoke test and the
 on-demand emulator device checks (see below) each have their own workflow.
 

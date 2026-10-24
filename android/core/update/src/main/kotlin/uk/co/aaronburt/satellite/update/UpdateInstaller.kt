@@ -21,7 +21,14 @@ import javax.inject.Singleton
  * one-tap upgrade rather than a silent one.
  */
 @Singleton
-class UpdateInstaller @Inject constructor(@ApplicationContext private val context: Context) : ApkInstaller {
+class UpdateInstaller internal constructor(private val context: Context, private val uriFor: (File) -> Uri) :
+    ApkInstaller {
+
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(
+        context,
+        { apk -> FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apk) },
+    )
 
     /** False until the user allows Satellite to install unknown apps. */
     override fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
@@ -35,7 +42,7 @@ class UpdateInstaller @Inject constructor(@ApplicationContext private val contex
         check(canInstall()) { "Satellite is not allowed to install apps yet" }
         check(apk.exists()) { "The downloaded update is missing" }
 
-        val uri = FileProvider.getUriForFile(context, authority(), apk)
+        val uri = uriFor(apk)
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, APK_MIME_TYPE)
@@ -44,8 +51,6 @@ class UpdateInstaller @Inject constructor(@ApplicationContext private val contex
         }
         context.startActivity(intent)
     }
-
-    private fun authority(): String = "${context.packageName}.fileprovider"
 
     private companion object {
         const val APK_MIME_TYPE = "application/vnd.android.package-archive"

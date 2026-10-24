@@ -53,4 +53,13 @@ class EntityFormatterTest {
         assertEquals("—", EntityFormatter.controlValue("mic_muted", 10, null))
         assertEquals("—", EntityFormatter.controlValue("unknown", 10, true))
     }
+
+    @Test
+    fun `network placeholders read as plain words`() {
+        assertEquals("Not connected", EntityFormatter.format("wifi_ssid", "disconnected"))
+        assertEquals("Permission needed", EntityFormatter.format("wifi_ssid", "permission_denied"))
+        assertEquals("Unavailable", EntityFormatter.format("carrier", "unavailable"))
+        assertEquals("Permission needed", EntityFormatter.format("carrier", "permission_denied"))
+        assertEquals("eduroam", EntityFormatter.format("wifi_ssid", "eduroam"))
+    }
 }

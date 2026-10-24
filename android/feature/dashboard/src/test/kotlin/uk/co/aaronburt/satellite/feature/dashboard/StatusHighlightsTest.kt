@@ -38,4 +38,14 @@ class StatusHighlightsTest {
     fun `nothing known, nothing shown`() {
         assertEquals(emptyList<StatusHighlight>(), statusHighlights(emptyMap()))
     }
+
+    @Test
+    fun `a Wi-Fi placeholder falls back to the network type`() {
+        listOf("disconnected", "permission_denied", "unavailable").forEach { placeholder ->
+            val highlights = statusHighlights(
+                mapOf("wifi_ssid" to placeholder, "network_transport" to "cellular"),
+            )
+            assertEquals(placeholder, listOf(StatusHighlight("network_transport", "Network", "Cellular")), highlights)
+        }
+    }
 }

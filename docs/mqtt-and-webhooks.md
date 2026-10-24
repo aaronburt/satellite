@@ -150,7 +150,35 @@ Desktop's inner `state.timestamp` is in seconds. Android's state values remain
 strings, including values that look numeric. A receiver must handle these schema
 differences rather than assuming every body is identical.
 
-Desktop skips new webhook snapshots while a request is running, and retries
-failed delivery on a subsequent eligible collection tick. Android attempts
-delivery on its configured reporting events/interval. Neither persists failed
-snapshots for later replay.
+### Delivery recovery
+
+Both apps use the same bounded, in-memory policy: **only the newest snapshot
+is kept**, and a failed POST is retried with the original body, including its
+original `timestamp`. Nothing is written to disk, and nothing is replayed after
+a restart.
+
+| | Value |
+| --- | --- |
+| Retried | no response (offline, DNS, connection reset, timeout), 408, 425, 429, 5xx |
+| Not retried | any other non-2xx (400, 401, 403, 404, 422, ...) and invalid URLs |
+| Attempts | 5 per snapshot, including the first |
+| Backoff | 2 s, 4 s, 8 s, ... capped at 60 s, with jitter (each wait is 50 to 100% of that) |
+| Retry-After | used when longer than the backoff, capped at 5 minutes. Desktop accepts seconds or an HTTP date; Android accepts seconds |
+| Expiry | a snapshot captured more than 5 minutes ago is dropped instead of retried |
+
+Retries stop when the webhook is disabled or cleared, its URL changes, or the
+app/reporter shuts down; a changed bearer token is used on the next retry.
+
+Platform differences:
+
+- **Desktop** runs one request at a time off the collection loop, so webhook
+  work never delays MQTT. Snapshots that become due while a request or retry
+  is pending replace one queued slot (newest wins) and are sent next, still
+  after the current backoff wait.
+- **Android** cancels a pending retry as soon as a newer publish happens
+  (interval tick, event, settings change or manual refresh), then sends the new
+  snapshot straight away.
+
+Because a request can time out after the receiver has processed it, receivers
+may occasionally see the **same snapshot twice**. Treat `device_id` +
+`timestamp` as an idempotency key if duplicates matter.

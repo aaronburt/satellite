@@ -70,7 +70,8 @@ JVM tests that touch DataStore files must give the store an explicit
 `FileStorage`, used by both `create` and `createWithPath`, commits writes with
 `File.renameTo`, which cannot replace an
 existing file on Windows, so those tests pass on Linux and fail on Windows.
-CI runs `:core:datastore:testDebugUnitTest` on a Windows runner to catch this.
+Android CI runs the full JVM unit-test suite (`test`) on both Linux
+(`ubuntu-latest`) and Windows (`windows-latest`) runners to catch this.
 
 On Linux/macOS, use `./gradlew` instead. These checks do not require a running
 device. Device/UI tests require an emulator or phone; the broker configuration
