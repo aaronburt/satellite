@@ -8,7 +8,6 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
@@ -117,21 +116,18 @@ class DeviceStateReader @Inject constructor(
         val onWifi = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
         val permitted = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
             hasPermission(Manifest.permission.NEARBY_WIFI_DEVICES)
-        val raw = if (onWifi && permitted) currentSsid(capabilities) else null
+        val raw = if (onWifi && permitted) currentSsid() else null
         values["wifi_ssid"] = ConnectivityReadings.wifiSsid(onWifi, permitted, raw)
     }
 
     /**
-     * On Android 12+ the active network's WifiInfo is preferred; it is often
-     * redacted for a one-off query, so fall back to the deprecated
-     * WifiManager.connectionInfo, which still works with the permission.
+     * WifiManager.connectionInfo is deprecated but still the only one-off read
+     * that returns the SSID: on Android 12+ the active network's WifiInfo from
+     * getNetworkCapabilities() is always redacted. Callers check the active
+     * network is Wi-Fi first, so a stale value is never used.
      */
     @Suppress("DEPRECATION")
-    private fun currentSsid(capabilities: NetworkCapabilities?): String? {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val info = capabilities?.transportInfo as? WifiInfo
-            ConnectivityReadings.cleanSsid(info?.ssid)?.let { return it }
-        }
+    private fun currentSsid(): String? {
         val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java)
         return wifiManager?.connectionInfo?.ssid
     }
