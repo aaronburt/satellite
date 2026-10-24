@@ -1,5 +1,8 @@
 # TODO / Handoff — Satellite (Android)
 
+> Planning/reference material: includes historical decisions and proposed features.
+> See the [current documentation](../docs/README.md) for setup and implemented behavior.
+
 Pick-up notes for tomorrow. The app is an Android companion for Home Assistant
 that reports device state over **MQTT** or a **webhook**.
 

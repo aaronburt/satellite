@@ -1,5 +1,8 @@
 # SatelliteAndroid — Research Notes
 
+> Planning/reference material: includes historical decisions and proposed features.
+> See the [current documentation](../../docs/README.md) for setup and implemented behavior.
+
 **Date:** 2026-10-07
 **Status:** Research complete, plan pending owner decisions
 **Scope:** An Android app that announces itself and its state to Home Assistant (HA) over MQTT, with a HACS-like presence (device, entities, update notifications).

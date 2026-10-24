@@ -2,6 +2,9 @@
 
 Lightweight Windows & Linux telemetry agent and remote controller for Home Assistant over MQTT.
 
+[Documentation index](../docs/README.md) | [Architecture](../docs/architecture.md) |
+[Protocol reference](../docs/mqtt-and-webhooks.md) | [Troubleshooting](../docs/troubleshooting.md)
+
 ---
 
 ## Screenshots
@@ -20,21 +23,35 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
 - **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
-- **Generic Webhook:** Optionally POST every telemetry snapshot as JSON to any HTTP endpoint, alongside (or instead of) MQTT.
-- **Tray, Web UI & Headless:** Runs in system tray on desktop, provides a local Web UI for setup, or runs headless (`--headless`) as a background systemd daemon.
+- **Generic Webhook:** Optionally POST telemetry snapshots as JSON on changes or heartbeats, alongside (or instead of) MQTT.
+- **Tray, Web UI & Headless:** Windows system tray, local Web UI for setup, and headless operation (`--headless`) including Linux systemd user services. Linux has no tray implementation.
 
 ---
 
 ## Quick Start
 
-### 1. Build
+### 1. Download or build
+
+Download `satellite.exe` or the Windows installer, or `satellite-linux-amd64`, from
+[GitHub Releases](https://github.com/aaronburt/satellite/releases).
+For the downloaded Linux binary, make it executable and rename it before using
+the commands below:
+
+```sh
+chmod +x satellite-linux-amd64
+mv satellite-linux-amd64 satellite
+```
+
+To build from source, install the Go version declared in [`go.mod`](go.mod) and run
+these commands from `windows/`:
+
 - **Windows Binary:**
   ```powershell
   go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
   ```
 - **Linux Binary:**
   ```bash
-  go build -s -w -o satellite .
+  go build -ldflags="-s -w" -o satellite .
   ```
 - **Windows Installer (Inno Setup):**
   ```powershell
@@ -42,11 +59,14 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
   ```
 
 ### 2. Run
-- **Tray Mode (Windows / Linux Desktop):** Run `satellite.exe` or `./satellite`.
+
+- **Tray Mode (Windows):** Run `satellite.exe`. Enable the WebUI from its tray menu, then choose **Open WebUI**.
 - **Headless Mode (Linux Server / Background Service):** Run `./satellite --headless`.
-- **CLI Mode:** Run `./satellite --cli` for interactive terminal dashboard.
+- **Setup on Linux:** Run `./satellite --debug` and open the URL printed in the terminal. Stop it after saving, then launch normally or as a service.
+- **CLI Mode:** Run `./satellite --cli` for a local terminal dashboard. CLI mode does not start MQTT or webhook reporting.
 - **Systemd User Service (Linux):**
   ```bash
+  install -Dm755 satellite ~/.local/bin/satellite
   mkdir -p ~/.config/systemd/user
   cp satellite.service ~/.config/systemd/user/
   systemctl --user daemon-reload
@@ -54,15 +74,53 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
   ```
 
 ### 3. Configure
-Right-click the tray icon and select **Open Web UI** (or launch Satellite in debug/headless mode to configure via browser) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
+
+Enable the WebUI from the Windows tray menu and select **Open WebUI** (or launch `--debug` for browser setup on Linux) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
 
 The WebUI automatically probes your operating system and hardware on boot and only displays sensor toggles that are actually supported on your current machine.
 
 Config is saved at:
+
 - **Windows:** `%APPDATA%\satellite\config.json`
 - **Linux:** `~/.config/satellite/config.json`
 
 ---
+
+## Configuration reference
+
+The default listener is `127.0.0.1` with a dynamically selected port. Use the URL
+from the tray or debug output. The WebUI uses an ephemeral token; the optional
+`/json` endpoint instead uses `X-API-Key` or the `api_key` query parameter.
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| `mqtt.broker` | Empty | Broker URL; leave empty for webhook-only operation |
+| `mqtt.topic_prefix` | `satellite` | Prefix for state, command, and notification topics |
+| `interval_sec` | `5` | Collection interval; restart the process after changing it |
+| `heartbeat_sec` | `60` | Publish even without a significant change, checked on collection ticks |
+| `bind_address` | `127.0.0.1` | HTTP listener address |
+| `port` / `webui_port` | `0` | HTTP port; zero selects an available port |
+| `json_enabled` | `false` | Enable the last-snapshot JSON endpoint |
+| `check_updates` | `false` | Enable background GitHub release checks |
+| `telemetry_webhook.enabled` | `false` | Send state snapshots to an HTTP endpoint |
+| `webhook.enabled` | `false` | Send application log events to an HTTP endpoint |
+
+CPU, memory, and network telemetry are enabled by default. Other sensors,
+notifications, and remote controls are opt-in and depend on platform support.
+The full configuration model is in [`config.go`](internal/config/config.go).
+
+Configuration can also be exported and imported. With the agent stopped, run:
+
+```powershell
+.\satellite.exe --export satellite-config.json
+.\satellite.exe --import satellite-config.json
+```
+
+Exports may contain credentials. Supply `--password <passphrase>` on both commands
+for an encrypted export/import; the passphrase is supplied as a command-line
+argument. Import adapts node/client identity to the current hostname by default;
+use `--reset-node-id=false` to retain the imported identity. Restart the agent
+after importing. Linux uses `./satellite` with the same flags.
 
 ## Remote Commands
 
@@ -77,6 +135,7 @@ Publish plain text or JSON `{"action": "<command>"}` to `satellite/<node_id>/com
 | `media_pause` | Pause media |
 | `media_next` | Skip to next track |
 | `media_prev` | Skip to previous track |
+| `media_stop` | Stop media playback |
 | `volume_mute` | Toggle master mute |
 | `volume_up` | Volume up (+2%) |
 | `volume_down` | Volume down (-2%) |
@@ -163,7 +222,7 @@ Enable it in the Web UI under **Telemetry Webhook**, or in `config.json`:
 - If `bearer_token` is set, it is sent as `Authorization: Bearer <token>`.
 - Any 2xx response counts as success. Failures are logged and retried on the next change or heartbeat.
 
-The body uses the same envelope as the Android app, so one endpoint can receive both:
+The body shares common envelope fields with Android, but metadata and state value types differ. See the [schema comparison](../docs/mqtt-and-webhooks.md#telemetry-webhooks) before handling both in one receiver:
 
 ```json
 {

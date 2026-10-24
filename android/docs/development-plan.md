@@ -1,5 +1,8 @@
 # SatelliteAndroid — Development Plan (v0.1)
 
+> Planning/reference material: includes historical decisions and proposed features.
+> See the [current documentation](../../docs/README.md) for setup and implemented behavior.
+
 Companion to [`docs/research.md`](research.md). This plan assumes the app is a **Home Assistant companion for Android** that self-registers and reports via **MQTT Discovery**.
 
 **Confirmed decisions (2026-10-07):**

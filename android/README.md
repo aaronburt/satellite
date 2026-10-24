@@ -1,93 +1,80 @@
-# Satellite
+# Satellite for Android
 
-An Android companion app that presents itself to Home Assistant over MQTT:
-auto-registration via **MQTT Discovery** (device + entities), periodic and
-event-driven state reporting, and a foreground service that stays connected.
+An Android companion app that reports device state to Home Assistant over MQTT,
+with device discovery, periodic or event-driven updates, and optional audio
+controls. It can alternatively send telemetry to an HTTP webhook.
 
-**Status:** M0–M2 complete — MQTT or webhook transport, Home Assistant discovery
-and telemetry, settings and permissions; `v0.1.0` released. Controllable entities
-(M3) are next.
+[Documentation index](../docs/README.md) | [Architecture](../docs/architecture.md) |
+[Protocol reference](../docs/mqtt-and-webhooks.md) | [Troubleshooting](../docs/troubleshooting.md)
 
-## Building
+## Install and configure
 
-Requires JDK 17+ (JDK 21 used during setup) and the Android SDK
-(platform `android-37.2`, build-tools `37.0.0`). Point `local.properties` or
-`ANDROID_HOME` at the SDK.
+1. Download the `.apk` from a [Satellite release](https://github.com/aaronburt/satellite/releases)
+   and install it. Android may ask you to allow installation from that source.
+2. Open the app and choose MQTT or Webhook in Settings. These are alternative
+   transports; selecting Webhook stops the MQTT connection.
+3. For MQTT, enter the broker host, port, credentials, and TLS choice. Configure
+   Home Assistant's MQTT integration to use the same broker. For a webhook,
+   enter its URL and optional bearer token.
+4. Set the device name, reporting mode, and interval. Enable reporting on the
+   Status screen. Event-driven mode also keeps periodic reporting as a safety net.
+5. Grant the permissions needed for the readings you want. In Entities, explicitly
+   enable supported media-volume or microphone-mute controls if needed; controls
+   are disabled by default.
 
-```powershell
-./gradlew :app:assembleDebug   # debug APK
-./gradlew test lint            # unit tests + Android Lint
-```
+On a physical phone, use the broker's LAN address rather than `localhost` or
+`10.0.2.2`. The standard Android emulator uses `10.0.2.2` to reach the development
+host. The foreground notification indicates reporting is running; pausing
+reporting stops the service. A configured, enabled installation can restart
+reporting after reboot.
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+The app includes an APK update flow using GitHub Releases. Updates must match the
+installed application's ID and signing key. The application ID is
+`uk.co.aaronburt.satellite`.
 
-### Installing on another phone
+## Build from source
 
-```powershell
-./gradlew :app:assembleRelease
-```
+Use JDK 21 to match CI, the committed Gradle wrapper, and the Android SDK.
+Set `ANDROID_HOME` or create an untracked `local.properties` with `sdk.dir`.
+The app currently declares compile SDK 37, target SDK 36, and minimum SDK 26.
+CI installs `platforms;android-37.2` and `build-tools;37.0.0`; consult
+[`app/build.gradle.kts`](app/build.gradle.kts) and
+[CI](../.github/workflows/android-ci.yml) when matching SDK packages.
 
-Output: `app/build/outputs/apk/release/app-release.apk` — release build (R8),
-signed with the local debug keystore for dev sideloading. Copy it to the phone,
-enable *install unknown apps*, and install.
-
-On a physical phone, set the **broker host to the PC's LAN IP** (not `10.0.2.2`)
-and make sure the phone is on the same network and the firewall allows inbound
-`1883` (MQTT) / `8123` (Home Assistant).
-
-## Releasing
-
-The APK is released together with the Windows build as a single GitHub Release.
-Bump `const Version` in `windows/internal/config/config.go` and push to `main`;
-[`release.yml`](../.github/workflows/release.yml) builds both apps and publishes
-one `vX.Y.Z` release containing the signed APK alongside the Windows files.
-The app's updater downloads the first `.apk` attached to the latest release.
-
-The shared version drives the APK `versionName` (`0.25.0`) and `versionCode`
-(`major*10000 + minor*100 + patch` → `2500`). Signing is supplied from repository
-secrets — `RELEASE_KEYSTORE_BASE64` (base64 of the `.jks`), `RELEASE_STORE_PASSWORD`,
-`RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. The release fails rather than
-publish an unsigned APK if any of them is missing. Keep a backup of the keystore:
-an installed app only accepts updates signed with the same key.
-
-Debug APKs are built on every push/PR touching `android/` by
-[`android-ci.yml`](../.github/workflows/android-ci.yml) and uploaded as the
-`app-debug` artifact (not a Release).
-
-## Documentation
-
-- [Research notes](docs/research.md) — HA MQTT Discovery, MQTT client options for
-  Android, platform constraints (foreground services, Doze, Play), references.
-- [Development plan](docs/development-plan.md) — architecture, MQTT interface
-  design, milestones M0–M5, testing strategy, risks, open questions.
-- [Testing](docs/testing.md) — test layers, emulator setup, broker connectivity,
-  robustness checks.
-- [Probeable device data](docs/sensors.md) — what the app can read from the
-  phone and how it maps to HA entities.
-
-## Development test environment
-
-Local Mosquitto broker + Home Assistant in Docker for validating discovery
-behavior end to end:
+Run from `android/` on Windows:
 
 ```powershell
-cd docker
-docker compose up -d
+.\gradlew.bat :app:assembleDebug
+.\gradlew.bat test lint
 ```
 
-Then follow [docker/README.md](docker/README.md) for Home Assistant onboarding
-and the discovery smoke test.
+On Linux/macOS, substitute `./gradlew` for `.\gradlew.bat`.
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Confirmed decisions
+For a minified release build:
 
-| Decision | Choice |
-|---|---|
-| v1 scope | MQTT only (no voice satellite) |
-| Distribution | GitHub Releases + F-Droid (Google Play optional later) |
-| Stack | Kotlin 2.4.20 + Jetpack Compose (BOM 2026.09.00), Hilt 2.60.1, AGP 9.4.1 (built-in Kotlin) + Gradle 9.6.0 |
-| Android SDK | minSdk 26 · targetSdk 36 · compileSdk 37.2 |
-| MQTT + storage | HiveMQ MQTT client, DataStore + Room (M1) |
-| HA integration | MQTT device discovery, LWT availability, birth-message republish |
+```powershell
+.\gradlew.bat :app:assembleRelease
+```
 
-See [development-plan.md §2](docs/development-plan.md) for the full decision
-table and rationale.
+The APK is written under `app/build/outputs/apk/release/`. Without
+`keystore.properties`, this build uses the local Android debug keystore, which
+must already exist (a debug build creates it). Official releases use a separate
+release key, so a development-signed APK cannot update an official installation.
+
+## Testing and releases
+
+See [Android testing](docs/testing.md) for JVM checks, device tests, and broker
+integration prerequisites. The [Docker environment](docker/README.md) supplies a
+local Mosquitto broker and Home Assistant for integration checks.
+
+The shared [release workflow](../.github/workflows/release.yml) reads the version
+from `windows/internal/config/config.go` and builds the signed APK alongside the
+desktop artifacts. Local builds use the Android Gradle defaults unless version
+properties are supplied. See [Contributing](../CONTRIBUTING.md) for versioning,
+signing secrets, and release steps.
+
+Dependency versions are maintained in [`libs.versions.toml`](gradle/libs.versions.toml).
+The [development plan](docs/development-plan.md), [research](docs/research.md),
+[sensor catalog](docs/sensors.md), and [handoff notes](TODO.md) retain historical
+and proposed work; they are not the current feature reference.

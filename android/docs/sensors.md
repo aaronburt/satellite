@@ -1,5 +1,8 @@
 # Probeable device data (sensor catalog)
 
+> Planning/reference material: includes historical decisions and proposed features.
+> See the [current documentation](../../docs/README.md) for setup and implemented behavior.
+
 What an Android app can read from the phone, and how each item maps to a Home
 Assistant entity. Use this to decide what the satellite reports.
 
@@ -212,4 +215,3 @@ Even with every permission and special access:
   state.
 - **Distribution note:** we ship via GitHub/F-Droid, so Play policy is advisory
   rather than blocking — but following it keeps the Play option open later.
-
