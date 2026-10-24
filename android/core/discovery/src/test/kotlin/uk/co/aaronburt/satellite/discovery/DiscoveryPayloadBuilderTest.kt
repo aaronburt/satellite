@@ -110,4 +110,48 @@ class DiscoveryPayloadBuilderTest {
         assertEquals("switch", stub.getString("platform"))
         assertEquals(1, stub.length())
     }
+
+    private fun build(enabled: Set<String> = emptySet(), stubs: Set<String> = emptySet()) = JSONObject(
+        DiscoveryPayloadBuilder.build(
+            deviceId = "abcd1234",
+            deviceName = "Satellite-1A2B",
+            manufacturer = "Google",
+            model = "Pixel",
+            appVersion = "1.0",
+            androidVersion = "15",
+            enabledControls = enabled,
+            stubControls = stubs,
+        ),
+    ).getJSONObject("components")
+
+    @Test
+    fun `refresh button has a command topic and no state topic`() {
+        val button = build(setOf(EntityCatalog.CONTROL_REFRESH)).getJSONObject(EntityCatalog.CONTROL_REFRESH)
+
+        assertEquals("button", button.getString("platform"))
+        assertEquals("satellite/abcd1234/cmd/refresh", button.getString("command_topic"))
+        assertFalse("Home Assistant rejects a state topic on a button", button.has("state_topic"))
+    }
+
+    @Test
+    fun `refresh result sensor appears and disappears with the refresh button`() {
+        val enabled = build(setOf(EntityCatalog.CONTROL_REFRESH))
+        val result = enabled.getJSONObject(EntityCatalog.REFRESH_RESULT)
+        assertEquals("satellite/abcd1234/state/refresh_result", result.getString("state_topic"))
+        assertEquals(EntityCatalog.refreshOutcomes.size, result.getJSONArray("options").length())
+
+        val disabled = build()
+        assertFalse(disabled.has(EntityCatalog.CONTROL_REFRESH))
+        assertFalse(disabled.has(EntityCatalog.REFRESH_RESULT))
+    }
+
+    @Test
+    fun `refresh entities can be removed with platform-only stubs`() {
+        val components = build(
+            stubs = setOf(EntityCatalog.CONTROL_REFRESH, EntityCatalog.REFRESH_RESULT),
+        )
+
+        assertEquals(1, components.getJSONObject(EntityCatalog.CONTROL_REFRESH).length())
+        assertEquals(1, components.getJSONObject(EntityCatalog.REFRESH_RESULT).length())
+    }
 }

@@ -12,6 +12,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_MIC_MUTE
+import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_REFRESH
 import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_VOLUME
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.telemetry.AudioControls
@@ -103,5 +104,18 @@ class CommandRouterTest {
         assertEquals(2, volume)
         assertFalse(audioManager.isMicrophoneMute)
         assertNull(audio.microphoneMuteSupported.value)
+    }
+
+    @Test
+    fun `accepts a refresh press only when the refresh control is enabled`() = runTest {
+        assertTrue(router(CONTROL_REFRESH).handle(topics.command("refresh"), "PRESS", topics))
+        assertFalse(router().handle(topics.command("refresh"), "PRESS", topics))
+        assertFalse(router(CONTROL_VOLUME, CONTROL_MIC_MUTE).handle(topics.command("refresh"), "PRESS", topics))
+    }
+
+    @Test
+    fun `enabling refresh does not enable the audio controls`() = runTest {
+        assertFalse(router(CONTROL_REFRESH).handle(topics.command("volume"), "100", topics))
+        assertFalse(router(CONTROL_REFRESH).handle(topics.command("mute"), "ON", topics))
     }
 }

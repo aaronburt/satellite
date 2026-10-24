@@ -18,6 +18,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_MIC_MUTE
+import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_REFRESH
 import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_VOLUME
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.model.UpdateInterval
@@ -440,6 +441,129 @@ class SatelliteReporterTest {
 
         assertFalse(reporter.refresh())
         assertNull("a failed publish is not a publish", status.lastPublishedAtMillis.value)
+    }
+
+    private fun TestScope.connectedWithRefreshEnabled() {
+        settings.controlsState.value = setOf(CONTROL_REFRESH)
+        startReporter()
+        connect()
+        client.clearRecords()
+    }
+
+    private fun resultPayload() = client.lastPayload(topics.state(EntityCatalog.REFRESH_RESULT))
+
+    @Test
+    fun `a refresh press republishes discovery and state once and reports ok`() = runTest {
+        connectedWithRefreshEnabled()
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertEquals(1, client.publishesTo(topics.discovery).size)
+        assertEquals("73", client.lastPayload(topics.state("battery")))
+        assertEquals(1, client.publishesTo(topics.state("battery")).size)
+        assertEquals("ok", resultPayload())
+    }
+
+    @Test
+    fun `a refresh press adds no subscriptions`() = runTest {
+        connectedWithRefreshEnabled()
+        val subscriptions = client.subscribeCalls.size
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertEquals(subscriptions, client.subscribeCalls.size)
+    }
+
+    @Test
+    fun `repeated presses during a refresh republish once`() = runTest {
+        connectedWithRefreshEnabled()
+
+        repeat(5) { client.deliver(topics.command("refresh"), "PRESS") }
+        settle()
+
+        assertEquals(1, client.publishesTo(topics.discovery).size)
+        assertEquals(1, client.publishesTo(topics.state(EntityCatalog.REFRESH_RESULT)).size)
+    }
+
+    @Test
+    fun `a press after the cooldown is served again`() = runTest {
+        connectedWithRefreshEnabled()
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle(SatelliteReporter.REFRESH_COOLDOWN_MILLIS + 1_000)
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertEquals(2, client.publishesTo(topics.discovery).size)
+    }
+
+    @Test
+    fun `a refresh press is ignored while the control is disabled`() = runTest {
+        startReporter()
+        connect()
+        client.clearRecords()
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertTrue(client.published.isEmpty())
+    }
+
+    @Test
+    fun `a refresh press with the wrong payload is ignored`() = runTest {
+        connectedWithRefreshEnabled()
+
+        client.deliver(topics.command("refresh"), "ON")
+        settle()
+
+        assertTrue(client.published.isEmpty())
+    }
+
+    @Test
+    fun `a refresh reports partial when only the state is rejected`() = runTest {
+        connectedWithRefreshEnabled()
+        client.failingTopics = { it.contains("/state/battery") }
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertEquals("partial", resultPayload())
+    }
+
+    @Test
+    fun `a refresh reports failed when the broker rejects discovery and state`() = runTest {
+        connectedWithRefreshEnabled()
+        client.failingTopics = { it == topics.discovery || it.contains("/state/") && !it.endsWith("refresh_result") }
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle()
+
+        assertEquals("failed", resultPayload())
+    }
+
+    @Test
+    fun `enabling refresh exposes the button and sensor, disabling clears the result`() = runTest {
+        startReporter()
+        connect()
+
+        settings.setControlEnabled(CONTROL_REFRESH, true)
+        settle()
+        val components = lastDiscovery().getJSONObject("components")
+        assertTrue(components.has(CONTROL_REFRESH))
+        assertTrue(components.has(EntityCatalog.REFRESH_RESULT))
+
+        client.deliver(topics.command("refresh"), "PRESS")
+        settle(3_000)
+        client.clearRecords()
+
+        settings.setControlEnabled(CONTROL_REFRESH, false)
+        settle()
+        val cleared = client.publishesTo(topics.state(EntityCatalog.REFRESH_RESULT)).single()
+        assertEquals("", cleared.payload)
+        assertTrue(cleared.retain)
+        assertFalse(lastDiscovery().getJSONObject("components").has(CONTROL_REFRESH))
     }
 
     @Test

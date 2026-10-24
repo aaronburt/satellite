@@ -9,6 +9,10 @@ object EntityCatalog {
     /** Controllable entity keys, shared by the reporter and the command router. */
     const val CONTROL_VOLUME = "volume_media"
     const val CONTROL_MIC_MUTE = "mic_muted"
+    const val CONTROL_REFRESH = "refresh_discovery"
+
+    /** Key of the sensor that reports how the last refresh request went. */
+    const val REFRESH_RESULT = "refresh_result"
 
     /** Read-only entities, published unconditionally. */
     val entities: List<EntitySpec> = listOf(
@@ -165,15 +169,55 @@ object EntityCatalog {
             entityCategory = null,
             command = CommandSpec("mute", CommandSpec.Kind.ON_OFF),
         ),
+        EntitySpec(
+            key = CONTROL_REFRESH,
+            platform = "button",
+            name = "Refresh discovery",
+            icon = "mdi:refresh",
+            entityCategory = "config",
+            command = CommandSpec("refresh", CommandSpec.Kind.PRESS),
+        ),
+    )
+
+    /** Outcomes the [REFRESH_RESULT] sensor can report. */
+    val refreshOutcomes: List<String> = listOf("ok", "partial", "failed")
+
+    /**
+     * Entities that exist only while the control they [EntitySpec.requires] is
+     * enabled. Their state is published by the reporter, not read from the device.
+     */
+    val companionEntities: List<EntitySpec> = listOf(
+        EntitySpec(
+            key = REFRESH_RESULT,
+            platform = "sensor",
+            name = "Refresh result",
+            deviceClass = "enum",
+            icon = "mdi:refresh-circle",
+            options = refreshOutcomes,
+            requires = CONTROL_REFRESH,
+        ),
     )
 
     /** Everything the app knows how to expose. */
-    val all: List<EntitySpec> = entities + controlEntities
+    val all: List<EntitySpec> = entities + controlEntities + companionEntities
+
+    /** Whether [spec] belongs in discovery and state publishing for the enabled controls. */
+    fun isExposed(spec: EntitySpec, enabledControls: Set<String>): Boolean = when {
+        spec.isControl -> spec.key in enabledControls
+        spec.requires != null -> spec.requires in enabledControls
+        else -> true
+    }
+
+    /** Opt-in entities that are currently hidden from Home Assistant. */
+    fun unexposedKeys(enabledControls: Set<String>): Set<String> = (controlEntities + companionEntities)
+        .filterNot { isExposed(it, enabledControls) }
+        .map { it.key }
+        .toSet()
 
     /**
      * Keys whose state should be published right now: every read-only entity,
      * plus only those controls the user has enabled.
      */
-    fun activeKeys(enabledControls: Set<String>): Set<String> = entities.map { it.key }.toSet() +
-        controlEntities.filter { it.key in enabledControls }.map { it.key }
+    fun activeKeys(enabledControls: Set<String>): Set<String> =
+        all.filter { isExposed(it, enabledControls) }.map { it.key }.toSet()
 }

@@ -48,6 +48,7 @@ Everything below needs no runtime permission and works on API 26+.
 | App data usage | `TrafficStats` tx/rx | `sensor`, `data_size` | since boot |
 | Ringer mode | `AudioManager.ringerMode` | `sensor`, `enum` (normal/vibrate/silent) | diagnostic |
 | Do Not Disturb | `NotificationManager.getCurrentInterruptionFilter()` | `sensor`, `enum` | diagnostic |
+| Refresh discovery | MQTT command `cmd/refresh` | `button` (controllable) | also adds the `refresh_result` sensor |
 | Media volume | `AudioManager.getStreamVolume` | `number` (controllable) | also per stream |
 | Headphones connected | `AudioManager.isWiredHeadsetOn` / device callback | `binary_sensor` | |
 | Microphone muted | `AudioManager.isMicrophoneMute` | `binary_sensor` | |

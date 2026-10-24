@@ -72,9 +72,22 @@ included by the catalog; controllable entities are added only after opt-in.
 | --- | --- | --- |
 | `volume` | Integer from `0` to `100` | `volume_media` |
 | `mute` | `ON` or `OFF` (case-insensitive) | `mic_muted` |
+| `refresh` | `PRESS` (case-insensitive) | `refresh_discovery` |
 
 After accepting a command, the app republishes observed state. Acceptance does
 not guarantee Android applied the change; OEM restrictions can refuse it.
+
+**Refresh discovery.** Enabling `refresh_discovery` on the Entities screen adds
+a Home Assistant button (`button` platform, `config` category, command topic
+only) and a diagnostic `refresh_result` sensor (`ok`, `partial`, `failed`).
+Both are removed again when the control is turned off, and presses are ignored
+while it is off. A press republishes the discovery payload and every active
+state once, over the existing subscriptions, then publishes the result:
+`ok` when the broker accepted everything, `partial` when only discovery or
+only the states were accepted, `failed` when neither was. Presses that arrive
+while a refresh is running, or within two seconds of it finishing, are dropped
+rather than queued. While the broker is unreachable no press can arrive, so a
+`failed` result only appears for broker rejections.
 
 The authoritative definitions are
 [`Topics.kt`](../android/core/discovery/src/main/kotlin/uk/co/aaronburt/satellite/discovery/Topics.kt),

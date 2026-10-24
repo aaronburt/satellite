@@ -8,7 +8,8 @@ import org.json.JSONObject
  * device, entities under `components`).
  *
  * Controllable entities ([EntitySpec.isControl]) are only included when they are
- * in [enabledControls] — they are opt-in. To un-expose one that Home Assistant
+ * in [enabledControls] — they are opt-in — and so are entities that
+ * [EntitySpec.requires] one. To un-expose one that Home Assistant
  * already knows about, Home Assistant's documented removal procedure is used:
  * first publish the component stub (`{ "platform": … }`), then publish the config
  * without it. [stubControls] drives the first half of that.
@@ -56,7 +57,7 @@ object DiscoveryPayloadBuilder {
         val components = JSONObject().apply {
             specs.forEach { spec ->
                 val stub = spec.key in stubControls
-                if (!stub && spec.isControl && spec.key !in enabledControls) return@forEach
+                if (!stub && !EntityCatalog.isExposed(spec, enabledControls)) return@forEach
                 put(spec.key, component(spec, deviceId, topics, stub))
             }
         }
@@ -79,7 +80,8 @@ object DiscoveryPayloadBuilder {
             put("platform", spec.platform)
             put("unique_id", "${deviceId}_${spec.key}")
             put("name", spec.name)
-            put("state_topic", topics.state(spec.key))
+            // Home Assistant rejects a state topic on a button.
+            if (spec.command?.kind != CommandSpec.Kind.PRESS) put("state_topic", topics.state(spec.key))
             spec.command?.let { put("command_topic", topics.command(it.action)) }
             spec.deviceClass?.let { put("device_class", it) }
             spec.unit?.let { put("unit_of_measurement", it) }

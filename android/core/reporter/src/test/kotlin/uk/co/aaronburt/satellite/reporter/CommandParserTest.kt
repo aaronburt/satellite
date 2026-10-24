@@ -50,4 +50,18 @@ class CommandParserTest {
         val other = Topics("99999999")
         assertNull(CommandParser.parse(other.command("volume"), "70", topics))
     }
+
+    @Test
+    fun `parses the button press as a refresh request`() {
+        assertEquals(
+            SatelliteCommand.RefreshDiscovery,
+            CommandParser.parse(topics.command("refresh"), " press ", topics),
+        )
+    }
+
+    @Test
+    fun `rejects a refresh payload that is not a button press`() {
+        assertNull(CommandParser.parse(topics.command("refresh"), "ON", topics))
+        assertNull(CommandParser.parse(topics.command("refresh"), "", topics))
+    }
 }

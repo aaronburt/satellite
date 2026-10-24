@@ -29,6 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
+import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_REFRESH
 import uk.co.aaronburt.satellite.discovery.EntityCatalog.CONTROL_VOLUME
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.model.BrokerSettings
@@ -176,7 +177,8 @@ class HomeAssistantSmokeTest {
             "a control was exposed: $entities",
             entities.any {
                 it.startsWith("number.") ||
-                    it.startsWith("switch.")
+                    it.startsWith("switch.") ||
+                    it.startsWith("button.")
             }
         )
         assertTrue(deviceStates().keys.none { it in controlNames })
@@ -212,6 +214,22 @@ class HomeAssistantSmokeTest {
         }
         // Removing a control must not take the rest of the device with it.
         assertTrue("battery entity was removed too", entityFor("Battery") != null)
+    }
+
+    @Test
+    fun `pressing the refresh button in Home Assistant republishes and reports the result`() {
+        startApp(enabledControls = setOf(CONTROL_REFRESH))
+        val buttonName = EntityCatalog.controlEntities.single { it.key == CONTROL_REFRESH }.name
+        val resultName = EntityCatalog.companionEntities.single().name
+
+        val entityId = eventually("refresh button is created") { entityFor(buttonName)!!.getString("entity_id") }
+        eventually("refresh result sensor is created") { assertTrue(entityFor(resultName) != null) }
+
+        ha.callService("button", "press", JSONObject().put("entity_id", entityId))
+
+        eventually("Home Assistant shows the refresh result") {
+            assertEquals("ok", entityFor(resultName)!!.getString("state"))
+        }
     }
 
     @Test
