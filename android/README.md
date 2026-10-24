@@ -5,7 +5,8 @@ with device discovery, periodic or event-driven updates, and optional audio
 controls. It can alternatively send telemetry to an HTTP webhook.
 
 [Documentation index](../docs/README.md) | [Architecture](../docs/architecture.md) |
-[Protocol reference](../docs/mqtt-and-webhooks.md) | [Troubleshooting](../docs/troubleshooting.md)
+[Protocol reference](../docs/mqtt-and-webhooks.md) | [Troubleshooting](../docs/troubleshooting.md) |
+[Privacy](../PRIVACY.md)
 
 ## Install and configure
 

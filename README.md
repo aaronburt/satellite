@@ -32,6 +32,7 @@ Start with the [documentation index](docs/README.md) for setup and integration g
 - [MQTT and webhooks](docs/mqtt-and-webhooks.md): topics, commands, payloads, and platform differences.
 - [Troubleshooting](docs/troubleshooting.md): connectivity, discovery, reporting, and current limitations.
 - [Contributing](CONTRIBUTING.md): development, testing, versioning, and releases.
+- [Privacy statement](PRIVACY.md): what is shared, where it goes, and your controls.
 - [Security policy](SECURITY.md): private vulnerability reporting.
 
 ## Releases
