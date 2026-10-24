@@ -38,8 +38,8 @@ class UpdateDownloaderTest {
         // The downloader only accepts HTTPS, so serve it with a throwaway
         // certificate that this test (and only this test) trusts.
         val certificate = HeldCertificate.Builder()
-            .addSubjectAlternativeName(server.hostName)
             .addSubjectAlternativeName("localhost")
+            .addSubjectAlternativeName("127.0.0.1")
             .build()
         server.useHttps(HandshakeCertificates.Builder().heldCertificate(certificate).build().sslSocketFactory())
         server.start()
