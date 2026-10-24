@@ -506,7 +506,22 @@ func (s *Server) Stop() {
 	}
 }
 
+// requireGET rejects anything but GET with 405 and an Allow header. HEAD is
+// rejected too: these endpoints are read by the page and scripts with GET,
+// and a HEAD on the log stream would otherwise hold a connection open.
+func requireGET(w http.ResponseWriter, r *http.Request) bool {
+	if r.Method == http.MethodGet {
+		return true
+	}
+	w.Header().Set("Allow", http.MethodGet)
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	return false
+}
+
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	s.mu.Lock()
 	u := s.updater
 	s.mu.Unlock()
@@ -524,6 +539,9 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	s.mu.Lock()
 	caps := s.caps
 	s.mu.Unlock()
@@ -1002,6 +1020,9 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 // goroutine writes to w: the logger listener just queues events, so nothing
 // can write after the handler has returned.
 func (s *Server) handleLogsStream(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
