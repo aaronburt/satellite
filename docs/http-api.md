@@ -80,6 +80,12 @@ Use the following HTTP methods. JSON request bodies should use
 | GET | `/api/logs/stream` | None | Server-sent event stream of new logs |
 | GET | `/json` | None | Last telemetry snapshot; uses `X-API-Key` |
 
+Every `/api/*` endpoint accepts only the methods listed for it; anything
+else returns HTTP 405. `/api/status`, `/api/capabilities` and
+`/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
+returns 405. The WebUI-enabled check (404) and token check (401) run
+before the method check.
+
 ## Status and capabilities
 
 `GET /api/status` returns an object with:
@@ -109,8 +115,25 @@ strings. The `/json` API key remains present, so treat the response as sensitive
 
 `POST /api/config` accepts a partial object. Omitted fields retain their saved
 values, including omitted fields inside nested objects. Empty strings for the
-three secrets listed above also retain their saved values; this operation
-cannot clear those secrets by sending an empty string.
+three secrets listed above also retain their saved values, so an empty string
+never clears a secret.
+
+To clear a saved secret, list it in `clear_secrets`. The allowed names are
+`mqtt.password`, `telemetry_webhook.bearer_token`, and `webhook.secret`;
+listing a name twice is harmless. `clear_secrets` can be combined with other
+changes in the same request:
+
+```sh
+curl --silent --show-error --fail-with-body -X POST \
+  -H "X-API-Token: $SATELLITE_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"clear_secrets":["mqtt.password","webhook.secret"]}' \
+  "$SATELLITE_URL/api/config"
+```
+
+The whole request is checked before anything is saved. It is rejected with
+`400` and nothing changes when `clear_secrets` is not a list of strings, names
+an unknown secret, or names a secret that the same request also sets to a
+non-empty value. Error messages name the field but never include secret values.
 
 For example, enable background update checks and set the MQTT heartbeat:
 
@@ -121,8 +144,8 @@ Invoke-RestMethod -Method Post -Uri "$base/api/config" -Headers $headers `
 ```
 
 The normal response is `{"success":true}`. Saving also reapplies the running
-settings and restarts MQTT. Changing `interval_sec` still requires restarting
-the process to change its collection timer.
+settings and restarts MQTT. A new `interval_sec` takes effect immediately: the
+next collection runs one full new interval after the save.
 
 Changing `bind_address`, `port`, or `webui_port` can move the listener. For a port
 change, supply the same desired value for both `port` and `webui_port`. A move
@@ -379,7 +402,7 @@ also decode the response JSON and check `success`, even when HTTP is 200.
 | 400 | Invalid JSON/settings/import data, or an unknown/failed action |
 | 401 | Missing or invalid WebUI token or `/json` API key |
 | 404 | WebUI/API disabled, JSON endpoint disabled, or unknown route |
-| 405 | Unsupported method on handlers that enforce methods |
+| 405 | Unsupported method for the endpoint |
 | 422 | Configuration import requires a passphrase, or decryption failed |
 | 500 | Configuration save/export failure, unavailable action registry, or failed update check |
 | 503 | Update checker unavailable for a manual check |

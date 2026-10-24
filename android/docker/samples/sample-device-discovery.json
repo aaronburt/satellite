@@ -1,5 +1,4 @@
 {
-  "~": "satellite/sample01",
   "device": {
     "identifiers": ["satellite_android_sample01"],
     "name": "Sample Satellite",
@@ -12,7 +11,7 @@
     "sw_version": "0.1.0-test",
     "support_url": "https://github.com/example/SatelliteAndroid"
   },
-  "availability_topic": "~/availability",
+  "availability_topic": "satellite/sample01/availability",
   "qos": 1,
   "components": {
     "battery": {
@@ -21,14 +20,14 @@
       "device_class": "battery",
       "unit_of_measurement": "%",
       "state_class": "measurement",
-      "state_topic": "~/state/battery",
+      "state_topic": "satellite/sample01/state/battery",
       "entity_category": "diagnostic"
     },
     "charging": {
       "platform": "binary_sensor",
       "unique_id": "sample01_charging",
       "device_class": "battery_charging",
-      "state_topic": "~/state/charging",
+      "state_topic": "satellite/sample01/state/charging",
       "entity_category": "diagnostic"
     }
   }

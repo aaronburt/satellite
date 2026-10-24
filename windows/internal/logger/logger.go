@@ -51,6 +51,13 @@ func AddListener(fn Listener) func() {
 	}
 }
 
+// ListenerCount reports how many listeners are registered.
+func ListenerCount() int {
+	listenersMu.RLock()
+	defer listenersMu.RUnlock()
+	return len(listeners)
+}
+
 func Init(cfg config.WebhookConfig, id string) {
 	UpdateConfig(cfg, id)
 }

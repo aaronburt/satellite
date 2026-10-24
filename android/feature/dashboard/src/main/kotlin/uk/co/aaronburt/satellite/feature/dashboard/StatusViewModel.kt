@@ -3,6 +3,7 @@ package uk.co.aaronburt.satellite.feature.dashboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +22,6 @@ import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 import uk.co.aaronburt.satellite.reporter.ReporterStatus
 import uk.co.aaronburt.satellite.telemetry.ConnectivityReadings
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
-import javax.inject.Inject
 
 @HiltViewModel
 class StatusViewModel @Inject constructor(
@@ -29,7 +29,7 @@ class StatusViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,
     private val coordinator: ReporterCoordinator,
-    status: ReporterStatus,
+    status: ReporterStatus
 ) : ViewModel() {
 
     private val telemetryValues = flow {
@@ -105,7 +105,7 @@ class StatusViewModel @Inject constructor(
         val transport: Transport,
         val connection: ConnectionState,
         val enabled: Boolean,
-        val lastPublished: Long?,
+        val lastPublished: Long?
     )
 
     private companion object {

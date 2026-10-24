@@ -1,0 +1,39 @@
+# Isolated Mosquitto + Home Assistant for the automated smoke test (issue #21).
+#
+# Started by run.sh under a unique Compose project name. Unlike ../compose.yaml
+# it uses no fixed container names, binds random loopback ports and keeps all
+# state in named volumes, so it never touches a contributor's normal
+# environment and `docker compose down -v` removes every trace.
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "127.0.0.1::1883"
+    environment:
+      MQTT_PASSWORD: ${MQTT_PASSWORD:?set by run.sh}
+    volumes:
+      - ../mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -u satellite -P \"$$MQTT_PASSWORD\" -t '$$SYS/broker/version' -C 1 -W 3"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  homeassistant:
+    image: ${HA_IMAGE:-ghcr.io/home-assistant/home-assistant}:${HA_VERSION:-stable}
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1::8123"
+    environment:
+      TZ: UTC
+    volumes:
+      - ../homeassistant/config/configuration.yaml:/config/configuration.yaml:ro
+      - ha-config:/config
+
+volumes:
+  mosquitto-data:
+  ha-config:

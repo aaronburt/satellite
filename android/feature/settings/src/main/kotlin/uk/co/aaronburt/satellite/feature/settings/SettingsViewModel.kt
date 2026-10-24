@@ -6,6 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
@@ -16,20 +23,13 @@ import uk.co.aaronburt.satellite.model.WebhookSettings
 import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 import uk.co.aaronburt.satellite.update.UpdateManager
 import uk.co.aaronburt.satellite.update.UpdateState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val coordinator: ReporterCoordinator,
     private val updateManager: UpdateManager,
-    @ApplicationContext private val context: Context,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -74,8 +74,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun onDeviceNameChange(value: String) =
-        _uiState.update { it.copy(deviceName = value, saved = false) }
+    fun onDeviceNameChange(value: String) = _uiState.update { it.copy(deviceName = value, saved = false) }
 
     fun onThemeChange(preference: ThemePreference) {
         _uiState.update { it.copy(themePreference = preference) }
@@ -102,11 +101,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.saveTransport(transport) }
     }
 
-    fun onWebhookUrlChange(value: String) =
-        _uiState.update { it.copy(webhookUrl = value, saved = false) }
+    fun onWebhookUrlChange(value: String) = _uiState.update { it.copy(webhookUrl = value, saved = false) }
 
-    fun onBearerTokenChange(value: String) =
-        _uiState.update { it.copy(bearerToken = value, saved = false) }
+    fun onBearerTokenChange(value: String) = _uiState.update { it.copy(bearerToken = value, saved = false) }
 
     fun onHostChange(value: String) = _uiState.update { it.copy(host = value, saved = false) }
 

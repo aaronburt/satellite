@@ -159,7 +159,6 @@ object EntityCatalog {
      * Keys whose state should be published right now: every read-only entity,
      * plus only those controls the user has enabled.
      */
-    fun activeKeys(enabledControls: Set<String>): Set<String> =
-        entities.map { it.key }.toSet() +
-            controlEntities.filter { it.key in enabledControls }.map { it.key }
+    fun activeKeys(enabledControls: Set<String>): Set<String> = entities.map { it.key }.toSet() +
+        controlEntities.filter { it.key in enabledControls }.map { it.key }
 }

@@ -19,7 +19,10 @@ class ConnectivityReadingsTest {
 
     @Test
     fun `on Wi-Fi without permission is denied, not disconnected`() {
-        assertEquals(PERMISSION_DENIED, ConnectivityReadings.wifiSsid(onWifi = true, permitted = false, rawSsid = "\"Home\""))
+        assertEquals(
+            PERMISSION_DENIED,
+            ConnectivityReadings.wifiSsid(onWifi = true, permitted = false, rawSsid = "\"Home\"")
+        )
     }
 
     @Test

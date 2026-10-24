@@ -21,9 +21,7 @@ import javax.inject.Singleton
  * one-tap upgrade rather than a silent one.
  */
 @Singleton
-class UpdateInstaller @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : ApkInstaller {
+class UpdateInstaller @Inject constructor(@ApplicationContext private val context: Context) : ApkInstaller {
 
     /** False until the user allows Satellite to install unknown apps. */
     override fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()

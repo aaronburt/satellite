@@ -1,8 +1,8 @@
 package uk.co.aaronburt.satellite.feature.entities
 
+import java.util.Locale
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
 import uk.co.aaronburt.satellite.telemetry.ConnectivityReadings
-import java.util.Locale
 
 /** Turns raw published values into what the Entities screen shows. */
 internal object EntityFormatter {
@@ -25,16 +25,15 @@ internal object EntityFormatter {
         else -> raw.replaceFirstChar { it.uppercase() }
     }
 
-    fun controlValue(key: String, volumePercent: Int?, microphoneMuted: Boolean?): String =
-        when (key) {
-            EntityCatalog.CONTROL_VOLUME -> volumePercent?.let { "$it%" } ?: NO_VALUE
-            EntityCatalog.CONTROL_MIC_MUTE -> when (microphoneMuted) {
-                true -> "Muted"
-                false -> "Live"
-                null -> NO_VALUE
-            }
-            else -> NO_VALUE
+    fun controlValue(key: String, volumePercent: Int?, microphoneMuted: Boolean?): String = when (key) {
+        EntityCatalog.CONTROL_VOLUME -> volumePercent?.let { "$it%" } ?: NO_VALUE
+        EntityCatalog.CONTROL_MIC_MUTE -> when (microphoneMuted) {
+            true -> "Muted"
+            false -> "Live"
+            null -> NO_VALUE
         }
+        else -> NO_VALUE
+    }
 
     fun formatDuration(seconds: Long?): String {
         if (seconds == null) return "unknown"

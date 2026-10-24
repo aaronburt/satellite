@@ -18,8 +18,8 @@ import android.os.SystemClock
 import android.telephony.TelephonyManager
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlin.math.roundToInt
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 /**
  * Reads the current device state as a map of entity key → MQTT payload.
@@ -29,7 +29,7 @@ import javax.inject.Inject
  */
 class DeviceStateReader @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val audioControls: AudioControls,
+    private val audioControls: AudioControls
 ) {
 
     @Suppress("InlinedApi")
@@ -116,20 +116,17 @@ class DeviceStateReader @Inject constructor(
         val onWifi = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
         val permitted = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
             hasPermission(Manifest.permission.NEARBY_WIFI_DEVICES)
-        val raw = if (onWifi && permitted) currentSsid() else null
-        values["wifi_ssid"] = ConnectivityReadings.wifiSsid(onWifi, permitted, raw)
-    }
 
-    /**
-     * WifiManager.connectionInfo is deprecated but still the only one-off read
-     * that returns the SSID: on Android 12+ the active network's WifiInfo from
-     * getNetworkCapabilities() is always redacted. Callers check the active
-     * network is Wi-Fi first, so a stale value is never used.
-     */
-    @Suppress("DEPRECATION")
-    private fun currentSsid(): String? {
-        val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java)
-        return wifiManager?.connectionInfo?.ssid
+        // WifiManager.connectionInfo is deprecated but still the only one-off SSID read: on
+        // Android 12+ the active network's WifiInfo is always redacted. The onWifi check above
+        // keeps a stale value from being used.
+        @Suppress("DEPRECATION")
+        val raw = if (onWifi && permitted) {
+            context.applicationContext.getSystemService(WifiManager::class.java)?.connectionInfo?.ssid
+        } else {
+            null
+        }
+        values["wifi_ssid"] = ConnectivityReadings.wifiSsid(onWifi, permitted, raw)
     }
 
     private fun readStorage(values: MutableMap<String, String>) {

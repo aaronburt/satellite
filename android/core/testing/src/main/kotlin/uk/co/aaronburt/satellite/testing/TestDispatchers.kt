@@ -1,7 +1,7 @@
 package uk.co.aaronburt.satellite.testing
 
-import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 import kotlinx.coroutines.CoroutineDispatcher
+import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
 
 /** Routes every dispatcher to one test dispatcher so virtual time controls it all. */
 class TestDispatchers(dispatcher: CoroutineDispatcher) : DispatchersProvider {

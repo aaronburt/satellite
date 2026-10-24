@@ -239,14 +239,18 @@ class DeviceStateReaderTest {
 
     @Test
     fun `revoking the permission switches back to permission denied`() {
-        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
+        shadowOf(
+            context
+        ).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
         onTransport(NetworkCapabilities.TRANSPORT_WIFI)
         setWifi("\"HomeNet\"")
         setCarrier("Vodafone UK")
         assertEquals("HomeNet", read()["wifi_ssid"])
         assertEquals("Vodafone UK", read()["carrier"])
 
-        shadowOf(context).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
+        shadowOf(
+            context
+        ).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
         val values = read()
         assertEquals("permission_denied", values["wifi_ssid"])
         assertEquals("permission_denied", values["carrier"])

@@ -3,6 +3,8 @@ package uk.co.aaronburt.satellite.reporter
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.os.PowerManager
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -11,8 +13,6 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import uk.co.aaronburt.satellite.testing.idleMainLooper
 import uk.co.aaronburt.satellite.testing.settle
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
 
 @RunWith(RobolectricTestRunner::class)
 class StateChangeWatcherTest {

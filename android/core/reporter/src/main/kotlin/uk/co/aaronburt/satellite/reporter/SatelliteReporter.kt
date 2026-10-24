@@ -3,6 +3,15 @@ package uk.co.aaronburt.satellite.reporter
 import android.content.Context
 import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.discovery.DiscoveryPayloadBuilder
@@ -14,15 +23,6 @@ import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.mqtt.MqttClient
 import uk.co.aaronburt.satellite.telemetry.AudioControls
 import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * MQTT reporter: publishes the discovery payload and device state on connect,
@@ -45,7 +45,7 @@ class SatelliteReporter @Inject constructor(
     private val audioControls: AudioControls,
     private val status: ReporterStatus,
     @ApplicationContext private val context: Context,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     private var observerJob: Job? = null
@@ -141,6 +141,9 @@ class SatelliteReporter @Inject constructor(
         val deviceId = settingsRepository.deviceId()
         val topics = Topics(deviceId)
 
+        // A control disabled while offline could not clear its retained state
+        // at the time, so clear every inactive control's state on each connect.
+        clearInactiveControlStates(topics)
         val discovered = publishDiscovery(deviceId, topics)
         val published = publishStates()
 
@@ -163,6 +166,34 @@ class SatelliteReporter @Inject constructor(
         return discovered && published
     }
 
+    /**
+     * Deliberately removes this device from Home Assistant: deletes the
+     * retained discovery config (which makes Home Assistant remove the device
+     * and its entities from its registry), every retained state topic, and the
+     * retained availability. Call it before switching MQTT off or uninstalling;
+     * the next [refresh] or reconnect re-creates the device under the same ID.
+     * Returns false when not connected or the broker refused any deletion.
+     */
+    suspend fun removeFromHomeAssistant(): Boolean {
+        if (client.connectionState.value !is ConnectionState.Connected) return false
+        val topics = Topics(settingsRepository.deviceId())
+        val results = buildList {
+            add(client.publish(topics.discovery, "", qos = 1, retain = true))
+            EntityCatalog.all.forEach { spec ->
+                add(client.publish(topics.state(spec.key), "", qos = 1, retain = true))
+            }
+            add(client.publish(topics.availability, "", qos = 1, retain = true))
+        }
+        return results.all { it.isSuccess }
+    }
+
+    private suspend fun clearInactiveControlStates(topics: Topics) {
+        val enabled = settingsRepository.enabledControls.first()
+        EntityCatalog.controlEntities
+            .filterNot { it.key in enabled }
+            .forEach { client.publish(topics.state(it.key), "", qos = 1, retain = true) }
+    }
+
     private suspend fun publishDiscovery(deviceId: String, topics: Topics): Boolean {
         val enabledControls = settingsRepository.enabledControls.first()
         val unexposed = EntityCatalog.controlEntities
@@ -179,7 +210,7 @@ class SatelliteReporter @Inject constructor(
         deviceId: String,
         topics: Topics,
         enabledControls: Set<String>,
-        stubControls: Set<String>,
+        stubControls: Set<String>
     ): Result<Unit> {
         val payload = DiscoveryPayloadBuilder.build(
             deviceId = deviceId,
@@ -229,7 +260,7 @@ class SatelliteReporter @Inject constructor(
         context.packageManager.getPackageInfo(context.packageName, 0).versionName
     }.getOrNull() ?: "unknown"
 
-    private companion object {
+    companion object {
         const val DISCOVERY_EXPIRY_SECONDS = 7 * 24 * 60 * 60L
         const val STATE_EXPIRY_SECONDS = 60 * 60L
     }

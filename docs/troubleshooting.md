@@ -58,8 +58,8 @@ Webhook reporting updates its timestamp after an HTTP 2xx response.
 
 For desktop, unchanged values can be suppressed until the next heartbeat. Check
 `interval_sec`, `heartbeat_sec`, and the telemetry webhook's `min_interval_sec`.
-After changing `interval_sec`, restart the agent: saving settings currently
-restarts MQTT but leaves the running collection timer unchanged.
+A saved `interval_sec` applies to the running collection timer straight away;
+the next collection follows one full new interval after the save.
 
 ## Desktop web UI or `/json` cannot be opened
 
