@@ -61,6 +61,13 @@ From `android/` on Windows:
 .\gradlew.bat test lint :app:assembleDebug
 ```
 
+JVM tests that touch DataStore files must give the store an explicit
+`OkioStorage` (see `DataStoreSettingsRepositoryTest`). The default JVM
+`FileStorage`, used by both `create` and `createWithPath`, commits writes with
+`File.renameTo`, which cannot replace an
+existing file on Windows, so those tests pass on Linux and fail on Windows.
+CI runs `:core:datastore:testDebugUnitTest` on a Windows runner to catch this.
+
 On Linux/macOS, use `./gradlew` instead. These checks do not require a running
 device. Device/UI tests require an emulator or phone; the broker configuration
 test additionally needs the Docker broker and a fresh app setup. See
