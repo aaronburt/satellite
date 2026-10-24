@@ -30,7 +30,7 @@ sealed interface DeviceCheckCommand {
 
             extras["host"]?.let { host ->
                 require(host.isNotBlank()) { "host is blank" }
-                val port = extras["port"]?.let { it.toIntOrNull() ?: error("port '$it' is not a number") } ?: 1883
+                val port = extras["port"]?.let { requireNotNull(it.toIntOrNull()) { "port '$it' is not a number" } } ?: 1883
                 require(port in 1..65535) { "port $port out of range" }
                 commands += ConfigureBroker(
                     BrokerSettings(
