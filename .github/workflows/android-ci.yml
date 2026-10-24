@@ -39,24 +39,47 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Install SDK packages
+        id: sdk
         run: |
           SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
 
       - name: Unit tests
+        id: tests
         run: ./gradlew test --stacktrace
 
-      - name: Upload unit test reports
-        if: failure()
+      # Lint still runs when tests fail so both reports are available.
+      - name: Android Lint
+        id: lint
+        if: ${{ !cancelled() && steps.sdk.outcome == 'success' }}
+        run: ./gradlew lint --stacktrace
+
+      # Reports keep their module path (e.g. core/mqtt/build/test-results/...).
+      # Only upload once a Gradle step actually ran, so a setup failure doesn't
+      # add a misleading missing-file error.
+      - name: Upload unit-test reports
+        if: ${{ !cancelled() && steps.tests.outcome != 'skipped' && steps.tests.outcome != '' }}
         uses: actions/upload-artifact@v7
         with:
-          name: unit-test-reports-linux
-          path: android/**/build/reports/tests/
-          if-no-files-found: ignore
+          name: android-unit-test-reports
+          path: |
+            android/**/build/test-results/
+            android/**/build/reports/tests/
+          if-no-files-found: warn
+          retention-days: 14
 
-      - name: Android Lint
-        run: ./gradlew lint --stacktrace
+      - name: Upload lint reports
+        if: ${{ !cancelled() && steps.lint.outcome != 'skipped' && steps.lint.outcome != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-lint-reports
+          path: |
+            android/**/build/reports/lint-results-*.xml
+            android/**/build/reports/lint-results-*.html
+            android/**/build/reports/lint-results-*.sarif
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Assemble debug
         run: ./gradlew :app:assembleDebug --stacktrace

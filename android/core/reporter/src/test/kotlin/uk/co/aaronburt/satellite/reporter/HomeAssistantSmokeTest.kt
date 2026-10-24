@@ -2,6 +2,12 @@ package uk.co.aaronburt.satellite.reporter
 
 import android.app.Application
 import android.media.AudioManager
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,12 +39,6 @@ import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
 import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.setBattery
-import java.net.URI
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
-import java.time.Duration
-import java.util.UUID
 
 /**
  * Issue #21: the real reporter, MQTT client and connection manager against a
@@ -164,7 +164,13 @@ class HomeAssistantSmokeTest {
         eventually("device is discovered") { assertTrue(deviceEntities().isNotEmpty()) }
         val controlNames = EntityCatalog.controlEntities.map { "$deviceName ${it.name}" }
         val entities = deviceEntities()
-        assertFalse("a control was exposed: $entities", entities.any { it.startsWith("number.") || it.startsWith("switch.") })
+        assertFalse(
+            "a control was exposed: $entities",
+            entities.any {
+                it.startsWith("number.") ||
+                    it.startsWith("switch.")
+            }
+        )
         assertTrue(deviceStates().keys.none { it in controlNames })
     }
 
@@ -251,8 +257,9 @@ class HomeAssistantSmokeTest {
     private class HomeAssistantApi(private val baseUrl: String, private val token: String) {
         private val http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
 
-        fun states(): List<JSONObject> =
-            JSONArray(send(request("/api/states").GET())).let { array -> List(array.length()) { array.getJSONObject(it) } }
+        fun states(): List<JSONObject> = JSONArray(send(request("/api/states").GET())).let { array ->
+            List(array.length()) { array.getJSONObject(it) }
+        }
 
         fun template(template: String): String =
             send(request("/api/template").POST(body(JSONObject().put("template", template))))
