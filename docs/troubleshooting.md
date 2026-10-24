@@ -84,7 +84,20 @@ request examples.
 ## Android readings or controls are missing
 
 Check the app's Permissions screen and grant the permission for the affected
-reading. Wi-Fi and carrier data depend on the Android version and permissions.
+reading. The Wi-Fi network and carrier sensors always publish a value, so
+Home Assistant never shows a stale network name:
+
+| Value | Meaning |
+| --- | --- |
+| `disconnected` | (Wi-Fi only) the phone is on mobile data, ethernet, or offline |
+| `permission_denied` | the permission is not granted or was revoked |
+| `unavailable` | permission granted, but Android/the OEM hid the value (or no SIM) |
+
+Wi-Fi needs Precise location on Android 12 and below, or Nearby Wi-Fi devices on
+Android 13+. Some OEMs still report `<unknown ssid>` with permission granted
+(for example with location services switched off); that reads as `unavailable`.
+The Wi-Fi name is refreshed on each report, so a change shows up within one
+reporting interval.
 Some OEMs restrict microphone muting; an unsupported control is disabled in the
 UI. Use the observed device state to verify a command took effect.
 

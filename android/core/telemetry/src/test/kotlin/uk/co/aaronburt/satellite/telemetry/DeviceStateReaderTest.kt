@@ -181,18 +181,20 @@ class DeviceStateReaderTest {
     }
 
     @Test
-    fun `Wi-Fi name and carrier need their permissions`() {
+    fun `Wi-Fi name and carrier report permission denied without their permissions`() {
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
         setWifi("\"HomeNet\"")
         setCarrier("Carrier")
 
         val values = read()
-        assertFalse(values.containsKey("wifi_ssid"))
-        assertFalse(values.containsKey("carrier"))
+        assertEquals("permission_denied", values["wifi_ssid"])
+        assertEquals("permission_denied", values["carrier"])
     }
 
     @Test
     fun `Wi-Fi name is read with location permission, without the quotes`() {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
         setWifi("\"HomeNet\"")
 
         assertEquals("HomeNet", read()["wifi_ssid"])
@@ -201,20 +203,53 @@ class DeviceStateReaderTest {
     @Test
     fun `Wi-Fi name is read with the nearby devices permission`() {
         shadowOf(context).grantPermissions(Manifest.permission.NEARBY_WIFI_DEVICES)
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
         setWifi("\"Cafe\"")
 
         assertEquals("Cafe", read()["wifi_ssid"])
     }
 
     @Test
-    fun `an unknown or empty Wi-Fi name is left out`() {
+    fun `a redacted or empty Wi-Fi name is unavailable`() {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
 
         setWifi("<unknown ssid>")
-        assertNull(read()["wifi_ssid"])
+        assertEquals("unavailable", read()["wifi_ssid"])
 
         setWifi("\"\"")
-        assertNull(read()["wifi_ssid"])
+        assertEquals("unavailable", read()["wifi_ssid"])
+    }
+
+    @Test
+    fun `leaving Wi-Fi clears the name even though WifiManager still has it`() {
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        setWifi("\"HomeNet\"")
+        assertEquals("HomeNet", read()["wifi_ssid"])
+
+        onTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+        assertEquals("disconnected", read()["wifi_ssid"])
+
+        shadowOf(context.getSystemService(ConnectivityManager::class.java)).setActiveNetworkInfo(null)
+        val offline = read()
+        assertEquals("none", offline["network_transport"])
+        assertEquals("disconnected", offline["wifi_ssid"])
+    }
+
+    @Test
+    fun `revoking the permission switches back to permission denied`() {
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
+        onTransport(NetworkCapabilities.TRANSPORT_WIFI)
+        setWifi("\"HomeNet\"")
+        setCarrier("Vodafone UK")
+        assertEquals("HomeNet", read()["wifi_ssid"])
+        assertEquals("Vodafone UK", read()["carrier"])
+
+        shadowOf(context).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE)
+        val values = read()
+        assertEquals("permission_denied", values["wifi_ssid"])
+        assertEquals("permission_denied", values["carrier"])
     }
 
     @Test
@@ -224,7 +259,14 @@ class DeviceStateReaderTest {
         assertEquals("Vodafone UK", read()["carrier"])
 
         setCarrier("")
-        assertNull(read()["carrier"])
+        assertEquals("unavailable", read()["carrier"])
+    }
+
+    private fun onTransport(transport: Int) {
+        val connectivity = context.getSystemService(ConnectivityManager::class.java)
+        val capabilities = ShadowNetworkCapabilities.newInstance()
+        shadowOf(capabilities).addTransportType(transport)
+        shadowOf(connectivity).setNetworkCapabilities(connectivity.activeNetwork!!, capabilities)
     }
 
     private fun setWifi(ssid: String) {
