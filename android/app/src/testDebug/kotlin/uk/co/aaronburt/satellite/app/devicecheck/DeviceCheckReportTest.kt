@@ -7,7 +7,7 @@ import uk.co.aaronburt.satellite.model.Transport
 class DeviceCheckReportTest {
 
     @Test
-    fun `formats every field as sorted key value pairs the script can split`() {
+    fun formatsEveryFieldAsSortedKeyValuePairsTheScriptCanSplit() {
         val report = DeviceCheckReport(
             deviceId = "abc123",
             reporting = true,
@@ -18,13 +18,14 @@ class DeviceCheckReportTest {
         )
 
         assertEquals(
-            "device_id=abc123;reporting=true;transport=webhook;controls=mic_muted,volume_media;mic_muted=false;volume=40",
+            "device_id=abc123;reporting=true;transport=webhook;" +
+                "controls=mic_muted,volume_media;mic_muted=false;volume=40",
             report.format(),
         )
     }
 
     @Test
-    fun `unknown audio state is reported as unknown, not as false`() {
+    fun unknownAudioStateIsReportedAsUnknownNotAsFalse() {
         val report = DeviceCheckReport("id", false, Transport.MQTT, emptySet(), null, null)
 
         assertEquals(

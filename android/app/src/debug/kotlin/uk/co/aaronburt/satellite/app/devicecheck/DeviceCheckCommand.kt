@@ -21,6 +21,9 @@ sealed interface DeviceCheckCommand {
     data class SetReporting(val enabled: Boolean) : DeviceCheckCommand
 
     companion object {
+        private const val DEFAULT_PORT = 1883
+        private const val MAX_PORT = 65535
+
         /**
          * @throws IllegalArgumentException for a malformed value, so a typo in
          * the script fails loudly instead of silently testing the wrong state.
@@ -30,8 +33,10 @@ sealed interface DeviceCheckCommand {
 
             extras["host"]?.let { host ->
                 require(host.isNotBlank()) { "host is blank" }
-                val port = extras["port"]?.let { requireNotNull(it.toIntOrNull()) { "port '$it' is not a number" } } ?: 1883
-                require(port in 1..65535) { "port $port out of range" }
+                val port =
+                    extras["port"]?.let { requireNotNull(it.toIntOrNull()) { "port '$it' is not a number" } }
+                        ?: DEFAULT_PORT
+                require(port in 1..MAX_PORT) { "port $port out of range" }
                 commands += ConfigureBroker(
                     BrokerSettings(
                         host = host,
@@ -45,10 +50,9 @@ sealed interface DeviceCheckCommand {
 
             extras["interval"]?.let { raw ->
                 val seconds = raw.toLongOrNull()
-                val interval = UpdateInterval.entries.firstOrNull { it.seconds == seconds }
-                    ?: throw IllegalArgumentException(
-                        "interval '$raw' must be one of ${UpdateInterval.entries.map { it.seconds }}",
-                    )
+                val interval = requireNotNull(UpdateInterval.entries.firstOrNull { it.seconds == seconds }) {
+                    "interval '$raw' must be one of ${UpdateInterval.entries.map { it.seconds }}"
+                }
                 commands += SetInterval(interval)
             }
 
@@ -58,15 +62,17 @@ sealed interface DeviceCheckCommand {
             }
 
             extras["transport"]?.let { raw ->
-                val transport = Transport.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }
-                    ?: throw IllegalArgumentException("transport '$raw' must be mqtt or webhook")
+                val transport =
+                    requireNotNull(Transport.entries.firstOrNull { it.name.equals(raw, ignoreCase = true) }) {
+                        "transport '$raw' must be mqtt or webhook"
+                    }
                 commands += SetTransport(transport)
             }
 
             extras["control"]?.let { key ->
                 require(key.isNotBlank()) { "control is blank" }
-                val enabled = extras["control_enabled"]?.let(::parseBoolean)
-                    ?: throw IllegalArgumentException("control needs control_enabled")
+                val enabled =
+                    requireNotNull(extras["control_enabled"]?.let(::parseBoolean)) { "control needs control_enabled" }
                 commands += SetControl(key, enabled)
             }
 

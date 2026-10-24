@@ -12,7 +12,7 @@ data class DeviceCheckReport(
     val transport: Transport,
     val enabledControls: Set<String>,
     val micMuted: Boolean?,
-    val volumePercent: Int?,
+    val volumePercent: Int?
 ) {
     fun format(): String = listOf(
         "device_id" to deviceId,

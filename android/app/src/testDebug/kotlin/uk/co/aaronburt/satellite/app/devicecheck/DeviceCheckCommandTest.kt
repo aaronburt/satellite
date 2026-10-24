@@ -11,20 +11,25 @@ import uk.co.aaronburt.satellite.model.WebhookSettings
 
 class DeviceCheckCommandTest {
 
+    private companion object {
+        const val DEFAULT_PORT = 1883
+        const val ALT_PORT = 1884
+    }
+
     @Test
-    fun `no extras means no changes`() {
+    fun noExtrasMeansNoChanges() {
         assertTrue(DeviceCheckCommand.parse(emptyMap()).isEmpty())
     }
 
     @Test
-    fun `full setup is applied in order with reporting last`() {
+    fun fullSetupIsAppliedInOrderWithReportingLast() {
         val commands = DeviceCheckCommand.parse(
             linkedMapOf(
                 "reporting" to "true",
                 "transport" to "MQTT",
                 "interval" to "30",
                 "host" to "10.0.2.2",
-                "port" to "1884",
+                "port" to ALT_PORT.toString(),
                 "username" to "satellite",
                 "password" to "secret",
             ),
@@ -32,7 +37,7 @@ class DeviceCheckCommandTest {
 
         assertEquals(
             listOf(
-                DeviceCheckCommand.ConfigureBroker(BrokerSettings("10.0.2.2", 1884, "satellite", "secret", false)),
+                DeviceCheckCommand.ConfigureBroker(BrokerSettings("10.0.2.2", ALT_PORT, "satellite", "secret", false)),
                 DeviceCheckCommand.SetInterval(UpdateInterval.THIRTY_SECONDS),
                 DeviceCheckCommand.SetTransport(Transport.MQTT),
                 DeviceCheckCommand.SetReporting(true),
@@ -42,15 +47,15 @@ class DeviceCheckCommandTest {
     }
 
     @Test
-    fun `broker defaults to port 1883 without credentials or TLS`() {
+    fun brokerDefaultsToPort1883WithoutCredentialsOrTLS() {
         assertEquals(
-            listOf(DeviceCheckCommand.ConfigureBroker(BrokerSettings("broker", 1883, null, null, false))),
+            listOf(DeviceCheckCommand.ConfigureBroker(BrokerSettings("broker", DEFAULT_PORT, null, null, false))),
             DeviceCheckCommand.parse(mapOf("host" to "broker", "username" to "")),
         )
     }
 
     @Test
-    fun `webhook url and bearer token become webhook settings`() {
+    fun webhookUrlAndBearerTokenBecomeWebhookSettings() {
         assertEquals(
             listOf(
                 DeviceCheckCommand.SetWebhook(WebhookSettings("http://10.0.2.2:8080/hook", "t0ken")),
@@ -63,7 +68,7 @@ class DeviceCheckCommandTest {
     }
 
     @Test
-    fun `control toggles accept on and off spellings`() {
+    fun controlTogglesAcceptOnAndOffSpellings() {
         assertEquals(
             listOf(DeviceCheckCommand.SetControl("mic_muted", false)),
             DeviceCheckCommand.parse(mapOf("control" to "mic_muted", "control_enabled" to "off")),
@@ -75,7 +80,7 @@ class DeviceCheckCommandTest {
     }
 
     @Test
-    fun `malformed values are rejected instead of ignored`() {
+    fun malformedValuesAreRejectedInsteadOfIgnored() {
         val bad = listOf(
             mapOf("reporting" to "yes please"),
             mapOf("transport" to "carrier-pigeon"),
