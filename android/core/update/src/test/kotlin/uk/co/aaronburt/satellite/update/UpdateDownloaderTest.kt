@@ -173,6 +173,9 @@ class UpdateDownloaderTest {
         server.enqueue(
             MockResponse.Builder()
                 .body(Buffer().write(payload))
+                // Promise twice the bytes we send, so closing the socket is a
+                // truncated response rather than a complete one.
+                .setHeader("Content-Length", payload.size * 2)
                 .onResponseBody(mockwebserver3.SocketEffect.ShutdownConnection)
                 .build(),
         )
