@@ -23,17 +23,17 @@ import javax.inject.Singleton
 @Singleton
 class UpdateInstaller @Inject constructor(
     @ApplicationContext private val context: Context,
-) {
+) : ApkInstaller {
 
     /** False until the user allows Satellite to install unknown apps. */
-    fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
+    override fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
 
-    fun unknownSourcesIntent(): Intent = Intent(
+    override fun unknownSourcesIntent(): Intent = Intent(
         Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
         Uri.parse("package:${context.packageName}"),
     )
 
-    fun install(apk: File): Result<Unit> = runCatching {
+    override fun install(apk: File): Result<Unit> = runCatching {
         check(canInstall()) { "Satellite is not allowed to install apps yet" }
         check(apk.exists()) { "The downloaded update is missing" }
 

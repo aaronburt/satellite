@@ -111,11 +111,7 @@ class SatelliteService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
-        val text = if (transport == Transport.WEBHOOK) {
-            getString(R.string.notification_state_webhook)
-        } else {
-            state.notificationText()
-        }
+        val text = serviceNotificationText(state, transport)
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_satellite)
@@ -138,13 +134,6 @@ class SatelliteService : Service() {
 
     private fun notificationManager(): NotificationManager =
         getSystemService(NotificationManager::class.java)
-
-    private fun ConnectionState.notificationText(): String = when (this) {
-        ConnectionState.Disconnected -> getString(R.string.notification_state_disconnected)
-        ConnectionState.Connecting -> getString(R.string.notification_state_connecting)
-        is ConnectionState.Connected -> getString(R.string.notification_state_connected, broker)
-        is ConnectionState.Error -> getString(R.string.notification_state_error, message)
-    }
 
     companion object {
         const val CHANNEL_ID = "mqtt_connection"

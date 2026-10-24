@@ -19,4 +19,8 @@ class ReporterStatus @Inject constructor() {
     fun markPublished() {
         _lastPublishedAtMillis.value = System.currentTimeMillis()
     }
+
+    fun reset() {
+        _lastPublishedAtMillis.value = null
+    }
 }

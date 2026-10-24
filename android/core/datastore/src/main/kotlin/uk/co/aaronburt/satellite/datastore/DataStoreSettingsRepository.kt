@@ -1,6 +1,8 @@
 package uk.co.aaronburt.satellite.datastore
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -21,11 +23,15 @@ import javax.inject.Inject
 
 private val Context.dataStore by preferencesDataStore(name = "satellite_settings")
 
-class DataStoreSettingsRepository @Inject constructor(
-    private val context: Context,
+class DataStoreSettingsRepository internal constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val randomHex: () -> String = { UUID.randomUUID().toString().replace("-", "") },
 ) : SettingsRepository {
 
-    override val brokerSettings: Flow<BrokerSettings?> = context.dataStore.data.map { prefs ->
+    @Inject
+    constructor(context: Context) : this(context.dataStore)
+
+    override val brokerSettings: Flow<BrokerSettings?> = dataStore.data.map { prefs ->
         val host = prefs[Keys.Host] ?: return@map null
         BrokerSettings(
             host = host,
@@ -37,7 +43,7 @@ class DataStoreSettingsRepository @Inject constructor(
     }
 
     override suspend fun saveBrokerSettings(settings: BrokerSettings) {
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             prefs[Keys.Host] = settings.host
             prefs[Keys.Port] = settings.port
             prefs[Keys.Username] = settings.username.orEmpty()
@@ -46,92 +52,97 @@ class DataStoreSettingsRepository @Inject constructor(
         }
     }
 
-    override suspend fun deviceId(): String {
-        val existing = context.dataStore.data.map { it[Keys.DeviceId] }.first()
-        if (existing != null) return existing
+    override suspend fun deviceId(): String =
+        getOrCreate(Keys.DeviceId) { randomHex().take(DEVICE_ID_LENGTH) }
 
-        val generated = UUID.randomUUID().toString().replace("-", "").take(DEVICE_ID_LENGTH)
-        context.dataStore.edit { it[Keys.DeviceId] = generated }
-        return generated
-    }
+    override suspend fun deviceName(): String =
+        getOrCreate(Keys.DeviceName) { "Satellite-" + randomHex().take(4).uppercase() }
 
-    override suspend fun deviceName(): String {
-        val existing = context.dataStore.data.map { it[Keys.DeviceName] }.first()
-        if (existing != null) return existing
-
-        val generated = generateDeviceName()
-        context.dataStore.edit { it[Keys.DeviceName] = generated }
-        return generated
+    /**
+     * Returns the stored value, generating and saving one on first use. The
+     * check runs inside the edit transaction, so callers racing on first launch
+     * (the reporter and the connection manager both ask for the device id) all
+     * get the same value instead of each saving their own.
+     */
+    private suspend fun getOrCreate(
+        key: Preferences.Key<String>,
+        generate: () -> String,
+    ): String {
+        dataStore.data.first()[key]?.let { return it }
+        val saved = dataStore.edit { prefs ->
+            if (prefs[key] == null) prefs[key] = generate()
+        }
+        return checkNotNull(saved[key])
     }
 
     override suspend fun saveDeviceName(name: String) {
-        context.dataStore.edit { it[Keys.DeviceName] = name }
+        dataStore.edit { it[Keys.DeviceName] = name }
     }
 
-    override val deviceNameFlow: Flow<String> = context.dataStore.data.map { prefs ->
+    override val deviceNameFlow: Flow<String> = dataStore.data.map { prefs ->
         prefs[Keys.DeviceName] ?: deviceName()
     }
 
-    override val themePreference: Flow<ThemePreference> = context.dataStore.data.map { prefs ->
+    override val themePreference: Flow<ThemePreference> = dataStore.data.map { prefs ->
         prefs[Keys.Theme]?.let { stored ->
             runCatching { ThemePreference.valueOf(stored) }.getOrNull()
         } ?: ThemePreference.SYSTEM
     }
 
     override suspend fun saveThemePreference(preference: ThemePreference) {
-        context.dataStore.edit { it[Keys.Theme] = preference.name }
+        dataStore.edit { it[Keys.Theme] = preference.name }
     }
 
-    override val updateMode: Flow<UpdateMode> = context.dataStore.data.map { prefs ->
+    override val updateMode: Flow<UpdateMode> = dataStore.data.map { prefs ->
         prefs[Keys.UpdateMode]?.let { stored ->
             runCatching { UpdateMode.valueOf(stored) }.getOrNull()
         } ?: UpdateMode.PERIODIC
     }
 
     override suspend fun saveUpdateMode(mode: UpdateMode) {
-        context.dataStore.edit { it[Keys.UpdateMode] = mode.name }
+        dataStore.edit { it[Keys.UpdateMode] = mode.name }
     }
 
-    override val updateInterval: Flow<UpdateInterval> = context.dataStore.data.map { prefs ->
+    override val updateInterval: Flow<UpdateInterval> = dataStore.data.map { prefs ->
         prefs[Keys.UpdateInterval]?.let { stored ->
             runCatching { UpdateInterval.valueOf(stored) }.getOrNull()
         } ?: UpdateInterval.FIVE_MINUTES
     }
 
     override suspend fun saveUpdateInterval(interval: UpdateInterval) {
-        context.dataStore.edit { it[Keys.UpdateInterval] = interval.name }
+        dataStore.edit { it[Keys.UpdateInterval] = interval.name }
     }
 
-    override val transport: Flow<Transport> = context.dataStore.data.map { prefs ->
+    override val transport: Flow<Transport> = dataStore.data.map { prefs ->
         prefs[Keys.Transport]?.let { stored ->
             runCatching { Transport.valueOf(stored) }.getOrNull()
         } ?: Transport.MQTT
     }
 
     override suspend fun saveTransport(transport: Transport) {
-        context.dataStore.edit { it[Keys.Transport] = transport.name }
+        dataStore.edit { it[Keys.Transport] = transport.name }
     }
 
-    override val reportingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+    override val reportingEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[Keys.ReportingEnabled] ?: true
     }
 
     override suspend fun saveReportingEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.ReportingEnabled] = enabled }
+        dataStore.edit { it[Keys.ReportingEnabled] = enabled }
     }
 
-    override val enabledControls: Flow<Set<String>> = context.dataStore.data.map { prefs ->
+    override val enabledControls: Flow<Set<String>> = dataStore.data.map { prefs ->
         prefs[Keys.EnabledControls].orEmpty()
     }
 
     override suspend fun setControlEnabled(key: String, enabled: Boolean) {
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val current = prefs[Keys.EnabledControls].orEmpty()
             prefs[Keys.EnabledControls] = if (enabled) current + key else current - key
         }
     }
 
-    override val webhookSettings: Flow<WebhookSettings?> = context.dataStore.data.map { prefs ->
+    override val webhookSettings: Flow<WebhookSettings?> = dataStore.data.map { prefs ->
         val url = prefs[Keys.WebhookUrl] ?: return@map null
         WebhookSettings(
             url = url,
@@ -140,18 +151,15 @@ class DataStoreSettingsRepository @Inject constructor(
     }
 
     override suspend fun saveWebhookSettings(settings: WebhookSettings) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[Keys.WebhookUrl] = settings.url
             it[Keys.WebhookToken] = settings.bearerToken.orEmpty()
         }
     }
 
-    override suspend fun isConfigured(): Boolean = context.dataStore.data.map { prefs ->
+    override suspend fun isConfigured(): Boolean = dataStore.data.map { prefs ->
         prefs[Keys.Host] != null || !prefs[Keys.WebhookUrl].isNullOrBlank()
     }.first()
-
-    private fun generateDeviceName(): String =
-        "Satellite-" + UUID.randomUUID().toString().replace("-", "").take(4).uppercase()
 
     private object Keys {
         val Host = stringPreferencesKey("broker_host")
