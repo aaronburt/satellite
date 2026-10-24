@@ -1,6 +1,6 @@
 # SatelliteAndroid — Development Plan (v0.1)
 
-> **Historical note (plan written 2026-10-07; reconciled 2026-10-24).** Planning/reference material that includes historical decisions and proposed features. It is not the active backlog: open work is tracked in the [project TODO](../../TODO.md). See the [current documentation](../../docs/README.md) for setup and implemented behavior. The project is now the `aaronburt/satellite` monorepo, licensed under the [MIT License](../../LICENSE) at the repo root.
+> **Historical note (plan written 2026-10-07; reconciled 2026-10-24).** Planning/reference material that includes historical decisions and proposed features. It is not the active backlog: open work is tracked in the [GitHub issues](https://github.com/aaronburt/satellite/issues). See the [current documentation](../../docs/README.md) for setup and implemented behavior. The project is now the `aaronburt/satellite` monorepo, licensed under the [MIT License](../../LICENSE) at the repo root.
 > Milestone status below reflects M0–M2; M3 (volume and mic-mute controls) and M4 (in-app update from GitHub Releases, tag-driven signed release workflow) have since been built — see [`TODO.md`](../TODO.md). The app was later renamed **Satellite** (`uk.co.aaronburt.satellite`).
 
 Companion to [`docs/research.md`](research.md). This plan assumes the app is a **Home Assistant companion for Android** that self-registers and reports via **MQTT Discovery**.
