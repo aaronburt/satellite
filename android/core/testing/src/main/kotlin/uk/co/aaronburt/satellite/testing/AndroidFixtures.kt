@@ -1,5 +1,6 @@
 package uk.co.aaronburt.satellite.testing
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
@@ -11,6 +12,8 @@ import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowAudioManager
 
 /** Publishes a sticky battery broadcast, which is what the app reads battery state from. */
+// This test-only helper runs against Robolectric's shadow context, not a device.
+@SuppressLint("MissingPermission")
 @Suppress("DEPRECATION")
 fun Context.setBattery(
     level: Int,
