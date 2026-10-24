@@ -109,7 +109,7 @@ For example, a desktop body can include:
   "device_id": "office-pc",
   "device_name": "OFFICE-PC",
   "platform": "windows",
-  "app_version": "0.26.0",
+  "app_version": "0.26.1",
   "timestamp": 1792800000000,
   "state": { "cpu_percent": 12.5, "memory_percent": 48.1, "timestamp": 1792800000 }
 }
