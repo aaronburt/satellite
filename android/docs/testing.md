@@ -39,6 +39,8 @@ GitHub release signing; see [Contributing](../../CONTRIBUTING.md).
 
 [Android CI](../../.github/workflows/android-ci.yml) runs unit tests, lint, and
 assembleDebug on relevant pushes and pull requests. It uploads the debug APK.
+JVM unit tests run on both Linux (`ubuntu-latest`) and Windows (`windows-latest`)
+hosts; test reports are uploaded as artifacts when either job fails.
 Device tests and Home Assistant end-to-end checks are not run by that workflow.
 
 ## Device and emulator tests
