@@ -1,7 +1,7 @@
 # SatelliteAndroid — Development Plan (v0.1)
 
-> Planning/reference material: includes historical decisions and proposed features.
-> See the [current documentation](../../docs/README.md) for setup and implemented behavior.
+> **Historical note (plan written 2026-10-07; reconciled 2026-10-24).** Planning/reference material that includes historical decisions and proposed features. It is not the active backlog: open work is tracked in the [project TODO](../../TODO.md). See the [current documentation](../../docs/README.md) for setup and implemented behavior. The project is now the `aaronburt/satellite` monorepo, licensed under the [MIT License](../../LICENSE) at the repo root.
+> Milestone status below reflects M0–M2; M3 (volume and mic-mute controls) and M4 (in-app update from GitHub Releases, tag-driven signed release workflow) have since been built — see [`TODO.md`](../TODO.md). The app was later renamed **Satellite** (`uk.co.aaronburt.satellite`).
 
 Companion to [`docs/research.md`](research.md). This plan assumes the app is a **Home Assistant companion for Android** that self-registers and reports via **MQTT Discovery**.
 
@@ -59,7 +59,7 @@ Companion to [`docs/research.md`](research.md). This plan assumes the app is a *
 | D9 | Discovery format | HA **device discovery** (`homeassistant/device/...`), retained + birth-triggered | One message, device info once, HA-recommended. |
 | D10 | Distribution | **Confirmed:** GitHub Releases + F-Droid first; Play later (optional) | Avoids Play policy risk for `specialUse`/battery exemptions; HA users expect sideload/F-Droid. |
 | D11 | Voice | **Confirmed out of scope for v1** | Owner decision 2026-10-07; MQTT and Wyoming are orthogonal, avoid scope creep. |
-| D12 | License | TBD (Apache-2.0 suggested) | Needed before publishing. |
+| D12 | License | **Resolved:** MIT (root `LICENSE`) | Supersedes the earlier Apache-2.0 suggestion and GPL-3.0 decision. |
 
 ---
 
@@ -196,7 +196,7 @@ Rules: `feature:*` depends on `core:*`; `core:*` never depends on `feature:*`; `
 - Modules: `:app`, `:core:common`, `:core:model`, `:core:designsystem`, `:feature:dashboard`.
 - Base theme, placeholder dashboard, Hilt wiring, launcher icon, CI (build + lint + unit tests).
 - **Verified locally:** `:app:assembleDebug`, `test`, and `lint` all pass; debug APK ≈ 12 MB.
-- **Deferred:** detekt and the license decision (still open).
+- **Deferred:** detekt. *(License since resolved: MIT.)*
 
 ### M1 — MQTT connectivity core — 🟡 M1a + M1b (service) done (2026-10-07)
 
@@ -239,13 +239,13 @@ Rules: `feature:*` depends on `core:*`; `core:*` never depends on `feature:*`; `
 - Permission-gated sensors beyond Wi-Fi SSID/carrier (location → `device_tracker`, activity/steps, Bluetooth).
 - Retained-message expiry verification and ghost cleanup automation.
 
-### M3 — Commands & controls (≈1 week)
+### M3 — Commands & controls — ✅ MVP built (volume + mic mute; see `TODO.md` §1)
 - CommandRouter + handlers: notify, TTS, volume, mute, restart, refresh.
 - `number`, `switch`, `text`, `notify`, `button` entities with confirmation state.
 - Settings for per-entity enable/disable (discovery add/remove semantics: empty payload).
 - **Exit:** every command round-trips from HA UI; disabled entities are removed from HA; E2E test against Mosquitto.
 
-### M4 — Update entity + release pipeline (3–5 days)
+### M4 — Update entity + release pipeline — ✅ in-app update + release workflow built; HA `update` entity not yet
 - GitHub Releases checker (cached, rate-limit-aware), update JSON state, install action opens release URL.
 - Release workflow: signed APK/AAB, versionCode from CI, changelog, GitHub Release artifact.
 - **Exit:** tagged release produces signed artifact; HA shows "update available" when a newer release exists.
@@ -310,12 +310,14 @@ CI gates: unit tests, lint, detekt, discovery golden tests. Integration tests ru
 2. ~~Distribution~~ — **answered 2026-10-07:** GitHub Releases + F-Droid; Play optional later.
 3. **Target devices:** phones, wall-mounted tablets, Android TV? Any minimum Android version requirement from the devices you own?
 4. **Broker setup:** is TLS with a self-signed cert the expected default (home Mosquitto)? Should we support username/password only as a fallback?
-5. **Branding:** app name, package ID, repo/license.
-6. **Update channel:** GitHub Releases only, or also an in-app "check now" with release notes?
+5. ~~Branding~~ — **answered:** app name Satellite, package `uk.co.aaronburt.satellite`, repo `aaronburt/satellite`, MIT license.
+6. ~~Update channel~~ — **answered:** GitHub Releases with an in-app "check now", release notes, and verified install.
 
 ---
 
-## 11. Immediate next steps
+## 11. Immediate next steps (historical, 2026-10-07)
+
+All of these have since happened. For current work, see [GitHub issues](https://github.com/aaronburt/satellite/issues).
 
 1. ~~Answer §10 questions (scope, distribution)~~ — done.
 2. ~~Stand up the local Mosquitto + HA test environment~~ — done; see [`docker/README.md`](../docker/README.md).
