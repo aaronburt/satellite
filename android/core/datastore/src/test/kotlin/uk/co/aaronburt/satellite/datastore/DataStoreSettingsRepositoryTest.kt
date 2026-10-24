@@ -28,6 +28,7 @@ import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
+import okio.Path.Companion.toOkioPath
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -49,7 +50,15 @@ class DataStoreSettingsRepositoryTest {
 
     private fun repository(): DataStoreSettingsRepository {
         job = Job()
-        dataStore = PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + job)) { file }
+        // createWithPath (Okio storage) rather than create (java.io File storage):
+        // the File storage commits each write with File.renameTo, which on
+        // Windows refuses to replace an existing file, so every second write
+        // to settings.preferences_pb failed on Windows hosts. Okio's atomicMove
+        // replaces the target on every OS. Android's own filesystem is POSIX, so
+        // the app is unaffected; this only makes the JVM tests host-independent.
+        dataStore = PreferenceDataStoreFactory.createWithPath(scope = CoroutineScope(Dispatchers.IO + job)) {
+            file.toOkioPath()
+        }
         return DataStoreSettingsRepository(dataStore, randomHex)
     }
 
