@@ -36,6 +36,7 @@ import uk.co.aaronburt.satellite.update.UpdateStatesSource
  * any retry in progress.
  */
 @Singleton
+@Suppress("LongParameterList") // Hilt-injected collaborators
 class WebhookReporter @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val telemetry: DeviceStateReader,

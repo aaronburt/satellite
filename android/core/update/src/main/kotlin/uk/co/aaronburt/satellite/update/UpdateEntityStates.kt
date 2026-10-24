@@ -82,6 +82,8 @@ object UpdateEntityPayload {
     /** Home Assistant truncates `release_summary` at 255 characters. */
     const val SUMMARY_LIMIT = 255
 
+    private const val MAX_PERCENT = 100
+
     fun states(installedVersion: String, state: UpdateState): Map<String, String> = mapOf(
         UPDATE_KEY to json(installedVersion, state),
         STATUS_KEY to status(state),
@@ -103,10 +105,11 @@ object UpdateEntityPayload {
 
             is UpdateState.UpToDate -> json.put("latest_version", state.installedVersion)
 
-            is UpdateState.Downloading -> json
-                .put("latest_version", state.versionName)
-                .put("in_progress", true)
-                .put("update_percentage", state.progress.coerceIn(0, 100))
+            is UpdateState.Downloading -> {
+                json.put("latest_version", state.versionName)
+                    .put("in_progress", true)
+                    .put("update_percentage", state.progress.coerceIn(0, MAX_PERCENT))
+            }
 
             is UpdateState.Ready -> {
                 json.put("latest_version", state.versionName)
