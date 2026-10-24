@@ -26,6 +26,12 @@ Doze, OEM background limits, reboot). The Home Assistant smoke test covers
 entity creation and a command round trip, but runs under Robolectric rather
 than on a phone, so the manual checks below still apply before a release.
 
+`HiveMqttClientTest` also uses a broker that requires a username and password.
+It checks that missing or incorrect credentials are rejected, then restarts the
+broker twice and verifies automatic reconnection, state delivery, and one command
+delivery per publish. This catches credentials configured only for the initial
+connection instead of being retained in the client's reconnect defaults.
+
 ## Home Assistant smoke test
 
 Needs Docker (with Compose), `jq`, `curl`, and the JDK/SDK used for unit tests.

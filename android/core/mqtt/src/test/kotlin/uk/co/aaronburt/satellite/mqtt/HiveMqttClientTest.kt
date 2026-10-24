@@ -43,14 +43,26 @@ class HiveMqttClientTest {
 
     private fun uniqueId() = "test-" + UUID.randomUUID().toString().take(8)
 
-    /** A second, independent client that records what the broker delivers. */
-    private fun observe(filter: String): LinkedBlockingQueue<Mqtt5Publish> {
-        val observer = HiveMqClient.builder()
+    private fun brokerClient(brokerSettings: BrokerSettings): Mqtt5BlockingClient {
+        val builder = HiveMqClient.builder()
             .useMqttVersion5()
             .identifier(uniqueId())
-            .serverHost("127.0.0.1")
-            .serverPort(broker.port)
-            .buildBlocking()
+            .serverHost(brokerSettings.host)
+            .serverPort(brokerSettings.port)
+        brokerSettings.username?.let {
+            builder.simpleAuth().username(it)
+                .password(brokerSettings.password.orEmpty().toByteArray())
+                .applySimpleAuth()
+        }
+        return builder.buildBlocking()
+    }
+
+    /** A second, independent client that records what the broker delivers. */
+    private fun observe(
+        filter: String,
+        brokerSettings: BrokerSettings = settings()
+    ): LinkedBlockingQueue<Mqtt5Publish> {
+        val observer = brokerClient(brokerSettings)
         observers += observer
         observer.connect()
         val queue = LinkedBlockingQueue<Mqtt5Publish>()
@@ -63,13 +75,8 @@ class HiveMqttClientTest {
         return queue
     }
 
-    private fun publishFromBroker(topic: String, payload: String) {
-        val sender = HiveMqClient.builder()
-            .useMqttVersion5()
-            .identifier(uniqueId())
-            .serverHost("127.0.0.1")
-            .serverPort(broker.port)
-            .buildBlocking()
+    private fun publishFromBroker(topic: String, payload: String, brokerSettings: BrokerSettings = settings()) {
+        val sender = brokerClient(brokerSettings)
         sender.connect()
         sender.publishWith().topic(topic).payload(payload.toByteArray()).qos(MqttQos.AT_LEAST_ONCE).send()
         sender.disconnect()
@@ -270,6 +277,50 @@ class HiveMqttClientTest {
             // Connected must mean usable: the old code reported the orphaned
             // reconnecting client as connected while every publish failed.
             assertTrue(client.publish("satellite/t/state/battery", "50").isSuccess)
+        }
+    }
+
+    @Test
+    fun `authenticated broker rejects missing or incorrect credentials`() = runBlocking {
+        EmbeddedBroker(username = "satellite", password = "test-password").start().use { secured ->
+            val valid = settings(secured.port).copy(username = "satellite", password = "test-password")
+            val invalid = listOf(settings(secured.port), valid.copy(password = "wrong-password"))
+            invalid.forEach { brokerSettings ->
+                val client = newClient(connectTimeoutSeconds = 1)
+                assertTrue(client.connect(brokerSettings, uniqueId(), "satellite/t/availability").isFailure)
+                client.disconnect()
+            }
+        }
+    }
+
+    @Test
+    fun `automatic reconnect keeps credentials and delivers messages after repeated broker restarts`() = runBlocking {
+        EmbeddedBroker(username = "satellite", password = "test-password").start().use { secured ->
+            val brokerSettings = settings(secured.port).copy(username = "satellite", password = "test-password")
+            val base = "satellite/${uniqueId()}"
+            val client = newClient()
+            client.connect(brokerSettings, uniqueId(), "$base/availability").getOrThrow()
+            client.awaitConnected()
+            val commands = LinkedBlockingQueue<MqttMessage>()
+            client.subscribe("$base/cmd/#", qos = 1) { commands.add(it) }.getOrThrow()
+
+            repeat(2) { attempt ->
+                secured.stop()
+                withTimeout(5_000) { client.connectionState.first { it is ConnectionState.Error } }
+                secured.start()
+                withTimeout(15_000) { client.connectionState.first { it is ConnectionState.Connected } }
+
+                // The reporter re-subscribes after reconnecting to an empty broker.
+                client.subscribe("$base/cmd/#", qos = 1) { commands.add(it) }.getOrThrow()
+                val states = observe("$base/state/battery", brokerSettings)
+                client.publish("$base/state/battery", "$attempt", qos = 1, retain = true).getOrThrow()
+                assertEquals("$attempt", states.poll(5, TimeUnit.SECONDS)?.let { String(it.payloadAsBytes) })
+
+                publishFromBroker("$base/cmd/volume", "40", brokerSettings)
+                assertEquals(MqttMessage("$base/cmd/volume", "40"), commands.poll(5, TimeUnit.SECONDS))
+                assertNull("a command must be delivered once", commands.poll(300, TimeUnit.MILLISECONDS))
+            }
+            client.disconnect()
         }
     }
 

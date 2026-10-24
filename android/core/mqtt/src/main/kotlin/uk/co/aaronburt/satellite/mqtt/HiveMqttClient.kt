@@ -81,6 +81,15 @@ class HiveMqttClient internal constructor(
                     builder.sslWithDefaultConfig()
                 }
 
+                // Client defaults are reused by automatic reconnects. Credentials
+                // on connectWith() apply only to that initial CONNECT packet.
+                settings.username?.let { username ->
+                    builder.simpleAuth()
+                        .username(username)
+                        .password(settings.password.orEmpty().toByteArray())
+                        .applySimpleAuth()
+                }
+
                 val built = builder.buildAsync()
                 built.publishes(MqttGlobalPublishFilter.ALL, ::dispatch)
                 newClient = built
@@ -89,7 +98,7 @@ class HiveMqttClient internal constructor(
                 client = built
                 _connectionState.value = ConnectionState.Connecting
 
-                val sendBuilder = built.connectWith()
+                built.connectWith()
                     .cleanStart(false)
                     .sessionExpiryInterval(SESSION_EXPIRY_SECONDS)
                     .willPublish()
@@ -98,15 +107,7 @@ class HiveMqttClient internal constructor(
                     .qos(MqttQos.AT_LEAST_ONCE)
                     .retain(true)
                     .applyWillPublish()
-
-                val authBuilder = settings.username?.let { username ->
-                    sendBuilder.simpleAuth()
-                        .username(username)
-                        .password(settings.password.orEmpty().toByteArray())
-                        .applySimpleAuth()
-                } ?: sendBuilder
-
-                authBuilder.send().get(connectTimeoutSeconds, TimeUnit.SECONDS)
+                    .send().get(connectTimeoutSeconds, TimeUnit.SECONDS)
                 Unit
             }.onFailure { error ->
                 // The client stays alive: automatic reconnect keeps retrying, so a
