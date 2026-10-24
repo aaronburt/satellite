@@ -83,6 +83,37 @@ and [`SatelliteCommand.kt`](../android/core/reporter/src/main/kotlin/uk/co/aaron
 Retained `online` is republished on every connect, including automatic
 reconnects (fixed after v0.26.0; see [troubleshooting](troubleshooting.md)).
 
+### Identity, expiry, and cleanup (Android)
+
+**Stable identity.** The device ID is generated once and persisted; Home
+Assistant keys the device on `satellite_android_<device_id>`. Renaming the
+device only changes `device.name` in the next discovery payload, so the device
+and its entity IDs survive renames. Clearing app data or reinstalling creates a
+new ID, and therefore a new Home Assistant device.
+
+**Broker expiry vs Home Assistant registry.** Retained state expires on the
+broker after 1 hour and discovery after 7 days (MQTT 5 message expiry, verified
+against HiveMQ in `HiveMqttClientTest`). Expiry only stops the broker from
+replaying the message to new subscribers; Home Assistant keeps the device in
+its registry. Only an empty retained message on the discovery topic removes the
+device from Home Assistant. Brokers without MQTT 5 ignore expiry and keep
+messages until they are deleted.
+
+| Scenario | What the app does |
+| --- | --- |
+| Control disabled | Clears the control's retained state and republishes discovery without it. If offline, the state is cleared on the next connect. |
+| Device renamed | Republishes discovery under the same ID; nothing is left behind. |
+| Device removed on purpose | `SatelliteReporter.removeFromHomeAssistant()` publishes empty retained messages to the discovery, every state, and the availability topic, touching only this device's topics. |
+| App reinstalled / data cleared | The old device stays in Home Assistant until its retained topics expire. Remove it in Home Assistant (Settings → Devices → device → Delete) or clear its topics manually, below. |
+
+To clear a replaced installation by hand, using the old device ID:
+
+```sh
+mosquitto_pub -h <broker> -r -n -t homeassistant/device/satellite_<old_id>/config
+mosquitto_pub -h <broker> -r -n -t satellite/<old_id>/availability
+# and, for each state key, satellite/<old_id>/state/<key>
+```
+
 ## Telemetry webhooks
 
 Both apps send JSON with `Content-Type: application/json` and optionally

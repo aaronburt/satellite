@@ -315,6 +315,71 @@ class SatelliteReporterTest {
     }
 
     @Test
+    fun `a control disabled while offline has its retained state cleared on the next connect`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        startReporter()
+        settings.setControlEnabled(CONTROL_VOLUME, false)
+        settle()
+
+        connect()
+
+        val cleared = client.publishesTo(topics.state(CONTROL_VOLUME)).single()
+        assertEquals("", cleared.payload)
+        assertTrue(cleared.retain)
+        assertFalse(lastDiscovery().getJSONObject("components").has(CONTROL_VOLUME))
+    }
+
+    @Test
+    fun `connecting never clears the state of an enabled control`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        startReporter()
+        connect()
+
+        assertTrue(client.publishesTo(topics.state(CONTROL_VOLUME)).none { it.payload.isEmpty() })
+        assertTrue(client.publishesTo(topics.state(CONTROL_MIC_MUTE)).all { it.payload.isEmpty() && it.retain })
+    }
+
+    @Test
+    fun `removing from Home Assistant deletes discovery, every state and availability`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        val reporter = startReporter()
+        connect()
+        client.clearRecords()
+
+        assertTrue(reporter.removeFromHomeAssistant())
+
+        val expected = listOf(topics.discovery, topics.availability) +
+            EntityCatalog.all.map { topics.state(it.key) }
+        expected.forEach { topic ->
+            val publish = client.publishesTo(topic).single()
+            assertEquals("$topic must be deleted", "", publish.payload)
+            assertTrue("$topic deletion must be retained", publish.retain)
+        }
+        assertTrue("only this device's topics are touched", client.published.all { it.topic in expected })
+    }
+
+    @Test
+    fun `removing from Home Assistant fails and publishes nothing while disconnected`() = runTest {
+        val reporter = startReporter()
+
+        assertFalse(reporter.removeFromHomeAssistant())
+        assertTrue(client.published.isEmpty())
+    }
+
+    @Test
+    fun `the device ID is stable across reconnects so Home Assistant keeps the same device`() = runTest {
+        startReporter()
+        connect()
+        val first = lastDiscovery().getJSONObject("device").getJSONArray("identifiers").toString()
+        client.dropConnection()
+        settle()
+        connect()
+
+        assertEquals(first, lastDiscovery().getJSONObject("device").getJSONArray("identifiers").toString())
+        assertTrue(client.published.all { it.topic.contains(DEVICE_ID) || it.topic == Topics.BIRTH_TOPIC })
+    }
+
+    @Test
     fun `disabling the microphone control unmutes the microphone`() = runTest {
         settings.controlsState.value = setOf(CONTROL_MIC_MUTE)
         startReporter()
