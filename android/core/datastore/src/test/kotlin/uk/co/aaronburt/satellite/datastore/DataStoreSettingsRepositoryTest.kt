@@ -1,7 +1,9 @@
 package uk.co.aaronburt.satellite.datastore
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.okio.OkioStorage
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -28,6 +30,7 @@ import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
+import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -50,15 +53,16 @@ class DataStoreSettingsRepositoryTest {
 
     private fun repository(): DataStoreSettingsRepository {
         job = Job()
-        // createWithPath (Okio storage) rather than create (java.io File storage):
-        // the File storage commits each write with File.renameTo, which on
-        // Windows refuses to replace an existing file, so every second write
-        // to settings.preferences_pb failed on Windows hosts. Okio's atomicMove
-        // replaces the target on every OS. Android's own filesystem is POSIX, so
-        // the app is unaffected; this only makes the JVM tests host-independent.
-        dataStore = PreferenceDataStoreFactory.createWithPath(scope = CoroutineScope(Dispatchers.IO + job)) {
-            file.toOkioPath()
-        }
+        // OkioStorage, not the default java.io FileStorage: FileStorage commits
+        // each write with File.renameTo, which on Windows refuses to replace an
+        // existing file, so every second write to settings.preferences_pb threw
+        // IOException (FileStorage.kt:114) on Windows hosts. Okio's atomicMove
+        // replaces the target on every OS. Android's filesystem is POSIX, so the
+        // app is unaffected; this only makes the JVM tests host-independent.
+        dataStore = PreferenceDataStoreFactory.create(
+            storage = OkioStorage(FileSystem.SYSTEM, PreferencesSerializer) { file.toOkioPath() },
+            scope = CoroutineScope(Dispatchers.IO + job),
+        )
         return DataStoreSettingsRepository(dataStore, randomHex)
     }
 
