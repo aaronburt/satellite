@@ -26,6 +26,12 @@ Doze, OEM background limits, reboot). The Home Assistant smoke test covers
 entity creation and a command round trip, but runs under Robolectric rather
 than on a phone, so the manual checks below still apply before a release.
 
+`HiveMqttClientTest` also uses a broker that requires a username and password.
+It checks that missing or incorrect credentials are rejected, then restarts the
+broker twice and verifies automatic reconnection, state delivery, and one command
+delivery per publish. This catches credentials configured only for the initial
+connection instead of being retained in the client's reconnect defaults.
+
 ## Home Assistant smoke test
 
 Needs Docker (with Compose), `jq`, `curl`, and the JDK/SDK used for unit tests.
@@ -75,8 +81,8 @@ Linux test and lint reports are uploaded as the `android-unit-test-reports` and
 Windows job uploads `unit-test-reports-windows` when it fails. Open the
 run's Summary page and download them from Artifacts; files keep their module path,
 e.g. `core/mqtt/build/reports/tests/testDebugUnitTest/index.html`.
-Device tests are not run by that workflow; the Home Assistant smoke test has
-its own workflow (see above).
+Device tests are not run by that workflow. The Home Assistant smoke test and the
+on-demand emulator device checks (see below) each have their own workflow.
 
 ## Device and emulator tests
 
@@ -101,6 +107,51 @@ To run only dashboard rendering tests, without the broker configuration test:
 ```powershell
 .\gradlew.bat :feature:dashboard:connectedDebugAndroidTest
 ```
+
+## Automated emulator run
+
+The [Android device checks](../../.github/workflows/android-device-checks.yml)
+workflow runs most of the checklists below on an emulator. Start it from the
+Actions tab ("Run workflow"); you can pick the checks, the API level and the
+length of the background check. It also runs on pull requests that change the
+checks. Results go to the job summary, and logs, logcat and broker output are
+uploaded as an artifact.
+
+The driver is [`scripts/device-checks.sh`](../scripts/device-checks.sh). It
+starts a throwaway Mosquitto container, changes settings through the debug-only
+`DeviceCheckReceiver`, and judges each step by the MQTT traffic, the service and
+notification state, and the audio state. Locally, with an emulator running and
+Docker available:
+
+```bash
+./gradlew :app:installDebug
+scripts/device-checks.sh                    # everything
+scripts/device-checks.sh doze broker_restart  # selected checks
+```
+
+| Checklist step | Automated check | How |
+| --- | --- | --- |
+| #9-1 reboot with reporting on | `reboot_reporting_on` | `adb reboot`; service, notification and state within one interval |
+| #9-2 reboot while paused | `reboot_reporting_paused` | no service, notification or traffic; switch still paused |
+| #9-3 background, screen off | `background_screen_off` | 5 min by default (`BACKGROUND_MINUTES`), not 30 |
+| #9-4 / #8-4 Doze | `doze` | battery unplug, `deviceidle force-idle`, then unforce; state must resume |
+| #9-5 rapid pause/resume + rotation | `rapid_toggle_and_rotate` | 10 toggles, rotation, reopen; one notification, no duplicate publishes, clean final pause |
+| #9-6 broker down at start | `broker_down_at_start` | broker stopped, reporting enabled, broker started; `online` and "Connected" notification |
+| #8-4 broker restart | `broker_restart` | `docker restart`; `online` and state flowing |
+| #8-4 / #8-6 network loss, one command | `network_loss_then_one_command` | Wi-Fi and mobile data off/on 3 times, then one volume command: exactly one confirming message |
+| #8-5 Home Assistant restart | `ha_birth_republishes` | publishes HA's `homeassistant/status` birth; discovery must be republished |
+| #9-7 MQTT ↔ Webhook | `transport_switch` | local webhook receiver; MQTT `offline` and silent while on Webhook, clean switch back |
+| #9-8 microphone restore offline | `microphone_restore_offline` | mute via MQTT, airplane mode, disable control; mic must unmute. Skipped if the image refuses app mic mute |
+
+Not covered by the emulator, so still manual:
+
+- OEM battery managers and background limits; an emulator is stock Android.
+- A real Home Assistant instance: entity creation in the UI, and commands sent
+  from HA rather than published directly. The run uses HA's birth message instead.
+- The minified release build (the hook only exists in debug builds).
+- The 30-minute background soak, unless you set `background_minutes` to 30.
+- A lock screen with a PIN (`BOOT_COMPLETED` before unlock) and real Wi-Fi radios.
+- Webhook failure responses and checking the recorded audio in a recorder app.
 
 ## Verify MQTT and Home Assistant manually
 

@@ -1,0 +1,97 @@
+name: Android device checks
+
+# On-demand emulator run of the device checklists in android/docs/testing.md
+# (issue #8 MQTT recovery, issue #9 lifecycle and microphone). Slow (reboots,
+# Doze, network outages), so it is not part of the push/PR pipeline.
+on:
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: 'Space-separated checks to run (empty = all). See android/scripts/device-checks.sh'
+        required: false
+        default: ''
+      background_minutes:
+        description: 'Screen-off background check length in minutes (manual checklist uses 30)'
+        required: false
+        default: '5'
+      api_level:
+        description: 'Emulator API level (33 or newer)'
+        required: false
+        default: '35'
+  # Also runs when the checks themselves change, so edits are verified.
+  pull_request:
+    paths:
+      - 'android/scripts/device-checks.sh'
+      - 'android/app/src/debug/**'
+      - '.github/workflows/android-device-checks.yml'
+
+concurrency:
+  group: android-device-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: android
+
+jobs:
+  emulator:
+    name: Device checks on API ${{ inputs.api_level || '35' }} emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install SDK packages
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
+
+      - name: Build debug APK and test APKs
+        run: ./gradlew :app:assembleDebug :feature:dashboard:assembleDebugAndroidTest --stacktrace
+
+      - name: Pull Mosquitto image
+        run: docker pull eclipse-mosquitto:2
+
+      - name: Run checks on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          BACKGROUND_MINUTES: ${{ inputs.background_minutes || '5' }}
+          CHECKS: ${{ inputs.checks }}
+        with:
+          api-level: ${{ inputs.api_level || '35' }}
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: android
+          # Each line runs as its own shell command.
+          script: |
+            ./gradlew :feature:dashboard:connectedDebugAndroidTest --stacktrace
+            ./gradlew :app:installDebug --stacktrace
+            bash scripts/device-checks.sh $CHECKS
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: device-checks-api${{ inputs.api_level || '35' }}
+          path: android/build/device-checks/
+          if-no-files-found: warn
