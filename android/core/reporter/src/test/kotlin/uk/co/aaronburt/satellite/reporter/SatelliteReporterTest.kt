@@ -200,8 +200,9 @@ class SatelliteReporterTest {
         connect()
         client.clearRecords()
 
+        // start and connect already used up 2s of the 60s wait
         context.setBattery(level = 60)
-        settle(59_000)
+        settle(57_000)
         assertTrue("not yet due", client.published.isEmpty())
 
         settle(2_000)
