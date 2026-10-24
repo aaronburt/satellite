@@ -147,7 +147,8 @@ class SatelliteReporter @Inject constructor(
     private suspend fun republishAll(topics: Topics): RefreshOutcome {
         // A control disabled while offline could not clear its retained state
         // at the time, so clear every inactive control's state on each connect.
-        clearInactiveControlStates(topics)
+        EntityCatalog.unexposedKeys(settingsRepository.enabledControls.first())
+            .forEach { client.publish(topics.state(it), "", qos = 1, retain = true) }
         val discovered = publishDiscovery(settingsRepository.deviceId(), topics)
         val published = publishStates()
         return when {
@@ -181,7 +182,7 @@ class SatelliteReporter @Inject constructor(
     private enum class RefreshOutcome(val payload: String) {
         OK("ok"),
         PARTIAL("partial"),
-        FAILED("failed"),
+        FAILED("failed")
     }
 
     private suspend fun onConnected(): Boolean {
@@ -233,12 +234,6 @@ class SatelliteReporter @Inject constructor(
             add(client.publish(topics.availability, "", qos = 1, retain = true))
         }
         return results.all { it.isSuccess }
-    }
-
-    private suspend fun clearInactiveControlStates(topics: Topics) {
-        val enabled = settingsRepository.enabledControls.first()
-        EntityCatalog.unexposedKeys(enabled)
-            .forEach { client.publish(topics.state(it), "", qos = 1, retain = true) }
     }
 
     private suspend fun publishDiscovery(deviceId: String, topics: Topics): Boolean {
