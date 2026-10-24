@@ -1,6 +1,6 @@
 # SatelliteAndroid — Research Notes
 
-> **Historical research (2026-10-07).** Background notes from before the app was built; names like `SatelliteAndroid` are from that time. The app is now **Satellite** in the [`aaronburt/satellite`](https://github.com/aaronburt/satellite) monorepo, MIT licensed. Active work is tracked in the [project TODO](../../TODO.md); see the [current documentation](../../docs/README.md) for implemented behavior.
+> **Historical research (2026-10-07).** Background notes from before the app was built; names like `SatelliteAndroid` are from that time. The app is now **Satellite** in the [`aaronburt/satellite`](https://github.com/aaronburt/satellite) monorepo, MIT licensed. Active work is tracked in the [GitHub issues](https://github.com/aaronburt/satellite/issues); see the [current documentation](../../docs/README.md) for implemented behavior.
 
 **Date:** 2026-10-07
 **Status:** Research complete, plan pending owner decisions
