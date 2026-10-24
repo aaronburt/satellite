@@ -59,6 +59,28 @@ jobs:
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
+  kotlin-quality:
+    name: Kotlin format and static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Kotlin check tools
+        uses: actions/cache@v4
+        with:
+          path: android/.tools
+          key: kotlin-tools-${{ hashFiles('android/scripts/kotlin-checks.sh') }}
+
+      - name: ktlint and detekt
+        run: scripts/kotlin-checks.sh
+
   datastore-windows:
     name: DataStore tests (Windows)
     runs-on: windows-latest

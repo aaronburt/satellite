@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:DiscoveryPayloadBuilder.kt$DiscoveryPayloadBuilder$private fun component(spec: EntitySpec, deviceId: String, topics: Topics, stub: Boolean): JSONObject</ID>
+    <ID>CyclomaticComplexMethod:UpdateDownloader.kt$UpdateDownloader$override suspend fun download(asset: ReleaseAsset, onProgress: (Int) -&gt; Unit): File</ID>
+    <ID>LongMethod:HiveMqttClient.kt$HiveMqttClient$override suspend fun connect(settings: BrokerSettings, clientId: String, willTopic: String): Result&lt;Unit&gt;</ID>
+    <ID>LongMethod:PermissionsScreen.kt$@Composable fun PermissionsScreen(modifier: Modifier = Modifier)</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable fun SettingsScreen( state: SettingsUiState, onDeviceNameChange: (String) -&gt; Unit, onThemeChange: (ThemePreference) -&gt; Unit, onReportingChange: (Boolean) -&gt; Unit, onUpdateModeChange: (UpdateMode) -&gt; Unit, onUpdateIntervalChange: (UpdateInterval) -&gt; Unit, onTransportChange: (Transport) -&gt; Unit, onHostChange: (String) -&gt; Unit, onPortChange: (String) -&gt; Unit, onUsernameChange: (String) -&gt; Unit, onPasswordChange: (String) -&gt; Unit, onUseTlsChange: (Boolean) -&gt; Unit, onWebhookUrlChange: (String) -&gt; Unit, onBearerTokenChange: (String) -&gt; Unit, onSave: () -&gt; Unit, onTest: () -&gt; Unit, onCheckForUpdates: () -&gt; Unit, onInstallUpdate: () -&gt; Unit, onOpenInstallSettings: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@Composable private fun UpdatesSection( state: SettingsUiState, onCheckForUpdates: () -&gt; Unit, onInstallUpdate: () -&gt; Unit, onOpenInstallSettings: () -&gt; Unit )</ID>
+    <ID>LongMethod:StatusScreen.kt$@Composable private fun Onboarding(onSetUpBroker: () -&gt; Unit, onUseWebhook: () -&gt; Unit)</ID>
+    <ID>LongParameterList:DiscoveryPayloadBuilder.kt$DiscoveryPayloadBuilder$( deviceId: String, deviceName: String, manufacturer: String, model: String, appVersion: String, androidVersion: String, specs: List&lt;EntitySpec&gt; = EntityCatalog.all, enabledControls: Set&lt;String&gt; = emptySet(), stubControls: Set&lt;String&gt; = emptySet() )</ID>
+    <ID>LongParameterList:FakeSettingsRepository.kt$FakeSettingsRepository$( broker: BrokerSettings? = null, webhook: WebhookSettings? = null, transport: Transport = Transport.MQTT, reportingEnabled: Boolean = true, enabledControls: Set&lt;String&gt; = emptySet(), updateMode: UpdateMode = UpdateMode.PERIODIC, updateInterval: UpdateInterval = UpdateInterval.FIVE_MINUTES, theme: ThemePreference = ThemePreference.SYSTEM, var deviceIdValue: String = DEVICE_ID, deviceName: String = DEVICE_NAME )</ID>
+    <ID>LongParameterList:SatelliteReporter.kt$SatelliteReporter$( private val client: MqttClient, private val settingsRepository: SettingsRepository, private val telemetry: DeviceStateReader, private val commandRouter: CommandRouter, private val audioControls: AudioControls, private val status: ReporterStatus, @ApplicationContext private val context: Context, @ApplicationScope private val appScope: CoroutineScope )</ID>
+    <ID>LongParameterList:SettingsScreen.kt$( state: SettingsUiState, onDeviceNameChange: (String) -&gt; Unit, onThemeChange: (ThemePreference) -&gt; Unit, onReportingChange: (Boolean) -&gt; Unit, onUpdateModeChange: (UpdateMode) -&gt; Unit, onUpdateIntervalChange: (UpdateInterval) -&gt; Unit, onTransportChange: (Transport) -&gt; Unit, onHostChange: (String) -&gt; Unit, onPortChange: (String) -&gt; Unit, onUsernameChange: (String) -&gt; Unit, onPasswordChange: (String) -&gt; Unit, onUseTlsChange: (Boolean) -&gt; Unit, onWebhookUrlChange: (String) -&gt; Unit, onBearerTokenChange: (String) -&gt; Unit, onSave: () -&gt; Unit, onTest: () -&gt; Unit, onCheckForUpdates: () -&gt; Unit, onInstallUpdate: () -&gt; Unit, onOpenInstallSettings: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:StatusScreen.kt$( state: StatusUiState, testStatus: String?, onReportingChange: (Boolean) -&gt; Unit, onTest: () -&gt; Unit, onSetUpBroker: () -&gt; Unit, onUseWebhook: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:WebhookPayloadBuilder.kt$WebhookPayloadBuilder$( deviceId: String, deviceName: String, manufacturer: String, model: String, appVersion: String, androidVersion: String, states: Map&lt;String, String&gt;, timestampEpochMillis: Long )</ID>
+    <ID>LoopWithTooManyJumpStatements:FlakyNetwork.kt$FlakyNetwork$while</ID>
+    <ID>LoopWithTooManyJumpStatements:GitHubRelease.kt$GitHubReleaseParser$for</ID>
+    <ID>MagicNumber:AudioControls.kt$AudioControls$100</ID>
+    <ID>MagicNumber:AudioControls.kt$AudioControls$100f</ID>
+    <ID>MagicNumber:DataStoreSettingsRepository.kt$DataStoreSettingsRepository$4</ID>
+    <ID>MagicNumber:DeviceStateReader.kt$DeviceStateReader$10.0</ID>
+    <ID>MagicNumber:DeviceStateReader.kt$DeviceStateReader$100</ID>
+    <ID>MagicNumber:DeviceStateReader.kt$DeviceStateReader$1000</ID>
+    <ID>MagicNumber:DeviceStateReader.kt$DeviceStateReader$100f</ID>
+    <ID>MagicNumber:EntityFormatter.kt$EntityFormatter$1_000_000_000.0</ID>
+    <ID>MagicNumber:EntityFormatter.kt$EntityFormatter$3_600</ID>
+    <ID>MagicNumber:EntityFormatter.kt$EntityFormatter$60</ID>
+    <ID>MagicNumber:GitHubRelease.kt$VersionCodes$100</ID>
+    <ID>MagicNumber:GitHubRelease.kt$VersionCodes$10_000</ID>
+    <ID>MagicNumber:GitHubRelease.kt$VersionCodes$3</ID>
+    <ID>MagicNumber:SatelliteReporter.kt$SatelliteReporter$1000</ID>
+    <ID>MagicNumber:UpdateDownloader.kt$UpdateDownloader$100</ID>
+    <ID>MagicNumber:UpdateDownloader.kt$UpdateDownloader$200</ID>
+    <ID>MagicNumber:UpdateDownloader.kt$UpdateDownloader$299</ID>
+    <ID>MagicNumber:UpdateInterval.kt$UpdateInterval.FIFTEEN_MINUTES$900</ID>
+    <ID>MagicNumber:UpdateInterval.kt$UpdateInterval.FIVE_MINUTES$300</ID>
+    <ID>MagicNumber:UpdateInterval.kt$UpdateInterval.ONE_MINUTE$60</ID>
+    <ID>MagicNumber:UpdateInterval.kt$UpdateInterval.THIRTY_SECONDS$30</ID>
+    <ID>MagicNumber:UpdateVerifier.kt$UpdateVerifier$1024</ID>
+    <ID>MagicNumber:UpdateVerifier.kt$UpdateVerifier$64</ID>
+    <ID>MagicNumber:WebhookReporter.kt$WebhookReporter$1000</ID>
+    <ID>MagicNumber:WebhookReporter.kt$WebhookReporter$200</ID>
+    <ID>MagicNumber:WebhookReporter.kt$WebhookReporter$299</ID>
+    <ID>ReturnCount:GitHubRelease.kt$VersionCodes$fun fromTag(tag: String): Int?</ID>
+    <ID>TooGenericExceptionCaught:UpdateDownloader.kt$UpdateDownloader$error: Throwable</ID>
+    <ID>TooGenericExceptionCaught:UpdateManager.kt$UpdateManager$throwable: Throwable</ID>
+    <ID>TooManyFunctions:DataStoreSettingsRepository.kt$DataStoreSettingsRepository : SettingsRepository</ID>
+    <ID>TooManyFunctions:FakeMqttClient.kt$FakeMqttClient : MqttClient</ID>
+    <ID>TooManyFunctions:FakeSettingsRepository.kt$FakeSettingsRepository : SettingsRepository</ID>
+    <ID>TooManyFunctions:SettingsRepository.kt$SettingsRepository</ID>
+    <ID>TooManyFunctions:SettingsViewModel.kt$SettingsViewModel : ViewModel</ID>
+    <ID>TooManyFunctions:StatusScreen.kt$uk.co.aaronburt.satellite.feature.dashboard.StatusScreen.kt</ID>
+    <ID>UnusedPrivateMember:EntitiesScreen.kt$@Preview(showBackground = true) @Composable private fun EntitiesScreenPreview()</ID>
+    <ID>UnusedPrivateMember:SettingsScreen.kt$@Preview(showBackground = true) @Composable private fun SettingsScreenPreview()</ID>
+    <ID>UnusedPrivateMember:StatusScreen.kt$@Preview(showBackground = true) @Composable private fun StatusScreenPreview()</ID>
+  </CurrentIssues>
+</SmellBaseline>
