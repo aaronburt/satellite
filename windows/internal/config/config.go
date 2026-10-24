@@ -95,6 +95,10 @@ func (c Config) GetPort() int {
 var (
 	cfgLock sync.RWMutex
 	current Config
+
+	listenersLock  sync.Mutex
+	listeners      []listener
+	nextListenerID int
 )
 
 func DefaultExpose() ExposeConfig {
@@ -213,7 +217,47 @@ func Load() (Config, error) {
 	return current, nil
 }
 
+// OnChange registers fn to run after every successful Save, with the saved
+// config. Listeners run synchronously on the saving goroutine, after the
+// config lock is released, so they must be quick and must not call Save.
+// The returned func unregisters fn.
+func OnChange(fn func(Config)) (remove func()) {
+	listenersLock.Lock()
+	defer listenersLock.Unlock()
+	nextListenerID++
+	id := nextListenerID
+	listeners = append(listeners, listener{id, fn})
+	return func() {
+		listenersLock.Lock()
+		defer listenersLock.Unlock()
+		for i, l := range listeners {
+			if l.id == id {
+				listeners = append(listeners[:i:i], listeners[i+1:]...)
+				return
+			}
+		}
+	}
+}
+
+type listener struct {
+	id int
+	fn func(Config)
+}
+
 func Save(cfg Config) error {
+	if err := save(cfg); err != nil {
+		return err
+	}
+	listenersLock.Lock()
+	ls := append([]listener(nil), listeners...)
+	listenersLock.Unlock()
+	for _, l := range ls {
+		l.fn(cfg)
+	}
+	return nil
+}
+
+func save(cfg Config) error {
 	cfgLock.Lock()
 	defer cfgLock.Unlock()
 

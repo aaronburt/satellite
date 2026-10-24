@@ -121,8 +121,8 @@ Invoke-RestMethod -Method Post -Uri "$base/api/config" -Headers $headers `
 ```
 
 The normal response is `{"success":true}`. Saving also reapplies the running
-settings and restarts MQTT. Changing `interval_sec` still requires restarting
-the process to change its collection timer.
+settings and restarts MQTT. A new `interval_sec` takes effect immediately: the
+next collection runs one full new interval after the save.
 
 Changing `bind_address`, `port`, or `webui_port` can move the listener. For a port
 change, supply the same desired value for both `port` and `webui_port`. A move

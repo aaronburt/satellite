@@ -99,7 +99,7 @@ formats, authentication, and PowerShell/Go examples.
 | --- | --- | --- |
 | `mqtt.broker` | Empty | Broker URL; leave empty for webhook-only operation |
 | `mqtt.topic_prefix` | `satellite` | Prefix for state, command, and notification topics |
-| `interval_sec` | `5` | Collection interval; restart the process after changing it |
+| `interval_sec` | `5` | Collection interval; changes apply without a restart |
 | `heartbeat_sec` | `60` | Publish even without a significant change, checked on collection ticks |
 | `bind_address` | `127.0.0.1` | HTTP listener address |
 | `port` / `webui_port` | `0` | HTTP port; zero selects an available port |
