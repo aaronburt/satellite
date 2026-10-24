@@ -111,6 +111,36 @@ class HiveMqttClientTest {
         assertTrue("retained messages must stay on the broker", client.retainedCheck(topic, "87"))
     }
 
+    @Test
+    fun `the broker drops a retained message once its expiry has passed`() = runBlocking {
+        val expiring = "satellite/${uniqueId()}/state/battery"
+        val lasting = "satellite/${uniqueId()}/availability"
+        val client = newClient()
+        client.connect(settings(), uniqueId(), "satellite/t/availability")
+        client.awaitConnected()
+
+        client.publish(expiring, "87", qos = 1, retain = true, expirySeconds = 1)
+        client.publish(lasting, "online", qos = 1, retain = true)
+        Thread.sleep(2_500)
+
+        assertNull("expired retained state must not be delivered", observe(expiring).poll(2, TimeUnit.SECONDS))
+        assertTrue("retained messages without expiry stay", client.retainedCheck(lasting, "online"))
+    }
+
+    @Test
+    fun `an empty retained publish deletes the retained message`() = runBlocking {
+        val topic = "homeassistant/device/satellite_${uniqueId()}/config"
+        val client = newClient()
+        client.connect(settings(), uniqueId(), "satellite/t/availability")
+        client.awaitConnected()
+        client.publish(topic, "{}", qos = 1, retain = true, expirySeconds = 3600)
+        assertTrue(client.retainedCheck(topic, "{}"))
+
+        client.publish(topic, "", qos = 1, retain = true)
+
+        assertNull(observe(topic).poll(2, TimeUnit.SECONDS))
+    }
+
     /** Subscribes with a fresh client: a retained message is delivered immediately. */
     private fun HiveMqttClient.retainedCheck(topic: String, expected: String): Boolean {
         val queue = observe(topic)

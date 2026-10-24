@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"satellite/internal/capabilities"
+	"satellite/internal/collectloop"
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
@@ -134,35 +135,24 @@ func main() {
 		output.NewWebhook(config.Get),
 	}
 
+	var tickCount uint64
+	collectLoop := collectloop.New(cfg.IntervalSec, func() {
+		tickCount++ // only touched on the loop goroutine
+		snap := collector.Collect(config.Get().Expose)
+		output.PublishAll(sinks, snap)
+		if tickCount%12 == 0 {
+			telemetry.TrimWorkingSet()
+		}
+	})
+	// Saves from the WebUI/API apply a new interval_sec to the running loop.
+	stopIntervalWatch := config.OnChange(func(c config.Config) { collectLoop.SetInterval(c.IntervalSec) })
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
-	go func() {
-		interval := time.Duration(cfg.IntervalSec) * time.Second
-		if interval < 1*time.Second {
-			interval = 5 * time.Second
-		}
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-
-		var tickCount uint64
-		for {
-			select {
-			case <-tickerCtx.Done():
-				return
-			case <-ticker.C:
-				tickCount++
-				currentCfg := config.Get()
-				snap := collector.Collect(currentCfg.Expose)
-				output.PublishAll(sinks, snap)
-				if tickCount%12 == 0 {
-					telemetry.TrimWorkingSet()
-				}
-			}
-		}
-	}()
+	go collectLoop.Run(tickerCtx)
 
 	onExit := func() {
 		logger.Info("system", "Satellite agent shutting down")
 		cancelUpdater()
+		stopIntervalWatch()
 		cancelTicker()
 		mqttClient.Stop()
 		server.Stop()

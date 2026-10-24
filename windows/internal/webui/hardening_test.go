@@ -593,3 +593,49 @@ func TestStopForgetsToken(t *testing.T) {
 		t.Fatal("a fresh start should issue a new token")
 	}
 }
+
+func TestReadEndpointsEnforceGET(t *testing.T) {
+	_, base, token := startTestServer(t, config.DefaultConfig())
+	paths := []string{"/api/status", "/api/capabilities", "/api/logs/stream"}
+
+	for _, path := range paths {
+		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodPatch, http.MethodHead} {
+			before := logger.ListenerCount()
+			resp, _ := apiRequest(t, method, base+path, token, nil)
+			if resp.StatusCode != http.StatusMethodNotAllowed {
+				t.Errorf("%s %s: status %d, want 405", method, path, resp.StatusCode)
+			}
+			if got := resp.Header.Get("Allow"); got != http.MethodGet {
+				t.Errorf("%s %s: Allow %q, want GET", method, path, got)
+			}
+			if after := logger.ListenerCount(); after != before {
+				t.Errorf("%s %s: listener count %d -> %d", method, path, before, after)
+			}
+		}
+		// Auth still runs first: a bad token gets 401, not 405.
+		resp, _ := apiRequest(t, http.MethodPost, base+path, "wrong", nil)
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Errorf("POST %s bad token: status %d, want 401", path, resp.StatusCode)
+		}
+	}
+
+	for _, path := range paths[:2] {
+		resp, _ := apiRequest(t, http.MethodGet, base+path, token, nil)
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("GET %s: status %d, want 200", path, resp.StatusCode)
+		}
+	}
+}
+
+func TestReadEndpointsHiddenWhenWebUIDisabled(t *testing.T) {
+	srv, base, token := startTestServer(t, config.DefaultConfig())
+	srv.SetWebUIEnabled(false)
+	for _, path := range []string{"/api/status", "/api/capabilities", "/api/logs/stream"} {
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			resp, _ := apiRequest(t, method, base+path, token, nil)
+			if resp.StatusCode != http.StatusNotFound {
+				t.Errorf("%s %s with web UI off: status %d, want 404", method, path, resp.StatusCode)
+			}
+		}
+	}
+}

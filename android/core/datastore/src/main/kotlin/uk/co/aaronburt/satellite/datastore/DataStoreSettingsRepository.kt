@@ -2,6 +2,7 @@ package uk.co.aaronburt.satellite.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -21,15 +22,28 @@ import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
 
-private val Context.dataStore by preferencesDataStore(name = "satellite_settings")
+private val Context.dataStore by preferencesDataStore(
+    name = "satellite_settings",
+    produceMigrations = { listOf(LegacySecretMigration(sharedCipher)) },
+)
 
+/** One Keystore-backed cipher for the process, shared by the migration and the repository. */
+private val sharedCipher: SecretCipher by lazy { KeystoreSecretCipher() }
+
+/**
+ * Settings in Preferences DataStore. Non-secret values are stored as-is; the
+ * broker password and webhook token are encrypted with [SecretCipher] (see
+ * [KeystoreSecretCipher]). A secret that cannot be decrypted reads as absent
+ * so the user can re-enter it; the rest of the settings are unaffected.
+ */
 class DataStoreSettingsRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
+    private val cipher: SecretCipher,
     private val randomHex: () -> String = { UUID.randomUUID().toString().replace("-", "") }
 ) : SettingsRepository {
 
     @Inject
-    constructor(context: Context) : this(context.dataStore)
+    constructor(context: Context) : this(context.dataStore, sharedCipher)
 
     override val brokerSettings: Flow<BrokerSettings?> = dataStore.data.map { prefs ->
         val host = prefs[Keys.Host] ?: return@map null
@@ -37,19 +51,46 @@ class DataStoreSettingsRepository internal constructor(
             host = host,
             port = prefs[Keys.Port] ?: DEFAULT_PORT,
             username = prefs[Keys.Username]?.takeIf { it.isNotBlank() },
-            password = prefs[Keys.Password]?.takeIf { it.isNotBlank() },
+            password = readSecret(prefs, Keys.EncryptedPassword, Keys.LegacyPassword),
             useTls = prefs[Keys.UseTls] ?: true,
         )
     }
 
     override suspend fun saveBrokerSettings(settings: BrokerSettings) {
+        // Encrypt before the transaction: if the Keystore fails, nothing is written.
+        val password = encryptOrNull(settings.password)
         dataStore.edit { prefs ->
             prefs[Keys.Host] = settings.host
             prefs[Keys.Port] = settings.port
             prefs[Keys.Username] = settings.username.orEmpty()
-            prefs[Keys.Password] = settings.password.orEmpty()
+            prefs.putSecret(Keys.EncryptedPassword, Keys.LegacyPassword, password)
             prefs[Keys.UseTls] = settings.useTls
         }
+    }
+
+    private fun encryptOrNull(secret: String?): String? = secret?.takeIf { it.isNotBlank() }?.let(cipher::encrypt)
+
+    private fun MutablePreferences.putSecret(
+        encrypted: Preferences.Key<String>,
+        legacy: Preferences.Key<String>,
+        ciphertext: String?
+    ) {
+        if (ciphertext == null) remove(encrypted) else this[encrypted] = ciphertext
+        remove(legacy)
+    }
+
+    /**
+     * Encrypted value first; the legacy plaintext only while a migration is
+     * still pending (e.g. the Keystore was unavailable when it last ran).
+     */
+    private fun readSecret(
+        prefs: Preferences,
+        encrypted: Preferences.Key<String>,
+        legacy: Preferences.Key<String>
+    ): String? {
+        val stored = prefs[encrypted]
+        val value = if (stored != null) cipher.decrypt(stored) else prefs[legacy]
+        return value?.takeIf { it.isNotBlank() }
     }
 
     override suspend fun deviceId(): String = getOrCreate(Keys.DeviceId) { randomHex().take(DEVICE_ID_LENGTH) }
@@ -142,14 +183,15 @@ class DataStoreSettingsRepository internal constructor(
         val url = prefs[Keys.WebhookUrl] ?: return@map null
         WebhookSettings(
             url = url,
-            bearerToken = prefs[Keys.WebhookToken]?.takeIf { it.isNotBlank() },
+            bearerToken = readSecret(prefs, Keys.EncryptedWebhookToken, Keys.LegacyWebhookToken),
         )
     }
 
     override suspend fun saveWebhookSettings(settings: WebhookSettings) {
+        val token = encryptOrNull(settings.bearerToken)
         dataStore.edit {
             it[Keys.WebhookUrl] = settings.url
-            it[Keys.WebhookToken] = settings.bearerToken.orEmpty()
+            it.putSecret(Keys.EncryptedWebhookToken, Keys.LegacyWebhookToken, token)
         }
     }
 
@@ -161,7 +203,8 @@ class DataStoreSettingsRepository internal constructor(
         val Host = stringPreferencesKey("broker_host")
         val Port = intPreferencesKey("broker_port")
         val Username = stringPreferencesKey("broker_username")
-        val Password = stringPreferencesKey("broker_password")
+        val LegacyPassword = LegacySecretMigration.LegacyPassword
+        val EncryptedPassword = LegacySecretMigration.EncryptedPassword
         val UseTls = booleanPreferencesKey("broker_use_tls")
         val DeviceId = stringPreferencesKey("device_id")
         val DeviceName = stringPreferencesKey("device_name")
@@ -172,7 +215,8 @@ class DataStoreSettingsRepository internal constructor(
         val ReportingEnabled = booleanPreferencesKey("reporting_enabled")
         val EnabledControls = stringSetPreferencesKey("enabled_controls")
         val WebhookUrl = stringPreferencesKey("webhook_url")
-        val WebhookToken = stringPreferencesKey("webhook_token")
+        val LegacyWebhookToken = LegacySecretMigration.LegacyWebhookToken
+        val EncryptedWebhookToken = LegacySecretMigration.EncryptedWebhookToken
     }
 
     private companion object {
