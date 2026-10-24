@@ -21,6 +21,7 @@ import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
 import uk.co.aaronburt.satellite.reporter.ReporterCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
@@ -49,6 +50,10 @@ class SatelliteService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    // Every startService call lands here (activity re-creation, START_STICKY
+    // restarts, rapid resume toggles); only one watcher may run at a time.
+    private var watchJob: Job? = null
+
     @Volatile
     private var transport: Transport = Transport.MQTT
 
@@ -60,7 +65,9 @@ class SatelliteService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(connectionManager.connectionState.value, transport)
 
-        serviceScope.launch {
+        if (watchJob?.isActive == true) return START_STICKY
+
+        watchJob = serviceScope.launch {
             if (!settingsRepository.reportingEnabled.first()) {
                 stopSelf()
                 return@launch
