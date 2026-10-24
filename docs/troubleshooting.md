@@ -36,21 +36,25 @@ treating that setting as a general connectivity fix.
 
 ## Android reconnects but remains unavailable
 
-Current limitation: Android publishes retained `online` after an explicit
-connection, but its automatic reconnect listener does not republish availability.
-If the broker sent the retained `offline` Last Will during a connection loss,
-Home Assistant can keep showing unavailable even though state messages resume.
+Builds from current `main` publish retained `online` on every successful
+connect, including automatic reconnects, and keep retrying a broker that was
+unreachable at start-up. The published v0.26.0 release predates that fix: on
+it, a reconnect after a connection loss could leave the retained `offline` Last
+Will in place. On v0.26.0, pause and resume reporting as a workaround, or
+install a newer build.
 
-Pause and resume reporting to force an explicit connection, then verify
-`satellite/<device_id>/availability` changes to `online`. This is a workaround;
-automatic recovery needs a code change.
+To verify, watch `satellite/<device_id>/availability` with a broker client,
+restart the broker or interrupt the network, then restore it. Availability
+should return to `online` without touching the app. If it does not, check the
+app version and the broker logs.
 
 ## Reporting appears successful but values do not arrive
 
-For Android MQTT, the last-published timestamp and test result currently do not
-validate every publish result. Check received state topics before treating that
-status as delivery confirmation. Webhook reporting updates its timestamp after
-an HTTP 2xx response.
+On current `main`, the Android MQTT last-published timestamp and test result
+update only when the broker accepted every publish. v0.26.0 could report
+success after a rejected publish. Either way, acceptance by the broker is not
+proof Home Assistant processed the values: check received state topics.
+Webhook reporting updates its timestamp after an HTTP 2xx response.
 
 For desktop, unchanged values can be suppressed until the next heartbeat. Check
 `interval_sec`, `heartbeat_sec`, and the telemetry webhook's `min_interval_sec`.

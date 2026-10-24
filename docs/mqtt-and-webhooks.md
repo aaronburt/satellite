@@ -80,7 +80,8 @@ The authoritative definitions are
 [`Topics.kt`](../android/core/discovery/src/main/kotlin/uk/co/aaronburt/satellite/discovery/Topics.kt),
 [`EntityCatalog.kt`](../android/core/discovery/src/main/kotlin/uk/co/aaronburt/satellite/discovery/EntityCatalog.kt),
 and [`SatelliteCommand.kt`](../android/core/reporter/src/main/kotlin/uk/co/aaronburt/satellite/reporter/SatelliteCommand.kt).
-See [troubleshooting](troubleshooting.md) for the current reconnect availability caveat.
+Retained `online` is republished on every connect, including automatic
+reconnects (fixed after v0.26.0; see [troubleshooting](troubleshooting.md)).
 
 ## Telemetry webhooks
 
