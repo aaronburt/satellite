@@ -57,11 +57,29 @@ DEVICE_ID=""
 
 log() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
+# Evidence for a failed check, printed to the job log (full logs are also
+# uploaded with the results).
+diagnostics() {
+  echo "::group::diagnostics for $1"
+  echo "--- app state: $(app_query_all)"
+  echo "--- notification: $(notification_text)"
+  echo "--- broker log (tail)"; docker logs --tail 40 "$BROKER" 2>&1
+  echo "--- retained availability: $(retained "$(topic_base)/availability")"
+  echo "--- logcat (app/mqtt, tail)"
+  adb logcat -d 2>/dev/null | grep -iE "satellite|hivemq|mqtt|netty|connectivity" | tail -60
+  echo "::endgroup::"
+}
+
+app_query_all() { app_set 2>&1; }
+
 record() { # status check note
   local status=$1 name=$2 note=${3:-}
   log "$status $name${note:+ - $note}"
   printf '| %s | `%s` | %s |\n' "$status" "$name" "$note" >> "$SUMMARY"
-  [[ $status == FAIL ]] && FAILED=1
+  if [[ $status == FAIL ]]; then
+    FAILED=1
+    diagnostics "$name"
+  fi
   return 0
 }
 
