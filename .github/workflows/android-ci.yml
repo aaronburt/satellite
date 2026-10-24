@@ -36,8 +36,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          build-root-directory: android
 
       - name: Install SDK packages
         run: |
@@ -76,8 +74,6 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
-        with:
-          build-root-directory: android
 
       - name: Install SDK packages
         shell: bash
