@@ -8,16 +8,22 @@ batch wrapper; on Linux/macOS use `./gradlew` instead.
 
 | Layer | Existing coverage | Prerequisites |
 | --- | --- | --- |
-| JVM unit tests | Dispatcher provider, discovery/webhook payload builders, command parser, GitHub release parser | JDK, SDK, Gradle dependencies |
+| JVM unit tests | Every module: settings storage on a real DataStore file, discovery/webhook payload builders, command parsing and routing, telemetry readers, dispatchers, view models, boot policy, and notification text | JDK, SDK, Gradle dependencies |
+| Shared fixtures | `:core:testing` (test-only): `FakeMqttClient`, `FakeSettingsRepository`, `MainDispatcherRule`, test dispatchers/scopes, and Android fixtures | Used by the module tests |
+| Embedded-broker tests | `HiveMqttClientTest` runs the real HiveMQ client against an in-process broker (`EmbeddedBroker`); `MqttConnectionManagerTest` covers Last Will, `online` after automatic reconnects, stop/start races, and settings changes | JDK only; no Docker |
+| Reporter tests | `SatelliteReporterTest`, `WebhookReporterTest`, `ReporterCoordinatorTest`, `ReporterStatusTest`, `StateChangeWatcherTest`, `TelemetryContractTest`: MQTT and webhook delivery end to end, publish-result reporting, transport switching, and that every telemetry key is a declared entity | JDK only |
+| Robolectric tests | Android-API code: telemetry readers, audio controls (including offline microphone restore), reporter/watcher tests, view models, and service notification | JDK, SDK |
+| View-model tests | `StatusViewModelTest`, `EntitiesViewModelTest`, `SettingsViewModelTest` | JDK, SDK |
+| Update-flow tests | `:core:update`: release parsing, version codes, check, HTTPS download (truncation, partial-file cleanup), checksum/signing-key verification, install hand-off, and duplicate-download handling | JDK only |
 | Static analysis | Android Lint | JDK, SDK, Gradle dependencies |
 | Dashboard instrumented tests | Connected, paused, and first-run UI states in `StatusScreenTest` | Device/emulator |
 | MQTT reconnect recovery | `ReconnectRecoveryTest` runs the real client and connection manager against an in-process HiveMQ broker: network loss (Last Will then retained `online`), broker restart with empty state, a command handled once after three reconnects, clean stop leaves `offline` | JDK, Gradle dependencies (runs in CI) |
 | Broker configuration E2E | `BrokerConfigurationE2ETest` drives settings and checks connection to Mosquitto | API 33+ emulator, development broker, fresh app setup |
 
-Connection-manager and reporter lifecycle behavior does not currently have
-comprehensive automated unit coverage. Broker configuration E2E does not prove
-Last Will, reconnect recovery, command round trips, or Home Assistant entity
-creation. Those require the manual checks below.
+Unit tests do not prove real-device lifecycle behavior (foreground service,
+Doze, OEM background limits, reboot) or Home Assistant integration (entity
+creation, birth-message refresh, command round trips through a real broker
+and Home Assistant). Those still require the manual checks below.
 
 ## Build and unit checks
 
@@ -97,8 +103,10 @@ and the observed messages from the `mosquitto_sub` window in issue #8.
 7. Background the app and reboot the device with reporting enabled, then repeat
    with reporting paused. Confirm the service respects the saved reporting switch.
 
-See [current limitations](../../docs/troubleshooting.md) when assessing Android
-reconnect availability and last-published status. Use the
+In step 4, builds from current `main` should republish retained `online` after
+an automatic reconnect, and the last-published time and test result reflect
+broker acceptance. The published v0.26.0 APK predates these fixes; see
+[troubleshooting](../../docs/troubleshooting.md). Use the
 [protocol reference](../../docs/mqtt-and-webhooks.md) for exact topics and payloads.
 
 ## Power and network behavior
