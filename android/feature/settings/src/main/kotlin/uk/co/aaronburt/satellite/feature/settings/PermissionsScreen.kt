@@ -40,7 +40,7 @@ private data class RuntimePermission(
     val rationale: String,
     val group: String,
     val minSdk: Int = 0,
-    val maxSdk: Int = Int.MAX_VALUE,
+    val maxSdk: Int = Int.MAX_VALUE
 )
 
 private fun runtimePermissions(): List<RuntimePermission> = buildList {
@@ -195,11 +195,7 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun PermissionRow(
-    item: RuntimePermission,
-    granted: Boolean,
-    onGrant: () -> Unit,
-) {
+private fun PermissionRow(item: RuntimePermission, granted: Boolean, onGrant: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

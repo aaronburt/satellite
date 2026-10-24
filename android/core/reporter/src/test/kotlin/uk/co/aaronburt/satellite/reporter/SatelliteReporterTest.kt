@@ -3,6 +3,8 @@ package uk.co.aaronburt.satellite.reporter
 import android.app.Application
 import android.content.Intent
 import android.media.AudioManager
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,8 +30,6 @@ import uk.co.aaronburt.satellite.testing.FakeSettingsRepository.Companion.DEVICE
 import uk.co.aaronburt.satellite.testing.idleMainLooper
 import uk.co.aaronburt.satellite.testing.setBattery
 import uk.co.aaronburt.satellite.testing.settle
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.runTest
 
 @RunWith(RobolectricTestRunner::class)
 class SatelliteReporterTest {
@@ -49,20 +49,19 @@ class SatelliteReporterTest {
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
     }
 
-    private fun TestScope.startReporter(): SatelliteReporter =
-        SatelliteReporter(
-            client = client,
-            settingsRepository = settings,
-            telemetry = telemetry,
-            commandRouter = CommandRouter(settings, audio),
-            audioControls = audio,
-            status = status,
-            context = context,
-            appScope = backgroundScope,
-        ).also {
-            it.start()
-            settle()
-        }
+    private fun TestScope.startReporter(): SatelliteReporter = SatelliteReporter(
+        client = client,
+        settingsRepository = settings,
+        telemetry = telemetry,
+        commandRouter = CommandRouter(settings, audio),
+        audioControls = audio,
+        status = status,
+        context = context,
+        appScope = backgroundScope,
+    ).also {
+        it.start()
+        settle()
+    }
 
     private fun TestScope.connect() {
         client.setConnected()
@@ -71,11 +70,10 @@ class SatelliteReporterTest {
 
     private fun lastDiscovery(): JSONObject = JSONObject(client.lastPayload(topics.discovery)!!)
 
-    private fun stateKeysPublished(): Set<String> =
-        client.published
-            .filter { it.topic.startsWith("${topics.base}/state/") && it.payload.isNotEmpty() }
-            .map { it.topic.removePrefix("${topics.base}/state/") }
-            .toSet()
+    private fun stateKeysPublished(): Set<String> = client.published
+        .filter { it.topic.startsWith("${topics.base}/state/") && it.payload.isNotEmpty() }
+        .map { it.topic.removePrefix("${topics.base}/state/") }
+        .toSet()
 
     @Test
     fun `on connect publishes discovery, retained, with a week's expiry`() = runTest {
@@ -294,7 +292,7 @@ class SatelliteReporterTest {
         settle()
 
         val volume = lastDiscovery().getJSONObject("components").getJSONObject(CONTROL_VOLUME)
-        assertEquals("~/cmd/volume", volume.getString("command_topic"))
+        assertEquals(topics.command("volume"), volume.getString("command_topic"))
         assertNotNull(client.lastPayload(topics.state(CONTROL_VOLUME)))
     }
 
@@ -312,6 +310,71 @@ class SatelliteReporterTest {
         assertEquals("", cleared.payload)
         assertTrue("an empty retained message deletes the retained state", cleared.retain)
         assertFalse(lastDiscovery().getJSONObject("components").has(CONTROL_VOLUME))
+    }
+
+    @Test
+    fun `a control disabled while offline has its retained state cleared on the next connect`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        startReporter()
+        settings.setControlEnabled(CONTROL_VOLUME, false)
+        settle()
+
+        connect()
+
+        val cleared = client.publishesTo(topics.state(CONTROL_VOLUME)).single()
+        assertEquals("", cleared.payload)
+        assertTrue(cleared.retain)
+        assertFalse(lastDiscovery().getJSONObject("components").has(CONTROL_VOLUME))
+    }
+
+    @Test
+    fun `connecting never clears the state of an enabled control`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        startReporter()
+        connect()
+
+        assertTrue(client.publishesTo(topics.state(CONTROL_VOLUME)).none { it.payload.isEmpty() })
+        assertTrue(client.publishesTo(topics.state(CONTROL_MIC_MUTE)).all { it.payload.isEmpty() && it.retain })
+    }
+
+    @Test
+    fun `removing from Home Assistant deletes discovery, every state and availability`() = runTest {
+        settings.controlsState.value = setOf(CONTROL_VOLUME)
+        val reporter = startReporter()
+        connect()
+        client.clearRecords()
+
+        assertTrue(reporter.removeFromHomeAssistant())
+
+        val expected = listOf(topics.discovery, topics.availability) +
+            EntityCatalog.all.map { topics.state(it.key) }
+        expected.forEach { topic ->
+            val publish = client.publishesTo(topic).single()
+            assertEquals("$topic must be deleted", "", publish.payload)
+            assertTrue("$topic deletion must be retained", publish.retain)
+        }
+        assertTrue("only this device's topics are touched", client.published.all { it.topic in expected })
+    }
+
+    @Test
+    fun `removing from Home Assistant fails and publishes nothing while disconnected`() = runTest {
+        val reporter = startReporter()
+
+        assertFalse(reporter.removeFromHomeAssistant())
+        assertTrue(client.published.isEmpty())
+    }
+
+    @Test
+    fun `the device ID is stable across reconnects so Home Assistant keeps the same device`() = runTest {
+        startReporter()
+        connect()
+        val first = lastDiscovery().getJSONObject("device").getJSONArray("identifiers").toString()
+        client.dropConnection()
+        settle()
+        connect()
+
+        assertEquals(first, lastDiscovery().getJSONObject("device").getJSONArray("identifiers").toString())
+        assertTrue(client.published.all { it.topic.contains(DEVICE_ID) || it.topic == Topics.BIRTH_TOPIC })
     }
 
     @Test

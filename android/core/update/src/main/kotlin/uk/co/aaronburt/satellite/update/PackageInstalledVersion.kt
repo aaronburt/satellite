@@ -7,9 +7,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /** Reads the running app's version from the package manager. */
-class PackageInstalledVersion @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : InstalledVersion {
+class PackageInstalledVersion @Inject constructor(@ApplicationContext private val context: Context) :
+    InstalledVersion {
 
     override val name: String get() = packageInfo()?.versionName ?: "unknown"
 
@@ -18,7 +17,8 @@ class PackageInstalledVersion @Inject constructor(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 info.longVersionCode
             } else {
-                @Suppress("DEPRECATION") info.versionCode.toLong()
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
             }
         } ?: 0L
 

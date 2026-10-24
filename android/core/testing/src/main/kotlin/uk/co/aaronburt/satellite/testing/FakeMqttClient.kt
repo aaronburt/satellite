@@ -1,15 +1,15 @@
 package uk.co.aaronburt.satellite.testing
 
-import uk.co.aaronburt.satellite.model.BrokerSettings
-import uk.co.aaronburt.satellite.model.ConnectionState
-import uk.co.aaronburt.satellite.mqtt.MqttClient
-import uk.co.aaronburt.satellite.mqtt.MqttMessage
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
+import uk.co.aaronburt.satellite.model.BrokerSettings
+import uk.co.aaronburt.satellite.model.ConnectionState
+import uk.co.aaronburt.satellite.mqtt.MqttClient
+import uk.co.aaronburt.satellite.mqtt.MqttMessage
 
 /**
  * Records everything sent to the broker and lets tests drive the connection
@@ -25,7 +25,7 @@ class FakeMqttClient : MqttClient {
         val payload: String,
         val qos: Int,
         val retain: Boolean,
-        val expirySeconds: Long?,
+        val expirySeconds: Long?
     )
 
     data class Connect(val settings: BrokerSettings, val clientId: String, val willTopic: String)
@@ -59,11 +59,7 @@ class FakeMqttClient : MqttClient {
 
     private var connectedSince = 0L
 
-    override suspend fun connect(
-        settings: BrokerSettings,
-        clientId: String,
-        willTopic: String,
-    ): Result<Unit> {
+    override suspend fun connect(settings: BrokerSettings, clientId: String, willTopic: String): Result<Unit> {
         network()
         calls += "connect ${settings.host}"
         connects += Connect(settings, clientId, willTopic)
@@ -87,7 +83,7 @@ class FakeMqttClient : MqttClient {
         payload: String,
         qos: Int,
         retain: Boolean,
-        expirySeconds: Long?,
+        expirySeconds: Long?
     ): Result<Unit> {
         network()
         if (state.value !is ConnectionState.Connected) {
@@ -103,11 +99,7 @@ class FakeMqttClient : MqttClient {
         return Result.success(Unit)
     }
 
-    override suspend fun subscribe(
-        topicFilter: String,
-        qos: Int,
-        onMessage: (MqttMessage) -> Unit,
-    ): Result<Unit> {
+    override suspend fun subscribe(topicFilter: String, qos: Int, onMessage: (MqttMessage) -> Unit): Result<Unit> {
         if (state.value !is ConnectionState.Connected) {
             return Result.failure(IllegalStateException("Not connected to a broker"))
         }

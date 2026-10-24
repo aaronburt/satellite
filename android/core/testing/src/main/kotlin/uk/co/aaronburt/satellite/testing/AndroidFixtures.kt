@@ -20,7 +20,7 @@ fun Context.setBattery(
     scale: Int = 100,
     plugged: Int = 0,
     status: Int = BatteryManager.BATTERY_STATUS_DISCHARGING,
-    temperatureTenths: Int? = 250,
+    temperatureTenths: Int? = 250
 ) {
     val intent = Intent(Intent.ACTION_BATTERY_CHANGED)
         .putExtra(BatteryManager.EXTRA_LEVEL, level)

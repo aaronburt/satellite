@@ -1,0 +1,68 @@
+name: Home Assistant smoke test
+
+# Issue #21: runs the real reporter against an isolated Mosquitto and Home
+# Assistant (android/docker/smoke/run.sh). Runs on demand and on pull requests
+# that touch what Home Assistant sees: discovery, reporting, MQTT, or the smoke
+# setup itself. Not scheduled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ha_version:
+        description: Home Assistant image tag
+        default: stable
+  pull_request:
+    paths:
+      - 'android/core/discovery/**'
+      - 'android/core/reporter/**'
+      - 'android/core/mqtt/**'
+      - 'android/core/telemetry/**'
+      - 'android/docker/**'
+      - '.github/workflows/ha-smoke.yml'
+
+concurrency:
+  group: ha-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Discovery and control against Home Assistant
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install SDK packages
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
+
+      - name: Run smoke test
+        env:
+          HA_VERSION: ${{ inputs.ha_version || 'stable' }}
+        run: docker/smoke/run.sh
+
+      - name: Upload evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ha-smoke-evidence
+          path: |
+            android/build/ha-smoke/
+            android/core/reporter/build/reports/tests/
+            android/core/reporter/build/test-results/
+          if-no-files-found: warn

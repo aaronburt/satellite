@@ -18,12 +18,42 @@ batch wrapper; on Linux/macOS use `./gradlew` instead.
 | Static analysis | Android Lint | JDK, SDK, Gradle dependencies |
 | Dashboard instrumented tests | Connected, paused, and first-run UI states in `StatusScreenTest` | Device/emulator |
 | MQTT reconnect recovery | `ReconnectRecoveryTest` runs the real client and connection manager against an in-process HiveMQ broker: network loss (Last Will then retained `online`), broker restart with empty state, a command handled once after three reconnects, clean stop leaves `offline` | JDK, Gradle dependencies (runs in CI) |
+| Home Assistant smoke test | `HomeAssistantSmokeTest` runs the real reporter, client and connection manager against an isolated Mosquitto and Home Assistant: device and read-only entities created with state, disabled controls never exposed, a volume command round trip from Home Assistant, a control removed when turned off, and entities unavailable after stopping | Docker, `jq`, JDK, SDK; run `docker/smoke/run.sh` (CI: [HA smoke workflow](../../.github/workflows/ha-smoke.yml)) |
 | Broker configuration E2E | `BrokerConfigurationE2ETest` drives settings and checks connection to Mosquitto | API 33+ emulator, development broker, fresh app setup |
 
 Unit tests do not prove real-device lifecycle behavior (foreground service,
-Doze, OEM background limits, reboot) or Home Assistant integration (entity
-creation, birth-message refresh, command round trips through a real broker
-and Home Assistant). Those still require the manual checks below.
+Doze, OEM background limits, reboot). The Home Assistant smoke test covers
+entity creation and a command round trip, but runs under Robolectric rather
+than on a phone, so the manual checks below still apply before a release.
+
+## Home Assistant smoke test
+
+Needs Docker (with Compose), `jq`, `curl`, and the JDK/SDK used for unit tests.
+From the repository root:
+
+```bash
+android/docker/smoke/run.sh
+```
+
+The script starts its own Mosquitto and Home Assistant under a unique Compose
+project, on random loopback ports and throwaway volumes, so it never touches
+your normal `docker/` environment or Home Assistant data. It onboards Home
+Assistant and adds the MQTT integration through Home Assistant's API, runs
+`HomeAssistantSmokeTest`, then removes everything. Each test uses a fresh
+device id and deletes its device afterwards.
+
+Evidence is written to `android/build/ha-smoke/` on every run: broker and Home
+Assistant logs, retained broker topics, Home Assistant states and error log,
+and the MQTT setup responses. Options: `HA_VERSION=2026.10.3` pins a Home
+Assistant release, `HA_IMAGE=homeassistant/home-assistant` pulls from Docker
+Hub instead of GHCR, and `KEEP_STACK=1` leaves the stack running and prints
+its credentials for debugging. Without the script's environment the test is
+skipped, so `gradlew test` is unaffected.
+
+In CI the [HA smoke workflow](../../.github/workflows/ha-smoke.yml) runs on
+pull requests touching discovery, reporting, MQTT, telemetry or `docker/`, and
+on manual dispatch (with a Home Assistant version input). Failed runs upload
+the evidence as the `ha-smoke-evidence` artifact.
 
 ## Build and unit checks
 
@@ -39,7 +69,8 @@ GitHub release signing; see [Contributing](../../CONTRIBUTING.md).
 
 [Android CI](../../.github/workflows/android-ci.yml) runs unit tests, lint, and
 assembleDebug on relevant pushes and pull requests. It uploads the debug APK.
-Device tests run in the separate on-demand workflow described below.
+Device tests are not run by that workflow. The Home Assistant smoke test and the
+on-demand emulator device checks (see below) each have their own workflow.
 
 ## Device and emulator tests
 

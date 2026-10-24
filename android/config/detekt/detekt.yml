@@ -1,0 +1,17 @@
+# Overrides on top of detekt's default rule set (see docs/code-quality.md).
+naming:
+  FunctionNaming:
+    # Compose functions are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    # Compose colour/dimension constants are commonly PascalCase.
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+style:
+  MagicNumber:
+    # Colours and Compose dimensions are literal by nature.
+    ignorePropertyDeclaration: true
+    ignoreAnnotated: ['Composable', 'Preview']
+  ReturnCount:
+    # Guard-clause early returns are idiomatic in this codebase.
+    max: 4
+    excludeGuardClauses: true

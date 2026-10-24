@@ -21,10 +21,11 @@ object CommandParser {
         val value = payload.trim()
 
         return when (action) {
-            "volume" -> value
-                .toIntOrNull()
-                ?.takeIf { it in VOLUME_RANGE }
-                ?.let { SatelliteCommand.SetVolume(it) }
+            "volume" ->
+                value
+                    .toIntOrNull()
+                    ?.takeIf { it in VOLUME_RANGE }
+                    ?.let { SatelliteCommand.SetVolume(it) }
 
             "mute" -> when (value.uppercase()) {
                 "ON" -> SatelliteCommand.SetMicrophoneMuted(true)

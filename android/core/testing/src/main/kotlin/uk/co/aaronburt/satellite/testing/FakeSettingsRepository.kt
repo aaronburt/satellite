@@ -1,5 +1,8 @@
 package uk.co.aaronburt.satellite.testing
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import uk.co.aaronburt.satellite.datastore.SettingsRepository
 import uk.co.aaronburt.satellite.model.BrokerSettings
 import uk.co.aaronburt.satellite.model.ThemePreference
@@ -7,9 +10,6 @@ import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 
 /**
  * In-memory [SettingsRepository]. Every setting is a [MutableStateFlow] that
@@ -26,7 +26,7 @@ class FakeSettingsRepository(
     updateInterval: UpdateInterval = UpdateInterval.FIVE_MINUTES,
     theme: ThemePreference = ThemePreference.SYSTEM,
     var deviceIdValue: String = DEVICE_ID,
-    deviceName: String = DEVICE_NAME,
+    deviceName: String = DEVICE_NAME
 ) : SettingsRepository {
 
     val brokerState = MutableStateFlow(broker)
@@ -89,8 +89,7 @@ class FakeSettingsRepository(
 
     override suspend fun deviceId(): String = deviceIdValue
 
-    override suspend fun isConfigured(): Boolean =
-        brokerState.value != null || !webhookState.value?.url.isNullOrBlank()
+    override suspend fun isConfigured(): Boolean = brokerState.value != null || !webhookState.value?.url.isNullOrBlank()
 
     companion object {
         const val DEVICE_ID = "a1b2c3d4"

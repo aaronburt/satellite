@@ -1,17 +1,17 @@
 package uk.co.aaronburt.satellite.mqtt
 
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 import uk.co.aaronburt.satellite.discovery.Topics
 import uk.co.aaronburt.satellite.model.ConnectionState
 import uk.co.aaronburt.satellite.testing.FakeMqttClient
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository.Companion.BROKER
 import uk.co.aaronburt.satellite.testing.FakeSettingsRepository.Companion.DEVICE_ID
-import kotlinx.coroutines.test.TestScope
 import uk.co.aaronburt.satellite.testing.settle
-import kotlinx.coroutines.test.runTest
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
 
 class MqttConnectionManagerTest {
 

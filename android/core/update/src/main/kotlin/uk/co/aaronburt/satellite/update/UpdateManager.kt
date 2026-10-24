@@ -1,14 +1,14 @@
 package uk.co.aaronburt.satellite.update
 
 import android.content.Intent
+import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.coroutines.cancellation.CancellationException
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
  * Orchestrates the whole update flow: check → download → verify → install.
@@ -23,7 +23,7 @@ class UpdateManager @Inject constructor(
     private val checker: ReleaseSource,
     private val downloader: ApkDownloader,
     private val verifier: ApkVerifier,
-    private val installer: ApkInstaller,
+    private val installer: ApkInstaller
 ) {
 
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)

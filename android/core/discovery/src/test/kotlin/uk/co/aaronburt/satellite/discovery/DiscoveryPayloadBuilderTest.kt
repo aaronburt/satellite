@@ -2,6 +2,7 @@ package uk.co.aaronburt.satellite.discovery
 
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -19,9 +20,10 @@ class DiscoveryPayloadBuilderTest {
     private val json = JSONObject(payload)
 
     @Test
-    fun `uses the satellite base topic`() {
-        assertEquals("satellite/abcd1234", json.getString("~"))
-        assertEquals("~/availability", json.getString("availability_topic"))
+    fun `writes topics out in full, without the root abbreviation Home Assistant rejects`() {
+        assertFalse(json.has("~"))
+        assertEquals("satellite/abcd1234/availability", json.getString("availability_topic"))
+        assertFalse("no abbreviated topics", payload.contains("\"~/"))
     }
 
     @Test
@@ -44,7 +46,7 @@ class DiscoveryPayloadBuilderTest {
             val component = components.getJSONObject(spec.key)
             assertEquals(spec.platform, component.getString("platform"))
             assertEquals("abcd1234_${spec.key}", component.getString("unique_id"))
-            assertEquals("~/state/${spec.key}", component.getString("state_topic"))
+            assertEquals("satellite/abcd1234/state/${spec.key}", component.getString("state_topic"))
         }
     }
 
@@ -81,14 +83,14 @@ class DiscoveryPayloadBuilderTest {
 
         val volume = components.getJSONObject("volume_media")
         assertEquals("number", volume.getString("platform"))
-        assertEquals("~/cmd/volume", volume.getString("command_topic"))
-        assertEquals("~/state/volume_media", volume.getString("state_topic"))
+        assertEquals("satellite/abcd1234/cmd/volume", volume.getString("command_topic"))
+        assertEquals("satellite/abcd1234/state/volume_media", volume.getString("state_topic"))
         assertEquals(0, volume.getInt("min"))
         assertEquals(100, volume.getInt("max"))
 
         val mic = components.getJSONObject("mic_muted")
         assertEquals("switch", mic.getString("platform"))
-        assertEquals("~/cmd/mute", mic.getString("command_topic"))
+        assertEquals("satellite/abcd1234/cmd/mute", mic.getString("command_topic"))
     }
 
     @Test

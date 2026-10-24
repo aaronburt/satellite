@@ -3,10 +3,12 @@ package uk.co.aaronburt.satellite.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.okio.OkioStorage
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -16,6 +18,8 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import okio.FileSystem
+import okio.Path.Companion.toOkioPath
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,10 +34,6 @@ import uk.co.aaronburt.satellite.model.Transport
 import uk.co.aaronburt.satellite.model.UpdateInterval
 import uk.co.aaronburt.satellite.model.UpdateMode
 import uk.co.aaronburt.satellite.model.WebhookSettings
-import okio.FileSystem
-import okio.Path.Companion.toOkioPath
-import java.io.File
-import java.util.concurrent.atomic.AtomicInteger
 
 class DataStoreSettingsRepositoryTest {
 
@@ -51,6 +51,11 @@ class DataStoreSettingsRepositoryTest {
         "%04x%04x".format(n, n) + "0".repeat(24)
     }
 
+    private val cipher = FakeCipher()
+
+    /** Reads the raw file, bypassing the repository, to see what is stored at rest. */
+    private suspend fun raw(): Preferences = dataStore.data.first()
+
     private fun repository(): DataStoreSettingsRepository {
         job = Job()
         // OkioStorage, not the default java.io FileStorage: FileStorage commits
@@ -61,9 +66,10 @@ class DataStoreSettingsRepositoryTest {
         // app is unaffected; this only makes the JVM tests host-independent.
         dataStore = PreferenceDataStoreFactory.create(
             storage = OkioStorage(FileSystem.SYSTEM, PreferencesSerializer) { file.toOkioPath() },
+            migrations = listOf(LegacySecretMigration(cipher)),
             scope = CoroutineScope(Dispatchers.IO + job),
         )
-        return DataStoreSettingsRepository(dataStore, randomHex)
+        return DataStoreSettingsRepository(dataStore, cipher, randomHex)
     }
 
     /** Closes the current store, as process death would, and opens the same file again. */
@@ -251,5 +257,175 @@ class DataStoreSettingsRepositoryTest {
 
         repo.saveDeviceName("Hall")
         assertEquals("Hall", repo.deviceNameFlow.first())
+    }
+
+    // --- Secret storage (issue #15) ---
+
+    /** Writes a file the way older app versions did, with plaintext secrets. */
+    private suspend fun seedLegacyFile(vararg entries: Pair<String, String>) {
+        repository()
+        dataStore.edit { prefs -> entries.forEach { (k, v) -> prefs[stringPreferencesKey(k)] = v } }
+    }
+
+    private fun Preferences.string(key: String) = this[stringPreferencesKey(key)]
+
+    @Test
+    fun `secrets are encrypted at rest and never stored in plaintext`() = runTest {
+        val repo = repository()
+        repo.saveBrokerSettings(BrokerSettings("broker.local", 8883, "user", "hunter2", useTls = true))
+        repo.saveWebhookSettings(WebhookSettings("https://hook", bearerToken = "tok-123"))
+
+        val stored = raw()
+        assertNull(stored.string("broker_password"))
+        assertNull(stored.string("webhook_token"))
+        assertEquals(cipher.encrypt("hunter2"), stored.string("broker_password_enc"))
+        assertEquals(cipher.encrypt("tok-123"), stored.string("webhook_token_enc"))
+        assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains("hunter2"))
+        assertFalse(file.readBytes().toString(Charsets.ISO_8859_1).contains("tok-123"))
+        // Non-secret settings stay directly readable.
+        assertEquals("broker.local", stored.string("broker_host"))
+        assertEquals("user", stored.string("broker_username"))
+    }
+
+    @Test
+    fun `encrypted secrets round trip across a restart`() = runTest {
+        repository().saveWebhookSettings(WebhookSettings("https://hook", bearerToken = "tok-123"))
+
+        assertEquals("tok-123", reopen().webhookSettings.first()!!.bearerToken)
+    }
+
+    @Test
+    fun `clearing a secret removes its stored value`() = runTest {
+        val repo = repository()
+        repo.saveBrokerSettings(BrokerSettings("broker.local", 8883, "user", "hunter2", useTls = true))
+        repo.saveWebhookSettings(WebhookSettings("https://hook", bearerToken = "tok"))
+
+        repo.saveBrokerSettings(BrokerSettings("broker.local", 8883, "user", null, useTls = true))
+        repo.saveWebhookSettings(WebhookSettings("https://hook", bearerToken = " "))
+
+        assertNull(raw().string("broker_password_enc"))
+        assertNull(raw().string("webhook_token_enc"))
+        assertNull(repo.brokerSettings.first()!!.password)
+        assertNull(repo.webhookSettings.first()!!.bearerToken)
+    }
+
+    @Test
+    fun `existing plaintext install is migrated and keeps every setting`() = runTest {
+        seedLegacyFile(
+            "broker_host" to "old.local",
+            "broker_username" to "olduser",
+            "broker_password" to "oldpass",
+            "webhook_url" to "https://old-hook",
+            "webhook_token" to "oldtoken",
+            "device_id" to "abcd1234",
+        )
+
+        val repo = reopen()
+
+        val broker = repo.brokerSettings.first()!!
+        assertEquals("old.local", broker.host)
+        assertEquals("olduser", broker.username)
+        assertEquals("oldpass", broker.password)
+        assertEquals("oldtoken", repo.webhookSettings.first()!!.bearerToken)
+        assertEquals("abcd1234", repo.deviceId())
+        assertNull(raw().string("broker_password"))
+        assertNull(raw().string("webhook_token"))
+        assertEquals(cipher.encrypt("oldpass"), raw().string("broker_password_enc"))
+    }
+
+    @Test
+    fun `blank legacy secrets are dropped rather than encrypted`() = runTest {
+        seedLegacyFile("broker_host" to "old.local", "broker_password" to "")
+
+        val repo = reopen()
+
+        assertNull(repo.brokerSettings.first()!!.password)
+        assertNull(raw().string("broker_password"))
+        assertNull(raw().string("broker_password_enc"))
+    }
+
+    @Test
+    fun `interrupted migration leaves plaintext in place and retries on next open`() = runTest {
+        seedLegacyFile("broker_host" to "old.local", "broker_password" to "oldpass")
+        job.cancelAndJoin()
+        cipher.failEncrypt = true
+
+        // Keystore unavailable: the migration throws, nothing is committed.
+        repository()
+        assertTrue(runCatching { dataStore.data.first() }.isFailure)
+        job.cancelAndJoin()
+
+        cipher.failEncrypt = false
+        val repo = repository()
+        assertEquals("oldpass", repo.brokerSettings.first()!!.password)
+        assertNull(raw().string("broker_password"))
+        assertEquals("old.local", repo.brokerSettings.first()!!.host)
+    }
+
+    @Test
+    fun `legacy value already shadowed by an encrypted one is discarded`() = runTest {
+        repository()
+        dataStore.edit {
+            it[stringPreferencesKey("broker_host")] = "h"
+            it[stringPreferencesKey("broker_password_enc")] = cipher.encrypt("newer")
+            it[stringPreferencesKey("broker_password")] = "older"
+        }
+
+        assertEquals("newer", reopen().brokerSettings.first()!!.password)
+        assertNull(raw().string("broker_password"))
+    }
+
+    @Test
+    fun `undecryptable secret reads as absent without losing other settings`() = runTest {
+        val repo = repository()
+        repo.saveBrokerSettings(BrokerSettings("broker.local", 1884, "user", "hunter2", useTls = false))
+        repo.saveWebhookSettings(WebhookSettings("https://hook", bearerToken = "tok"))
+        repo.saveTransport(Transport.WEBHOOK)
+
+        // Simulates a wiped/invalidated Keystore key, or a restore onto another device.
+        cipher.failDecrypt = true
+
+        val broker = repo.brokerSettings.first()!!
+        assertEquals(BrokerSettings("broker.local", 1884, "user", null, useTls = false), broker)
+        assertEquals(WebhookSettings("https://hook", null), repo.webhookSettings.first())
+        assertEquals(Transport.WEBHOOK, repo.transport.first())
+        assertTrue(repo.isConfigured())
+
+        // Re-entering the secret recovers.
+        cipher.failDecrypt = false
+        repo.saveBrokerSettings(broker.copy(password = "again"))
+        assertEquals("again", repo.brokerSettings.first()!!.password)
+    }
+
+    @Test
+    fun `failed encryption on save writes nothing`() = runTest {
+        val repo = repository()
+        repo.saveBrokerSettings(BrokerSettings("broker.local", 8883, "user", "hunter2", useTls = true))
+        cipher.failEncrypt = true
+
+        val result = runCatching {
+            repo.saveBrokerSettings(BrokerSettings("other.local", 8883, "user", "new", useTls = true))
+        }
+
+        assertTrue(result.isFailure)
+        cipher.failEncrypt = false
+        assertEquals("broker.local", repo.brokerSettings.first()!!.host)
+        assertEquals("hunter2", repo.brokerSettings.first()!!.password)
+    }
+
+    /** Deterministic, reversible stand-in for the Keystore cipher. */
+    private class FakeCipher : SecretCipher {
+        var failEncrypt = false
+        var failDecrypt = false
+
+        override fun encrypt(plaintext: String): String {
+            if (failEncrypt) throw IllegalStateException("keystore unavailable")
+            return "fake:" + plaintext.reversed().map { it + 1 }.joinToString("")
+        }
+
+        override fun decrypt(ciphertext: String): String? {
+            if (failDecrypt || !ciphertext.startsWith("fake:")) return null
+            return ciphertext.removePrefix("fake:").map { it - 1 }.joinToString("").reversed()
+        }
     }
 }

@@ -1,9 +1,9 @@
 package uk.co.aaronburt.satellite.reporter
 
-import uk.co.aaronburt.satellite.discovery.Topics
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import uk.co.aaronburt.satellite.discovery.Topics
 
 class CommandParserTest {
 
