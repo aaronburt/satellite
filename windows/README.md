@@ -3,7 +3,8 @@
 Lightweight Windows & Linux telemetry agent and remote controller for Home Assistant over MQTT.
 
 [Documentation index](../docs/README.md) | [Architecture](../docs/architecture.md) |
-[Protocol reference](../docs/mqtt-and-webhooks.md) | [Troubleshooting](../docs/troubleshooting.md)
+[HTTP API](../docs/http-api.md) | [Protocol reference](../docs/mqtt-and-webhooks.md) |
+[Troubleshooting](../docs/troubleshooting.md)
 
 ---
 
@@ -91,6 +92,8 @@ Config is saved at:
 The default listener is `127.0.0.1` with a dynamically selected port. Use the URL
 from the tray or debug output. The WebUI uses an ephemeral token; the optional
 `/json` endpoint instead uses `X-API-Key` or the `api_key` query parameter.
+See the [HTTP API reference](../docs/http-api.md) for every endpoint, request
+formats, authentication, and PowerShell/Go examples.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |

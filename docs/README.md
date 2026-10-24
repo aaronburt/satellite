@@ -11,6 +11,7 @@ webhooks provide an alternative destination for telemetry.
 | Install, build, or configure the desktop agent | [Windows and Linux](../windows/README.md) |
 | Install, build, or configure the Android app | [Android](../android/README.md) |
 | Understand components and runtime behavior | [Architecture](architecture.md) |
+| Access the desktop HTTP endpoints from scripts or Go | [HTTP API reference](http-api.md) |
 | Integrate with MQTT or consume webhook payloads | [MQTT and webhook reference](mqtt-and-webhooks.md) |
 | Diagnose connection, discovery, or reporting problems | [Troubleshooting](troubleshooting.md) |
 | Develop, test, or release a change | [Contributing](../CONTRIBUTING.md) |

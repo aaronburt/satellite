@@ -59,6 +59,9 @@ restarts MQTT but leaves the running collection timer unchanged.
 
 ## Desktop web UI or `/json` cannot be opened
 
+See the [HTTP API reference](http-api.md) for endpoint paths, credentials, and
+request examples.
+
 - On Windows, enable the web UI from the tray menu, then use **Open WebUI**.
   On Linux, launch `./satellite --debug` for setup. `--headless` does not enable
   the management UI.

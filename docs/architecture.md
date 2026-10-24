@@ -64,7 +64,9 @@ and the UI expose, while MQTT command handling also checks the enabled controls.
 The HTTP listener defaults to `127.0.0.1` and an automatically selected port. The
 web UI and its `/api/*` routes use an ephemeral token. The separately enabled
 `/json` snapshot endpoint uses the persistent API key. The two credentials serve
-different purposes. See [troubleshooting](troubleshooting.md) for access details.
+different purposes. See the [HTTP API reference](http-api.md) for endpoints,
+authentication, and client examples, or [troubleshooting](troubleshooting.md)
+for access problems.
 
 The log webhook and telemetry webhook are separate outputs. Logs contain events;
 telemetry contains device-state snapshots.
