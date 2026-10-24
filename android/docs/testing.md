@@ -114,3 +114,22 @@ Record device model, Android version, build type, permissions, reporting mode,
 and broker observations with results. OEM background restrictions differ, so an
 emulator pass does not establish behavior on every phone. Test the minified
 release build on a device as well as the debug build.
+
+## Lifecycle and microphone device checklist
+
+Robolectric covers the logic (boot policy, coordinator transport switching,
+offline microphone restore in `SatelliteReporterTest`). Only a phone can show
+how Android and the OEM treat the foreground service. Record the device model,
+Android version, and OEM battery setting for each run; never record credentials.
+
+| # | Steps | Expected |
+| --- | --- | --- |
+| 1 | Reporting on, reboot the phone, unlock | Notification returns; broker/webhook receives state within one interval |
+| 2 | Pause reporting, reboot | No notification, no traffic, switch still paused |
+| 3 | Background the app for 30 min with the screen off | Notification stays; periodic updates keep arriving |
+| 4 | `adb shell dumpsys deviceidle force-idle`, wait, then `adb shell dumpsys deviceidle unforce` | Reporting resumes after Doze ends; note any gap |
+| 5 | Toggle pause/resume ten times quickly, then rotate the screen and reopen the app | One notification; one message per interval (no duplicates); after the last pause the notification is gone |
+| 6 | Stop the broker, enable reporting, start the broker | Status recovers to connected without reopening the app |
+| 7 | Switch MQTT to Webhook and back while running | Only the selected transport sends; MQTT shows `offline` availability while on Webhook |
+| 8 | Enable the microphone control, mute from Home Assistant, turn on airplane mode, disable the control in the app | Microphone is unmuted (check in a recorder app) even though offline |
+| 9 | After each step | Saved switch, notification text, actual traffic, and device state agree |
