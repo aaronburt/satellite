@@ -171,7 +171,9 @@ class DeviceStateReaderTest {
 
     @Test
     fun `app, system and storage values`() {
-        ShadowStatFs.registerStats(Environment.getDataDirectory(), 1_000, 500, 250)
+        // Register by the same path string the reader passes to StatFs: the File
+        // overload resolves to an absolute path, which differs on Windows.
+        ShadowStatFs.registerStats(Environment.getDataDirectory().path, 1_000, 500, 250)
 
         val values = read()
         assertEquals(Build.VERSION.RELEASE, values["android_version"])
