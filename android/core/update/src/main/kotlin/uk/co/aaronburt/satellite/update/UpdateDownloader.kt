@@ -61,6 +61,16 @@ class UpdateDownloader @Inject constructor(
                                 onProgress(((copied * 100) / total).toInt().coerceIn(0, 100))
                             }
                         }
+                        // HttpURLConnection reports a connection that dropped
+                        // early as a normal end of stream, so check the length
+                        // ourselves: half an APK must never be treated as done.
+                        val declared = connection.contentLengthLong
+                        check(declared < 0 || copied == declared) {
+                            "Download was cut short ($copied of $declared bytes)"
+                        }
+                        check(asset.size <= 0 || copied == asset.size) {
+                            "Download size does not match the release ($copied of ${asset.size} bytes)"
+                        }
                     }
                 }
             } catch (error: Throwable) {

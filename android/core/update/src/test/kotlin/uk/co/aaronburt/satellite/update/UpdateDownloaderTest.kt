@@ -185,4 +185,14 @@ class UpdateDownloaderTest {
         assertFalse(File(updates, "satellite.apk").exists())
         assertFalse(File(updates, "satellite.apk.part").exists())
     }
+
+    @Test
+    fun `a download that differs from the published size is rejected`() {
+        serve()
+
+        failureOf { download(asset(size = payload.size + 1L)) }
+
+        assertFalse(File(updates, "satellite.apk").exists())
+        assertFalse(File(updates, "satellite.apk.part").exists())
+    }
 }
