@@ -39,7 +39,7 @@ import uk.co.aaronburt.satellite.update.UpdateStatesSource
  * has enabled are ever published — controls are off by default.
  */
 @Singleton
-@Suppress("LongParameterList") // Hilt-injected collaborators
+@Suppress("LongParameterList", "TooManyFunctions") // Hilt-injected collaborators; one reporter lifecycle
 class SatelliteReporter @Inject constructor(
     private val client: MqttClient,
     private val settingsRepository: SettingsRepository,
