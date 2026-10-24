@@ -40,9 +40,15 @@ object ConnectivityReadings {
         else -> operatorName
     }
 
-    /** Strips Android's quotes and drops the redacted "<unknown ssid>" value. */
+    /**
+     * Strips Android's quotes (some versions and Robolectric quote twice) and
+     * drops the redacted "<unknown ssid>" value.
+     */
     internal fun cleanSsid(raw: String?): String? {
-        val ssid = raw?.trim()?.removeSurrounding("\"") ?: return null
+        var ssid = raw?.trim() ?: return null
+        while (ssid.length >= 2 && ssid.startsWith('"') && ssid.endsWith('"')) {
+            ssid = ssid.substring(1, ssid.length - 1)
+        }
         return ssid.takeUnless { it.isBlank() || it == UNKNOWN_SSID }
     }
 

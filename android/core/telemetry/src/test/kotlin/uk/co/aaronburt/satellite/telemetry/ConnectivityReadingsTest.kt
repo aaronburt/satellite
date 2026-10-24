@@ -36,6 +36,8 @@ class ConnectivityReadingsTest {
         assertEquals("Cafe", ConnectivityReadings.cleanSsid("Cafe"))
         assertEquals("Bob's \"5G\"", ConnectivityReadings.cleanSsid("\"Bob's \"5G\"\""))
         assertNull(ConnectivityReadings.cleanSsid("   "))
+        assertEquals("Home", ConnectivityReadings.cleanSsid("\"\"Home\"\""))
+        assertNull(ConnectivityReadings.cleanSsid("\"\"\"\""))
     }
 
     @Test
