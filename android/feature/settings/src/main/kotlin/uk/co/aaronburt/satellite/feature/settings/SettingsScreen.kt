@@ -1,15 +1,18 @@
 package uk.co.aaronburt.satellite.feature.settings
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -20,28 +23,35 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import uk.co.aaronburt.satellite.designsystem.theme.SatelliteTheme
@@ -74,7 +84,15 @@ fun SettingsScreen(
     onOpenInstallSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val reportingLabel = stringResource(R.string.send_to_home_assistant)
+    val tlsLabel = stringResource(R.string.use_tls)
     var confirmDisableTls by remember { mutableStateOf(false) }
+    val fieldFocus = remember {
+        listOf("deviceName", "host", "port", "webhookUrl").associateWith { FocusRequester() }
+    }
+    LaunchedEffect(state.errors) {
+        state.errors.keys.firstOrNull()?.let { fieldFocus[it]?.requestFocus() }
+    }
 
     Column(
         modifier = modifier
@@ -83,7 +101,7 @@ fun SettingsScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        SectionLabel("Identity")
+        SectionLabel(stringResource(R.string.settings_identity))
         ElevatedCard {
             Column(
                 modifier = Modifier
@@ -93,17 +111,21 @@ fun SettingsScreen(
             ) {
                 OutlinedTextField(
                     value = state.deviceName,
+                    isError = state.errors.containsKey("deviceName"),
+                    supportingText = { state.errors["deviceName"]?.let { Text(stringResource(it)) } },
                     onValueChange = onDeviceNameChange,
-                    label = { Text("Device name") },
+                    enabled = !state.busy,
+                    label = { Text(stringResource(R.string.settings_device_name)) },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .focusRequester(fieldFocus.getValue("deviceName"))
                         .testTag("settings_device_name"),
                 )
             }
         }
 
-        SectionLabel("Appearance")
+        SectionLabel(stringResource(R.string.settings_appearance))
         ElevatedCard {
             Column(
                 modifier = Modifier
@@ -111,7 +133,7 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("Theme", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.settings_theme), style = MaterialTheme.typography.bodyMedium)
                 ChoiceRow(
                     options = ThemePreference.entries,
                     selected = state.themePreference,
@@ -121,7 +143,7 @@ fun SettingsScreen(
             }
         }
 
-        SectionLabel("Reporting")
+        SectionLabel(stringResource(R.string.settings_reporting))
         ElevatedCard {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -132,11 +154,11 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Send to Home Assistant",
+                            text = stringResource(R.string.send_to_home_assistant),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
-                            text = "Turn off to stop publishing without removing the app",
+                            text = stringResource(R.string.reporting_description),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -144,7 +166,10 @@ fun SettingsScreen(
                     Switch(
                         checked = state.reportingEnabled,
                         onCheckedChange = onReportingChange,
-                        modifier = Modifier.testTag("settings_reporting"),
+                        modifier = Modifier.testTag("settings_reporting").semantics {
+                            contentDescription =
+                                reportingLabel
+                        },
                     )
                 }
 
@@ -156,7 +181,7 @@ fun SettingsScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Update mode", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.settings_update_mode), style = MaterialTheme.typography.bodySmall)
                     ChoiceRow(
                         options = UpdateMode.entries,
                         selected = state.updateMode,
@@ -166,7 +191,7 @@ fun SettingsScreen(
                     )
 
                     Text(
-                        text = "Publish interval",
+                        text = stringResource(R.string.settings_publish_interval),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(top = 4.dp),
                     )
@@ -181,7 +206,7 @@ fun SettingsScreen(
             }
         }
 
-        SectionLabel("Connection")
+        SectionLabel(stringResource(R.string.settings_connection))
         ElevatedCard {
             Column(
                 modifier = Modifier
@@ -189,61 +214,69 @@ fun SettingsScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text("Transport", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.settings_transport), style = MaterialTheme.typography.bodySmall)
                 ChoiceRow(
                     options = Transport.entries,
                     selected = state.transport,
                     label = { it.label() },
                     onSelect = onTransportChange,
+                    enabled = !state.busy,
                 )
 
                 if (state.transport == Transport.MQTT) {
                     OutlinedTextField(
                         value = state.host,
+                        isError = state.errors.containsKey("host"),
+                        supportingText = { state.errors["host"]?.let { Text(stringResource(it)) } },
                         onValueChange = onHostChange,
-                        label = { Text("Host") },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.settings_host)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .focusRequester(fieldFocus.getValue("host"))
                             .testTag("settings_host"),
                     )
                     OutlinedTextField(
                         value = state.port,
+                        isError = state.errors.containsKey("port"),
+                        supportingText = { state.errors["port"]?.let { Text(stringResource(it)) } },
                         onValueChange = onPortChange,
-                        label = { Text("Port") },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.settings_port)) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .focusRequester(fieldFocus.getValue("port"))
                             .testTag("settings_port"),
                     )
                     OutlinedTextField(
                         value = state.username,
                         onValueChange = onUsernameChange,
-                        label = { Text("Username (optional)") },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.settings_username_optional)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("settings_username"),
                     )
-                    OutlinedTextField(
+                    CredentialField(
                         value = state.password,
                         onValueChange = onPasswordChange,
-                        label = { Text("Password (optional)") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("settings_password"),
+                        isToken = false,
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth().testTag("settings_password"),
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Use TLS", modifier = Modifier.weight(1f))
+                        Text(stringResource(R.string.use_tls), modifier = Modifier.weight(1f))
                         Switch(
                             checked = state.useTls,
+                            enabled = !state.busy,
+                            modifier = Modifier.semantics { contentDescription = tlsLabel },
                             onCheckedChange = { enabled ->
                                 if (enabled) onUseTlsChange(true) else confirmDisableTls = true
                             },
@@ -251,8 +284,7 @@ fun SettingsScreen(
                     }
                     if (!state.useTls) {
                         Text(
-                            text = "Encryption is off. The broker password and all " +
-                                "telemetry can be read by anyone on the network.",
+                            text = stringResource(R.string.tls_disabled_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -260,28 +292,27 @@ fun SettingsScreen(
                 } else {
                     OutlinedTextField(
                         value = state.webhookUrl,
+                        isError = state.errors.containsKey("webhookUrl"),
+                        supportingText = { state.errors["webhookUrl"]?.let { Text(stringResource(it)) } },
                         onValueChange = onWebhookUrlChange,
-                        label = { Text("Webhook URL") },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.settings_webhook_url)) },
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
+                            .focusRequester(fieldFocus.getValue("webhookUrl"))
                             .testTag("settings_webhook_url"),
                     )
-                    OutlinedTextField(
+                    CredentialField(
                         value = state.bearerToken,
                         onValueChange = onBearerTokenChange,
-                        label = { Text("Bearer token (optional)") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("settings_bearer_token"),
+                        isToken = true,
+                        enabled = !state.busy,
+                        modifier = Modifier.fillMaxWidth().testTag("settings_bearer_token"),
                     )
                     if (state.webhookUrl.trim().startsWith("http://", ignoreCase = true)) {
                         Text(
-                            text = "Insecure webhook: plain HTTP is only allowed for " +
-                                "local development hosts. Use HTTPS for real deployments.",
+                            text = stringResource(R.string.http_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -290,37 +321,32 @@ fun SettingsScreen(
 
                 Button(
                     onClick = onSave,
+                    enabled = !state.busy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("settings_save"),
                 ) {
-                    Text("Save & reconnect")
+                    Text(stringResource(R.string.settings_save_reconnect))
                 }
 
                 OutlinedButton(
                     onClick = onTest,
-                    enabled = state.reportingEnabled,
+                    enabled = state.reportingEnabled && !state.busy,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("settings_test"),
                 ) {
-                    Text("Send test now")
+                    Text(stringResource(R.string.settings_send_test_now))
                 }
 
-                state.testStatus?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodySmall)
-                }
-                if (state.saved) {
-                    Text(
-                        text = "Saved.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
+                    state.feedback?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
+                    state.testStatus?.let { Text(stringResource(it), style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }
 
-        SectionLabel("App")
+        SectionLabel(stringResource(R.string.settings_app))
         ElevatedCard {
             Column(modifier = Modifier.fillMaxWidth()) {
                 DeveloperOptions()
@@ -338,12 +364,10 @@ fun SettingsScreen(
     if (confirmDisableTls) {
         AlertDialog(
             onDismissRequest = { confirmDisableTls = false },
-            title = { Text("Turn off encryption?") },
+            title = { Text(stringResource(R.string.settings_turn_off_encryption)) },
             text = {
                 Text(
-                    "With TLS off, the broker username, password and all telemetry " +
-                        "travel over the network unencrypted. Only continue on a " +
-                        "trusted local network.",
+                    stringResource(R.string.tls_confirmation),
                 )
             },
             confirmButton = {
@@ -352,10 +376,12 @@ fun SettingsScreen(
                         confirmDisableTls = false
                         onUseTlsChange(false)
                     },
-                ) { Text("Turn off TLS") }
+                ) { Text(stringResource(R.string.settings_turn_off_tls)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDisableTls = false }) { Text("Keep TLS on") }
+                TextButton(onClick = {
+                    confirmDisableTls = false
+                }) { Text(stringResource(R.string.settings_keep_tls_on)) }
             },
         )
     }
@@ -368,17 +394,18 @@ private fun UpdatesSection(
     onInstallUpdate: () -> Unit,
     onOpenInstallSettings: () -> Unit
 ) {
-    SectionLabel("Updates")
+    SectionLabel(stringResource(R.string.settings_updates))
     ElevatedCard {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(16.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column {
                 Text(
-                    text = "Installed version",
+                    text = stringResource(R.string.settings_installed_version),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -393,7 +420,7 @@ private fun UpdatesSection(
             when (val update = state.update) {
                 UpdateState.Idle -> {
                     Button(onClick = onCheckForUpdates, modifier = Modifier.fillMaxWidth()) {
-                        Text("Check for updates")
+                        Text(stringResource(R.string.settings_check_for_updates))
                     }
                 }
 
@@ -406,17 +433,17 @@ private fun UpdatesSection(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp,
                         )
-                        Text("Checking GitHub for a newer release\u2026")
+                        Text(stringResource(R.string.settings_checking_github_for_a_newer_release))
                     }
                 }
 
                 is UpdateState.UpToDate -> {
-                    Text("You're on the latest version.")
-                    TextButton(onClick = onCheckForUpdates) { Text("Check again") }
+                    Text(stringResource(R.string.settings_you_re_on_the_latest_version))
+                    TextButton(onClick = onCheckForUpdates) { Text(stringResource(R.string.settings_check_again)) }
                 }
 
                 is UpdateState.Downloading -> {
-                    Text("Downloading v${update.versionName}\u2026 ${update.progress}%")
+                    Text(stringResource(R.string.update_downloading, update.versionName, update.progress))
                     LinearProgressIndicator(
                         progress = { update.progress / 100f },
                         modifier = Modifier.fillMaxWidth(),
@@ -425,7 +452,7 @@ private fun UpdatesSection(
 
                 is UpdateState.Ready -> {
                     Text(
-                        text = "v${update.versionName} is downloaded and verified.",
+                        text = stringResource(R.string.update_ready, update.versionName),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     update.notes?.let {
@@ -437,12 +464,12 @@ private fun UpdatesSection(
                     }
                     if (!state.canInstallUpdates) {
                         Text(
-                            text = "Android needs to allow Satellite to install apps.",
+                            text = stringResource(R.string.settings_android_needs_to_allow_satellite_to_install_apps),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Button(onClick = onOpenInstallSettings, modifier = Modifier.fillMaxWidth()) {
-                            Text("Allow installs")
+                            Text(stringResource(R.string.settings_allow_installs))
                         }
                     }
                     Button(
@@ -450,7 +477,7 @@ private fun UpdatesSection(
                         enabled = state.canInstallUpdates,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Install v${update.versionName}")
+                        Text(stringResource(R.string.update_install, update.versionName))
                     }
                 }
 
@@ -461,7 +488,7 @@ private fun UpdatesSection(
                         color = MaterialTheme.colorScheme.error,
                     )
                     Button(onClick = onCheckForUpdates, modifier = Modifier.fillMaxWidth()) {
-                        Text("Try again")
+                        Text(stringResource(R.string.settings_try_again))
                     }
                 }
             }
@@ -472,18 +499,20 @@ private fun UpdatesSection(
 @Composable
 private fun DeveloperOptions() {
     var expanded by remember { mutableStateOf(false) }
+    val expansionState = stringResource(if (expanded) R.string.expanded else R.string.collapsed)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded }
+            .semantics { stateDescription = expansionState }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Developer options", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.settings_developer_options), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = "Test broker hints",
+                text = stringResource(R.string.settings_test_broker_hints),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -497,11 +526,7 @@ private fun DeveloperOptions() {
 
     AnimatedVisibility(visible = expanded) {
         Text(
-            text = "Dev environment: the bundled Mosquitto listens on " +
-                "10.0.2.2:1883 (cleartext) and Home Assistant on " +
-                "http://10.0.2.2:8123. Cleartext is permitted only for these local " +
-                "dev hosts; use TLS/HTTPS for real deployments. On a physical device " +
-                "use the PC's LAN IP.",
+            text = stringResource(R.string.developer_hints),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
@@ -515,7 +540,7 @@ private fun SectionLabel(text: String) {
         text = text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp),
+        modifier = Modifier.padding(start = 4.dp).semantics { heading() },
     )
 }
 
@@ -524,47 +549,57 @@ private fun SectionLabel(text: String) {
 private fun <T> ChoiceRow(
     options: List<T>,
     selected: T,
-    label: (T) -> String,
+    label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     enabled: Boolean = true
 ) {
-    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        options.forEach { option ->
+            FilterChip(
                 selected = option == selected,
                 onClick = { onSelect(option) },
                 enabled = enabled,
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
+                shape = MaterialTheme.shapes.small,
                 label = { Text(label(option)) },
             )
         }
     }
 }
 
+@Composable
 private fun ThemePreference.label(): String = when (this) {
-    ThemePreference.SYSTEM -> "System"
-    ThemePreference.LIGHT -> "Light"
-    ThemePreference.DARK -> "Dark"
+    ThemePreference.SYSTEM -> stringResource(R.string.settings_system)
+    ThemePreference.LIGHT -> stringResource(R.string.settings_light)
+    ThemePreference.DARK -> stringResource(R.string.settings_dark)
 }
 
+@Composable
 private fun UpdateMode.label(): String = when (this) {
-    UpdateMode.PERIODIC -> "Periodic"
-    UpdateMode.EVENT_DRIVEN -> "Event-driven"
+    UpdateMode.PERIODIC -> stringResource(R.string.settings_periodic)
+    UpdateMode.EVENT_DRIVEN -> stringResource(R.string.settings_event_driven)
 }
 
+@Composable
 private fun UpdateInterval.label(): String = when (this) {
-    UpdateInterval.THIRTY_SECONDS -> "30s"
-    UpdateInterval.ONE_MINUTE -> "1m"
-    UpdateInterval.FIVE_MINUTES -> "5m"
-    UpdateInterval.FIFTEEN_MINUTES -> "15m"
+    UpdateInterval.THIRTY_SECONDS -> stringResource(R.string.settings_30s)
+    UpdateInterval.ONE_MINUTE -> stringResource(R.string.settings_1m)
+    UpdateInterval.FIVE_MINUTES -> stringResource(R.string.settings_5m)
+    UpdateInterval.FIFTEEN_MINUTES -> stringResource(R.string.settings_15m)
 }
 
+@Composable
 private fun Transport.label(): String = when (this) {
-    Transport.MQTT -> "MQTT"
-    Transport.WEBHOOK -> "Webhook"
+    Transport.MQTT -> stringResource(R.string.settings_mqtt)
+    Transport.WEBHOOK -> stringResource(R.string.settings_webhook)
 }
 
-@Preview(showBackground = true)
+@Suppress("UnusedPrivateMember") // Used by Android Studio previews.
+@Preview(name = "Light", showBackground = true)
+@Preview(name = "Dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Large text", showBackground = true, fontScale = 2f)
 @Composable
 private fun SettingsScreenPreview() {
     SatelliteTheme {

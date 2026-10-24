@@ -197,6 +197,49 @@ broker acceptance. The published v0.26.0 APK predates these fixes; see
 [troubleshooting](../../docs/troubleshooting.md). Use the
 [protocol reference](../../docs/mqtt-and-webhooks.md) for exact topics and payloads.
 
+## Settings validation and accessibility (#25)
+
+Connection edits, including transport selection, apply on **Save & reconnect**
+(or **Send test now**). Appearance and reporting preferences still apply immediately.
+Only the selected transport is saved, so hidden fields cannot overwrite another
+connection. Invalid fields block all form writes, display specific errors and
+focus the first invalid field. Save success means configuration was stored;
+the test result separately reports delivery.
+
+Regression coverage includes host/port/URL validation, local HTTP exceptions,
+preserving configuration on invalid input, delayed transport changes, save errors,
+duplicate submissions, disabled reporting and test routing immediately after a
+transport change.
+
+Verification record, 24 October 2026:
+
+| Check | Result |
+| --- | --- |
+| Validation JVM tests | Six passed using the cached Kotlin compiler and JUnit with real validation/state/model sources and generated resource-ID constants; no Android runtime required |
+| Kotlin formatting and detekt | Passed |
+| Android unit suite, lint and debug APK | Blocked: Android SDK is not installed/configured on this workstation |
+| TalkBack / screen reader | Pending device check; labels, headings, first-error focus and polite status live regions reviewed in source |
+| Large font | Pending rendered/device check; wrapping choices, stacked permission actions and a 200% preview added |
+| Light/dark contrast | Pending rendered/device check; Material theme text/error colours retained and light/dark previews added |
+
+On a device, record model/API level and results before closing accessibility
+verification:
+
+- With TalkBack, follow focus through Settings and Permissions. Confirm field
+  labels, reporting/TLS switch names, permission-specific actions and the developer
+  panel's expanded/collapsed state are understandable.
+- Reveal and hide both credentials. Confirm buttons announce their next action,
+  the cursor/value stay intact and reopening the screen starts masked.
+- Save/test with a blank name, invalid host/port or webhook. Confirm focus moves
+  to the first invalid field, its specific error is readable, and saved settings
+  and the active transport stay unchanged. Correct the errors and retry.
+- Confirm save/test progress, success and failure are visible and announced;
+  repeated taps while busy must not submit twice. Test with reporting disabled.
+- At 200% font size in light and dark mode, scroll both screens and confirm choices
+  wrap, labels/errors/buttons remain readable, focus order follows the layout and
+  no controls are clipped. Check normal/error/disabled text contrast with Android
+  Accessibility Scanner.
+
 ## Power and network behavior
 
 On a development emulator/device, use the following commands to exercise Doze,

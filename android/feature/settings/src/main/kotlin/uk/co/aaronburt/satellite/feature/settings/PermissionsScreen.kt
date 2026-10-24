@@ -10,7 +10,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,18 +26,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 
 private data class RuntimePermission(
     val permission: String,
-    val label: String,
-    val rationale: String,
-    val group: String,
+    val label: Int,
+    val rationale: Int,
+    val group: Int,
     val minSdk: Int = 0,
     val maxSdk: Int = Int.MAX_VALUE
 )
@@ -47,47 +50,44 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
     add(
         RuntimePermission(
             Manifest.permission.ACCESS_COARSE_LOCATION,
-            "Approximate location",
-            "Requested with precise location on Android 12+; only used to read " +
-                "the Wi-Fi network name",
-            "Sensors",
+            R.string.settings_approximate_location,
+            R.string.permission_coarse_rationale,
+            R.string.settings_sensors,
             maxSdk = Build.VERSION_CODES.S_V2,
         ),
     )
     add(
         RuntimePermission(
             Manifest.permission.ACCESS_FINE_LOCATION,
-            "Precise location",
-            "Reads the connected Wi-Fi network name on Android 12 and below; " +
-                "without it the Wi-Fi sensor reports permission_denied",
-            "Sensors",
+            R.string.settings_precise_location,
+            R.string.permission_fine_rationale,
+            R.string.settings_sensors,
             maxSdk = Build.VERSION_CODES.S_V2,
         ),
     )
     add(
         RuntimePermission(
             Manifest.permission.NEARBY_WIFI_DEVICES,
-            "Nearby Wi-Fi",
-            "Reads the connected Wi-Fi network name; " +
-                "without it the Wi-Fi sensor reports permission_denied",
-            "Sensors",
+            R.string.settings_nearby_wi_fi,
+            R.string.permission_wifi_rationale,
+            R.string.settings_sensors,
             minSdk = Build.VERSION_CODES.TIRAMISU,
         ),
     )
     add(
         RuntimePermission(
             Manifest.permission.READ_PHONE_STATE,
-            "Phone state",
-            "Reports the mobile carrier; without it the carrier sensor reports permission_denied",
-            "Sensors",
+            R.string.settings_phone_state,
+            R.string.permission_phone_rationale,
+            R.string.settings_sensors,
         ),
     )
     add(
         RuntimePermission(
             Manifest.permission.POST_NOTIFICATIONS,
-            "Notifications",
-            "Shows the connection-status notification",
-            "Reliability",
+            R.string.settings_notifications,
+            R.string.permission_notification_rationale,
+            R.string.settings_reliability,
             minSdk = Build.VERSION_CODES.TIRAMISU,
         ),
     )
@@ -127,14 +127,14 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
                     .fillMaxWidth()
                     .padding(16.dp),
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Column {
                     Text(
-                        text = "$grantedCount of ${permissions.size} granted",
+                        text = stringResource(R.string.permissions_count, grantedCount, permissions.size),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                         style = MaterialTheme.typography.titleSmall,
-                        modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = "more unlocks more entities",
+                        text = stringResource(R.string.settings_more_unlocks_more_entities),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -149,7 +149,7 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
         }
 
         permissions.groupBy { it.group }.forEach { (group, items) ->
-            SectionLabel(group)
+            SectionLabel(stringResource(group))
             ElevatedCard {
                 Column(Modifier.fillMaxWidth()) {
                     items.forEachIndexed { index, item ->
@@ -166,18 +166,21 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        SectionLabel("Battery")
+        SectionLabel(stringResource(R.string.settings_battery))
         ElevatedCard {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Battery optimisation", style = MaterialTheme.typography.bodyLarge)
+                Column {
                     Text(
-                        text = "Recommended \u2014 keeps the connection alive",
+                        stringResource(R.string.settings_battery_optimisation),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = stringResource(R.string.battery_rationale),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -189,7 +192,7 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
                         )
                     },
                 ) {
-                    Text("Open")
+                    Text(stringResource(R.string.open_battery_settings))
                 }
             }
         }
@@ -198,30 +201,30 @@ fun PermissionsScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun PermissionRow(item: RuntimePermission, granted: Boolean, onGrant: () -> Unit) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(item.label, style = MaterialTheme.typography.bodyLarge)
+        Column {
+            Text(stringResource(item.label), style = MaterialTheme.typography.bodyLarge)
             Text(
-                text = item.rationale,
+                text = stringResource(item.rationale),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (granted) {
             Text(
-                text = "Granted",
+                text = stringResource(R.string.settings_granted),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 12.dp),
+                modifier = Modifier,
             )
         } else {
-            Button(onClick = onGrant, modifier = Modifier.padding(start = 12.dp)) {
-                Text("Grant")
+            Button(onClick = onGrant) {
+                Text(stringResource(R.string.grant_permission, stringResource(item.label)))
             }
         }
     }
@@ -233,7 +236,7 @@ private fun SectionLabel(text: String) {
         text = text.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp),
+        modifier = Modifier.padding(start = 4.dp).semantics { heading() },
     )
 }
 
