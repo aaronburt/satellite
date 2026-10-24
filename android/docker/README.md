@@ -9,7 +9,11 @@ docker/
   mosquitto/config/mosquitto.conf   # Broker config (password authentication, dev only)
   homeassistant/config/             # HA config dir (only configuration.yaml is committed)
   samples/                          # Example discovery payloads for smoke tests
+  smoke/                            # Isolated stack + script for the automated HA smoke test
 ```
+
+For the automated Home Assistant smoke test, run `smoke/run.sh` instead; it
+needs none of the setup below. See [Android testing](../docs/testing.md#home-assistant-smoke-test).
 
 ## Prerequisites
 

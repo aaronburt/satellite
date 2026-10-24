@@ -6,5 +6,5 @@ package uk.co.aaronburt.satellite.model
 enum class ThemePreference {
     SYSTEM,
     LIGHT,
-    DARK,
+    DARK
 }

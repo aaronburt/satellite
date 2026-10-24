@@ -1,15 +1,15 @@
 package uk.co.aaronburt.satellite.reporter
 
-import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.model.Transport
-import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
+import uk.co.aaronburt.satellite.common.coroutines.ApplicationScope
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.model.Transport
+import uk.co.aaronburt.satellite.mqtt.MqttConnectionManager
 
 /**
  * Starts the reporter that matches the selected [Transport] and stops the other,
@@ -26,7 +26,7 @@ class ReporterCoordinator @Inject constructor(
     private val webhookReporter: WebhookReporter,
     private val connectionManager: MqttConnectionManager,
     private val status: ReporterStatus,
-    @ApplicationScope private val appScope: CoroutineScope,
+    @ApplicationScope private val appScope: CoroutineScope
 ) {
 
     private var job: Job? = null

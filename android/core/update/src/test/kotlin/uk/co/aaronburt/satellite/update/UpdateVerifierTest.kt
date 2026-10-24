@@ -3,6 +3,7 @@ package uk.co.aaronburt.satellite.update
 import android.content.pm.PackageInfo
 import android.content.pm.Signature
 import android.content.pm.SigningInfo
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -13,7 +14,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.util.ReflectionHelpers
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class UpdateVerifierTest {

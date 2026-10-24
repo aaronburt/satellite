@@ -3,12 +3,7 @@ package uk.co.aaronburt.satellite.feature.entities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
-import uk.co.aaronburt.satellite.datastore.SettingsRepository
-import uk.co.aaronburt.satellite.discovery.EntityCatalog
-import uk.co.aaronburt.satellite.discovery.EntitySpec
-import uk.co.aaronburt.satellite.telemetry.AudioControls
-import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
+import javax.inject.Inject
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +12,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
+import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
+import uk.co.aaronburt.satellite.datastore.SettingsRepository
+import uk.co.aaronburt.satellite.discovery.EntityCatalog
+import uk.co.aaronburt.satellite.discovery.EntitySpec
+import uk.co.aaronburt.satellite.telemetry.AudioControls
+import uk.co.aaronburt.satellite.telemetry.DeviceStateReader
 
 /**
  * Renders the entity catalog with live values. Sensor values mirror exactly what
@@ -29,14 +29,10 @@ class EntitiesViewModel @Inject constructor(
     private val telemetry: DeviceStateReader,
     private val audio: AudioControls,
     private val settingsRepository: SettingsRepository,
-    private val dispatchers: DispatchersProvider,
+    private val dispatchers: DispatchersProvider
 ) : ViewModel() {
 
-    private data class Readings(
-        val states: Map<String, String>,
-        val volumePercent: Int?,
-        val microphoneMuted: Boolean?,
-    )
+    private data class Readings(val states: Map<String, String>, val volumePercent: Int?, val microphoneMuted: Boolean?)
 
     private val readings = flow {
         while (true) {

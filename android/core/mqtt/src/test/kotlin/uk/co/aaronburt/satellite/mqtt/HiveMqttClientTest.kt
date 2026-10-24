@@ -1,11 +1,13 @@
 package uk.co.aaronburt.satellite.mqtt
 
+import com.hivemq.client.mqtt.MqttClient as HiveMqClient
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
-import uk.co.aaronburt.satellite.model.BrokerSettings
-import uk.co.aaronburt.satellite.model.ConnectionState
-import uk.co.aaronburt.satellite.testing.TestDispatchers
+import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -18,11 +20,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
 import org.junit.Test
-import java.util.UUID
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
-import com.hivemq.client.mqtt.MqttClient as HiveMqClient
+import uk.co.aaronburt.satellite.model.BrokerSettings
+import uk.co.aaronburt.satellite.model.ConnectionState
+import uk.co.aaronburt.satellite.testing.TestDispatchers
 
 /** Runs the real client against a real broker. */
 class HiveMqttClientTest {

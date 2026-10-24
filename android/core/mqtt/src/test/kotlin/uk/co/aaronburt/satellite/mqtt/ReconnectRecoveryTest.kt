@@ -1,12 +1,11 @@
 package uk.co.aaronburt.satellite.mqtt
 
+import com.hivemq.client.mqtt.MqttClient as HiveMqClient
 import com.hivemq.client.mqtt.datatypes.MqttQos
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient
-import uk.co.aaronburt.satellite.discovery.Topics
-import uk.co.aaronburt.satellite.model.BrokerSettings
-import uk.co.aaronburt.satellite.model.ConnectionState
-import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
-import uk.co.aaronburt.satellite.testing.TestDispatchers
+import java.util.UUID
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,10 +18,11 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.util.UUID
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.TimeUnit
-import com.hivemq.client.mqtt.MqttClient as HiveMqClient
+import uk.co.aaronburt.satellite.discovery.Topics
+import uk.co.aaronburt.satellite.model.BrokerSettings
+import uk.co.aaronburt.satellite.model.ConnectionState
+import uk.co.aaronburt.satellite.testing.FakeSettingsRepository
+import uk.co.aaronburt.satellite.testing.TestDispatchers
 
 /**
  * Issue #8: outage scenarios run against a real broker, with the real client
@@ -41,7 +41,13 @@ class ReconnectRecoveryTest {
     private val observers = mutableListOf<Mqtt5BlockingClient>()
 
     private val settings = FakeSettingsRepository(
-        broker = BrokerSettings(host = "127.0.0.1", port = network.port, username = null, password = null, useTls = false),
+        broker = BrokerSettings(
+            host = "127.0.0.1",
+            port = network.port,
+            username = null,
+            password = null,
+            useTls = false
+        ),
         deviceIdValue = deviceId,
     )
     private val manager = MqttConnectionManager(client, settings, scope)
@@ -84,14 +90,16 @@ class ReconnectRecoveryTest {
         return seen.lastOrNull()
     }
 
-    private fun connectObserver(): Mqtt5BlockingClient =
-        HiveMqClient.builder()
-            .useMqttVersion5()
-            .identifier("obs-" + UUID.randomUUID().toString().take(8))
-            .serverHost("127.0.0.1")
-            .serverPort(broker.port) // straight to the broker, not through the flaky link
-            .buildBlocking()
-            .also { it.connect(); observers += it }
+    private fun connectObserver(): Mqtt5BlockingClient = HiveMqClient.builder()
+        .useMqttVersion5()
+        .identifier("obs-" + UUID.randomUUID().toString().take(8))
+        .serverHost("127.0.0.1")
+        .serverPort(broker.port) // straight to the broker, not through the flaky link
+        .buildBlocking()
+        .also {
+            it.connect()
+            observers += it
+        }
 
     private fun sendCommand(topic: String, payload: String) {
         val sender = connectObserver()
@@ -104,19 +112,20 @@ class ReconnectRecoveryTest {
     private suspend fun awaitConnected() = awaitState { it is ConnectionState.Connected }
 
     @Test
-    fun `network loss publishes the offline will, then retained online replaces it without user action`() = runBlocking {
-        val seen = watchAvailability()
-        manager.start()
-        awaitConnected()
-        waitUntil { seen.lastOrNull() == "online" }
+    fun `network loss publishes the offline will, then retained online replaces it without user action`() =
+        runBlocking {
+            val seen = watchAvailability()
+            manager.start()
+            awaitConnected()
+            waitUntil { seen.lastOrNull() == "online" }
 
-        network.cut()
-        waitUntil { seen.lastOrNull() == "offline" }
-        awaitConnected()
-        waitUntil { seen.lastOrNull() == "online" }
+            network.cut()
+            waitUntil { seen.lastOrNull() == "offline" }
+            awaitConnected()
+            waitUntil { seen.lastOrNull() == "online" }
 
-        assertEquals("online", retainedAvailability())
-    }
+            assertEquals("online", retainedAvailability())
+        }
 
     @Test
     fun `availability recovers after the broker restarts and loses its retained messages`() = runBlocking {

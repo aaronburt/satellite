@@ -72,7 +72,7 @@ fun SettingsScreen(
     onCheckForUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
     onOpenInstallSettings: () -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     var confirmDisableTls by remember { mutableStateOf(false) }
 
@@ -366,7 +366,7 @@ private fun UpdatesSection(
     state: SettingsUiState,
     onCheckForUpdates: () -> Unit,
     onInstallUpdate: () -> Unit,
-    onOpenInstallSettings: () -> Unit,
+    onOpenInstallSettings: () -> Unit
 ) {
     SectionLabel("Updates")
     ElevatedCard {
@@ -526,7 +526,7 @@ private fun <T> ChoiceRow(
     selected: T,
     label: (T) -> String,
     onSelect: (T) -> Unit,
-    enabled: Boolean = true,
+    enabled: Boolean = true
 ) {
     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, option ->

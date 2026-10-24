@@ -21,10 +21,8 @@ import javax.inject.Singleton
  * one-tap upgrade rather than a silent one.
  */
 @Singleton
-class UpdateInstaller internal constructor(
-    private val context: Context,
-    private val uriFor: (File) -> Uri,
-) : ApkInstaller {
+class UpdateInstaller internal constructor(private val context: Context, private val uriFor: (File) -> Uri) :
+    ApkInstaller {
 
     @Inject
     constructor(@ApplicationContext context: Context) : this(

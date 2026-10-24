@@ -1,11 +1,7 @@
 package uk.co.aaronburt.satellite.feature.entities
 
 /** One read-only entity row: the Home Assistant key, its label and the value. */
-data class EntityRow(
-    val key: String,
-    val label: String,
-    val value: String,
-)
+data class EntityRow(val key: String, val label: String, val value: String)
 
 /**
  * One controllable entity row.
@@ -18,10 +14,7 @@ data class ControlRow(
     val label: String,
     val value: String,
     val enabled: Boolean,
-    val available: Boolean = true,
+    val available: Boolean = true
 )
 
-data class EntitiesUiState(
-    val sensors: List<EntityRow> = emptyList(),
-    val controls: List<ControlRow> = emptyList(),
-)
+data class EntitiesUiState(val sensors: List<EntityRow> = emptyList(), val controls: List<ControlRow> = emptyList())

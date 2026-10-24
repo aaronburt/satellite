@@ -2,6 +2,13 @@ package uk.co.aaronburt.satellite.feature.entities
 
 import android.media.AudioManager
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,13 +31,6 @@ import uk.co.aaronburt.satellite.testing.MainDispatcherRule
 import uk.co.aaronburt.satellite.testing.RefusingMicrophoneShadow
 import uk.co.aaronburt.satellite.testing.TestDispatchers
 import uk.co.aaronburt.satellite.testing.setBattery
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
 
 @RunWith(RobolectricTestRunner::class)
 class EntitiesViewModelTest {

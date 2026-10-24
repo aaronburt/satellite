@@ -34,7 +34,7 @@ private enum class SatelliteTab(val route: String, val label: String, val icon: 
     STATUS("status", "Status", Icons.Filled.Home),
     ENTITIES("entities", "Entities", Icons.Filled.List),
     PERMISSIONS("permissions", "Permissions", Icons.Filled.Lock),
-    SETTINGS("settings", "Settings", Icons.Filled.Settings),
+    SETTINGS("settings", "Settings", Icons.Filled.Settings)
 }
 
 /**

@@ -3,6 +3,7 @@ package uk.co.aaronburt.satellite.update
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -13,7 +14,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
-import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class UpdateInstallerTest {
@@ -28,8 +28,7 @@ class UpdateInstallerTest {
     }
     private val updates = File(context.filesDir, "updates").apply { mkdirs() }
 
-    private fun allowInstalls(allowed: Boolean) =
-        shadowOf(context.packageManager).setCanRequestPackageInstalls(allowed)
+    private fun allowInstalls(allowed: Boolean) = shadowOf(context.packageManager).setCanRequestPackageInstalls(allowed)
 
     private fun nextActivity(): Intent? = shadowOf(context).nextStartedActivity
 

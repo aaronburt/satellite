@@ -7,23 +7,23 @@ import com.hivemq.client.mqtt.datatypes.MqttTopicFilter
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish
-import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
-import uk.co.aaronburt.satellite.model.BrokerSettings
-import uk.co.aaronburt.satellite.model.ConnectionState
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
+import uk.co.aaronburt.satellite.common.coroutines.DispatchersProvider
+import uk.co.aaronburt.satellite.model.BrokerSettings
+import uk.co.aaronburt.satellite.model.ConnectionState
 
 @Singleton
 class HiveMqttClient internal constructor(
     private val dispatchers: DispatchersProvider,
-    private val connectTimeoutSeconds: Long,
+    private val connectTimeoutSeconds: Long
 ) : MqttClient {
 
     @Inject
@@ -45,88 +45,85 @@ class HiveMqttClient internal constructor(
 
     private class Subscription(val filter: MqttTopicFilter, val onMessage: (MqttMessage) -> Unit)
 
-    override suspend fun connect(
-        settings: BrokerSettings,
-        clientId: String,
-        willTopic: String,
-    ): Result<Unit> = withContext(dispatchers.io) {
-        disconnectInternal()
+    override suspend fun connect(settings: BrokerSettings, clientId: String, willTopic: String): Result<Unit> =
+        withContext(dispatchers.io) {
+            disconnectInternal()
 
-        // Listeners only report for the client that is current. A replaced or
-        // closed client can still fire late events, and they must not overwrite
-        // the state of its successor.
-        var newClient: Mqtt5AsyncClient? = null
+            // Listeners only report for the client that is current. A replaced or
+            // closed client can still fire late events, and they must not overwrite
+            // the state of its successor.
+            var newClient: Mqtt5AsyncClient? = null
 
-        runCatching {
-            val builder = HiveMqClient.builder()
-                .useMqttVersion5()
-                .identifier(clientId)
-                .serverHost(settings.host)
-                .serverPort(settings.port)
-                .automaticReconnectWithDefaultConfig()
-                .addConnectedListener { _ ->
-                    if (client === newClient) {
-                        _connectionState.value = ConnectionState.Connected(
-                            broker = settings.serverUri,
-                            connectedSinceEpochMillis = System.currentTimeMillis(),
-                        )
+            runCatching {
+                val builder = HiveMqClient.builder()
+                    .useMqttVersion5()
+                    .identifier(clientId)
+                    .serverHost(settings.host)
+                    .serverPort(settings.port)
+                    .automaticReconnectWithDefaultConfig()
+                    .addConnectedListener { _ ->
+                        if (client === newClient) {
+                            _connectionState.value = ConnectionState.Connected(
+                                broker = settings.serverUri,
+                                connectedSinceEpochMillis = System.currentTimeMillis(),
+                            )
+                        }
                     }
-                }
-                .addDisconnectedListener { context ->
-                    if (client === newClient && context.source != MqttDisconnectSource.USER) {
-                        _connectionState.value = ConnectionState.Error(
-                            context.cause.message ?: "Disconnected from broker",
-                        )
+                    .addDisconnectedListener { context ->
+                        if (client === newClient && context.source != MqttDisconnectSource.USER) {
+                            _connectionState.value = ConnectionState.Error(
+                                context.cause.message ?: "Disconnected from broker",
+                            )
+                        }
                     }
+
+                if (settings.useTls) {
+                    builder.sslWithDefaultConfig()
                 }
 
-            if (settings.useTls) {
-                builder.sslWithDefaultConfig()
-            }
+                val built = builder.buildAsync()
+                built.publishes(MqttGlobalPublishFilter.ALL, ::dispatch)
+                newClient = built
+                // Assigned before connecting: the connected listener can run (and
+                // callers can start publishing) before send() returns.
+                client = built
+                _connectionState.value = ConnectionState.Connecting
 
-            val built = builder.buildAsync()
-            built.publishes(MqttGlobalPublishFilter.ALL, ::dispatch)
-            newClient = built
-            // Assigned before connecting: the connected listener can run (and
-            // callers can start publishing) before send() returns.
-            client = built
-            _connectionState.value = ConnectionState.Connecting
-
-            val sendBuilder = built.connectWith()
-                .cleanStart(false)
-                .sessionExpiryInterval(SESSION_EXPIRY_SECONDS)
-                .willPublish()
+                val sendBuilder = built.connectWith()
+                    .cleanStart(false)
+                    .sessionExpiryInterval(SESSION_EXPIRY_SECONDS)
+                    .willPublish()
                     .topic(willTopic)
                     .payload(OFFLINE_PAYLOAD.toByteArray())
                     .qos(MqttQos.AT_LEAST_ONCE)
                     .retain(true)
-                .applyWillPublish()
+                    .applyWillPublish()
 
-            val authBuilder = settings.username?.let { username ->
-                sendBuilder.simpleAuth()
-                    .username(username)
-                    .password(settings.password.orEmpty().toByteArray())
-                    .applySimpleAuth()
-            } ?: sendBuilder
+                val authBuilder = settings.username?.let { username ->
+                    sendBuilder.simpleAuth()
+                        .username(username)
+                        .password(settings.password.orEmpty().toByteArray())
+                        .applySimpleAuth()
+                } ?: sendBuilder
 
-            authBuilder.send().get(connectTimeoutSeconds, TimeUnit.SECONDS)
-            Unit
-        }.onFailure { error ->
-            // The client stays alive: automatic reconnect keeps retrying, so a
-            // broker that is unreachable at boot is picked up once it comes back.
-            // A failed attempt has usually already reported its own, more
-            // specific, error (e.g. connection refused); keep that one.
-            if (client === newClient && _connectionState.value !is ConnectionState.Error) {
-                _connectionState.value = ConnectionState.Error(
-                    if (error is TimeoutException) {
-                        "No response from ${settings.serverUri}"
-                    } else {
-                        error.rootMessage() ?: "Connection failed"
-                    },
-                )
+                authBuilder.send().get(connectTimeoutSeconds, TimeUnit.SECONDS)
+                Unit
+            }.onFailure { error ->
+                // The client stays alive: automatic reconnect keeps retrying, so a
+                // broker that is unreachable at boot is picked up once it comes back.
+                // A failed attempt has usually already reported its own, more
+                // specific, error (e.g. connection refused); keep that one.
+                if (client === newClient && _connectionState.value !is ConnectionState.Error) {
+                    _connectionState.value = ConnectionState.Error(
+                        if (error is TimeoutException) {
+                            "No response from ${settings.serverUri}"
+                        } else {
+                            error.rootMessage() ?: "Connection failed"
+                        },
+                    )
+                }
             }
         }
-    }
 
     override suspend fun disconnect() = withContext(dispatchers.io) {
         disconnectInternal()
@@ -138,7 +135,7 @@ class HiveMqttClient internal constructor(
         payload: String,
         qos: Int,
         retain: Boolean,
-        expirySeconds: Long?,
+        expirySeconds: Long?
     ): Result<Unit> = withContext(dispatchers.io) {
         runCatching {
             val current = client ?: error("Not connected to a broker")
@@ -155,22 +152,19 @@ class HiveMqttClient internal constructor(
         }
     }
 
-    override suspend fun subscribe(
-        topicFilter: String,
-        qos: Int,
-        onMessage: (MqttMessage) -> Unit,
-    ): Result<Unit> = withContext(dispatchers.io) {
-        runCatching {
-            val current = client ?: error("Not connected to a broker")
-            handlers[topicFilter] = Subscription(MqttTopicFilter.of(topicFilter), onMessage)
-            current.subscribeWith()
-                .topicFilter(topicFilter)
-                .qos(qos.toMqttQos())
-                .send()
-                .get(SUBSCRIBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            Unit
+    override suspend fun subscribe(topicFilter: String, qos: Int, onMessage: (MqttMessage) -> Unit): Result<Unit> =
+        withContext(dispatchers.io) {
+            runCatching {
+                val current = client ?: error("Not connected to a broker")
+                handlers[topicFilter] = Subscription(MqttTopicFilter.of(topicFilter), onMessage)
+                current.subscribeWith()
+                    .topicFilter(topicFilter)
+                    .qos(qos.toMqttQos())
+                    .send()
+                    .get(SUBSCRIBE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                Unit
+            }
         }
-    }
 
     private fun dispatch(publish: Mqtt5Publish) {
         val message = MqttMessage(
