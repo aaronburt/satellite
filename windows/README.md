@@ -4,7 +4,7 @@ Lightweight Windows & Linux telemetry agent and remote controller for Home Assis
 
 [Documentation index](../docs/README.md) | [Architecture](../docs/architecture.md) |
 [HTTP API](../docs/http-api.md) | [Protocol reference](../docs/mqtt-and-webhooks.md) |
-[Troubleshooting](../docs/troubleshooting.md)
+[Troubleshooting](../docs/troubleshooting.md) | [Privacy](../PRIVACY.md)
 
 ---
 

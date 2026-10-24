@@ -18,6 +18,7 @@ webhooks provide an alternative destination for telemetry.
 | Develop, test, or release a change | [Contributing](../CONTRIBUTING.md) |
 | Run Android device and integration tests | [Android testing](../android/docs/testing.md) |
 | Start a development broker and Home Assistant | [Docker test environment](../android/docker/README.md) |
+| Understand what information is shared and verify the claims | [Privacy statement](../PRIVACY.md) and [implementation review](privacy-review.md) |
 | Report a vulnerability privately | [Security policy](../SECURITY.md) |
 
 ## Planning and research
