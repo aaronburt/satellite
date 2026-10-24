@@ -109,8 +109,25 @@ strings. The `/json` API key remains present, so treat the response as sensitive
 
 `POST /api/config` accepts a partial object. Omitted fields retain their saved
 values, including omitted fields inside nested objects. Empty strings for the
-three secrets listed above also retain their saved values; this operation
-cannot clear those secrets by sending an empty string.
+three secrets listed above also retain their saved values, so an empty string
+never clears a secret.
+
+To clear a saved secret, list it in `clear_secrets`. The allowed names are
+`mqtt.password`, `telemetry_webhook.bearer_token`, and `webhook.secret`;
+listing a name twice is harmless. `clear_secrets` can be combined with other
+changes in the same request:
+
+```sh
+curl --silent --show-error --fail-with-body -X POST \
+  -H "X-API-Token: $SATELLITE_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"clear_secrets":["mqtt.password","webhook.secret"]}' \
+  "$SATELLITE_URL/api/config"
+```
+
+The whole request is checked before anything is saved. It is rejected with
+`400` and nothing changes when `clear_secrets` is not a list of strings, names
+an unknown secret, or names a secret that the same request also sets to a
+non-empty value. Error messages name the field but never include secret values.
 
 For example, enable background update checks and set the MQTT heartbeat:
 
