@@ -272,7 +272,9 @@ class SatelliteReporter @Inject constructor(
             deviceName = settingsRepository.deviceName(),
             manufacturer = Build.MANUFACTURER ?: "unknown",
             model = Build.MODEL ?: "Android",
-            appVersion = appVersion(),
+            appVersion = runCatching {
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName
+            }.getOrNull() ?: "unknown",
             androidVersion = Build.VERSION.RELEASE ?: "unknown",
             enabledControls = enabledControls,
             stubControls = stubControls,
@@ -310,10 +312,6 @@ class SatelliteReporter @Inject constructor(
         if (allPublished) status.markPublished()
         return allPublished
     }
-
-    private fun appVersion(): String = runCatching {
-        context.packageManager.getPackageInfo(context.packageName, 0).versionName
-    }.getOrNull() ?: "unknown"
 
     companion object {
         const val DISCOVERY_EXPIRY_SECONDS = 7 * 24 * 60 * 60L
