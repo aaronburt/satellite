@@ -294,7 +294,7 @@ class SatelliteReporterTest {
         settle()
 
         val volume = lastDiscovery().getJSONObject("components").getJSONObject(CONTROL_VOLUME)
-        assertEquals("~/cmd/volume", volume.getString("command_topic"))
+        assertEquals(topics.command("volume"), volume.getString("command_topic"))
         assertNotNull(client.lastPayload(topics.state(CONTROL_VOLUME)))
     }
 
