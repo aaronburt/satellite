@@ -72,7 +72,7 @@ class EntitiesViewModelTest {
 
         assertEquals(EntityRow("battery", "Battery", "64%"), state.sensor("battery"))
         assertEquals("31.5 °C", state.sensor("battery_temperature")?.value)
-        assertNull("no permission, no Wi-Fi name", state.sensor("wifi_ssid"))
+        assertEquals("Permission needed", state.sensor("carrier")?.value)
         val order = EntityCatalog.entities.map { it.key }
         assertEquals(state.sensors.map { it.key }, state.sensors.map { it.key }.sortedBy { order.indexOf(it) })
     }

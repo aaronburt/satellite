@@ -58,7 +58,8 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
         RuntimePermission(
             Manifest.permission.ACCESS_FINE_LOCATION,
             "Precise location",
-            "Reads the connected Wi-Fi network name on Android 12 and below",
+            "Reads the connected Wi-Fi network name on Android 12 and below; " +
+                "without it the Wi-Fi sensor reports permission_denied",
             "Sensors",
             maxSdk = Build.VERSION_CODES.S_V2,
         ),
@@ -67,7 +68,8 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
         RuntimePermission(
             Manifest.permission.NEARBY_WIFI_DEVICES,
             "Nearby Wi-Fi",
-            "Reads the connected Wi-Fi network name",
+            "Reads the connected Wi-Fi network name; " +
+                "without it the Wi-Fi sensor reports permission_denied",
             "Sensors",
             minSdk = Build.VERSION_CODES.TIRAMISU,
         ),
@@ -76,7 +78,7 @@ private fun runtimePermissions(): List<RuntimePermission> = buildList {
         RuntimePermission(
             Manifest.permission.READ_PHONE_STATE,
             "Phone state",
-            "Reports the mobile carrier",
+            "Reports the mobile carrier; without it the carrier sensor reports permission_denied",
             "Sensors",
         ),
     )

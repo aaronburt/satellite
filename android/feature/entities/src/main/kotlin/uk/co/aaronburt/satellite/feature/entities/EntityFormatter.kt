@@ -2,6 +2,7 @@ package uk.co.aaronburt.satellite.feature.entities
 
 import java.util.Locale
 import uk.co.aaronburt.satellite.discovery.EntityCatalog
+import uk.co.aaronburt.satellite.telemetry.ConnectivityReadings
 
 /** Turns raw published values into what the Entities screen shows. */
 internal object EntityFormatter {
@@ -15,6 +16,12 @@ internal object EntityFormatter {
         "battery_temperature" -> "$raw \u00b0C"
         "uptime" -> formatDuration(raw.toLongOrNull())
         "storage_free" -> formatBytes(raw.toLongOrNull())
+        "wifi_ssid", "carrier" -> when (raw) {
+            ConnectivityReadings.DISCONNECTED -> "Not connected"
+            ConnectivityReadings.PERMISSION_DENIED -> "Permission needed"
+            ConnectivityReadings.UNAVAILABLE -> "Unavailable"
+            else -> raw
+        }
         else -> raw.replaceFirstChar { it.uppercase() }
     }
 

@@ -24,8 +24,8 @@ import kotlin.math.roundToInt
 /**
  * Reads the current device state as a map of entity key → MQTT payload.
  *
- * Only the no-permission set is read unconditionally; permission-gated values
- * are included only when the user has granted the relevant permission.
+ * Permission-dependent values (Wi-Fi name, carrier) are always present, using
+ * the [ConnectivityReadings] placeholders when there is no real reading.
  */
 class DeviceStateReader @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -41,7 +41,7 @@ class DeviceStateReader @Inject constructor(
         runCatching { readNetwork(values) }
         runCatching { readStorage(values) }
         runCatching { readAudio(values) }
-        runCatching { readPermissionGated(values) }
+        runCatching { readCarrier(values) }
         return values
     }
 
@@ -108,6 +108,25 @@ class DeviceStateReader @Inject constructor(
             capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "vpn"
             else -> "none"
         }
+        readWifi(values, capabilities)
+    }
+
+    @Suppress("InlinedApi")
+    private fun readWifi(values: MutableMap<String, String>, capabilities: NetworkCapabilities?) {
+        val onWifi = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        val permitted = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
+            hasPermission(Manifest.permission.NEARBY_WIFI_DEVICES)
+
+        // WifiManager.connectionInfo is deprecated but still the only one-off SSID read: on
+        // Android 12+ the active network's WifiInfo is always redacted. The onWifi check above
+        // keeps a stale value from being used.
+        @Suppress("DEPRECATION")
+        val raw = if (onWifi && permitted) {
+            context.applicationContext.getSystemService(WifiManager::class.java)?.connectionInfo?.ssid
+        } else {
+            null
+        }
+        values["wifi_ssid"] = ConnectivityReadings.wifiSsid(onWifi, permitted, raw)
     }
 
     private fun readStorage(values: MutableMap<String, String>) {
@@ -129,25 +148,14 @@ class DeviceStateReader @Inject constructor(
         audioControls.isMicrophoneMuted()?.let { values["mic_muted"] = if (it) "ON" else "OFF" }
     }
 
-    @Suppress("InlinedApi", "DEPRECATION")
-    private fun readPermissionGated(values: MutableMap<String, String>) {
-        val wifiGranted = hasPermission(Manifest.permission.ACCESS_FINE_LOCATION) ||
-            hasPermission(Manifest.permission.NEARBY_WIFI_DEVICES)
-        if (wifiGranted) {
-            val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java)
-            val ssid = wifiManager?.connectionInfo?.ssid?.trim('"')
-            if (!ssid.isNullOrBlank() && ssid != "<unknown ssid>") {
-                values["wifi_ssid"] = ssid
-            }
+    private fun readCarrier(values: MutableMap<String, String>) {
+        val permitted = hasPermission(Manifest.permission.READ_PHONE_STATE)
+        val name = if (permitted) {
+            context.getSystemService(TelephonyManager::class.java)?.networkOperatorName
+        } else {
+            null
         }
-
-        if (hasPermission(Manifest.permission.READ_PHONE_STATE)) {
-            val telephonyManager = context.getSystemService(TelephonyManager::class.java)
-            val carrier = telephonyManager?.networkOperatorName
-            if (!carrier.isNullOrBlank()) {
-                values["carrier"] = carrier
-            }
-        }
+        values["carrier"] = ConnectivityReadings.carrier(permitted, name)
     }
 
     private fun hasPermission(permission: String): Boolean =
