@@ -6,11 +6,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"os/exec"
 	"sync"
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -21,6 +21,11 @@ import (
 
 //go:embed icon.ico
 var iconData []byte
+
+var (
+	openBrowser = toast.OpenBrowser
+	showToast   = toast.Show
+)
 
 type Tray struct {
 	server          *webui.Server
@@ -64,7 +69,6 @@ func (t *Tray) onReady() {
 	systray.AddSeparator()
 
 	t.openItem = systray.AddMenuItem("Open WebUI", "Open WebUI configuration in browser")
-	t.openItem.Disable()
 	t.toggleItem = systray.AddMenuItem("WebUI: Disabled (Click to Enable)", "Enable or disable embedded WebUI HTTP server")
 	t.checkUpdateItem = systray.AddMenuItem("Check for Updates", "Check GitHub for newer versions")
 
@@ -109,10 +113,8 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 			t.statusItem.SetTitle(title)
 
 			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
-				t.openItem.Enable()
 				t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
 			} else {
-				t.openItem.Disable()
 				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
 			}
 
@@ -136,14 +138,29 @@ func (t *Tray) eventLoop() {
 			if t.updaterInstance != nil {
 				status := t.updaterInstance.Status()
 				if status.ReleaseURL != "" {
-					_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", status.ReleaseURL).Start()
+					if err := openBrowser(status.ReleaseURL); err != nil {
+						logger.Warn("tray", fmt.Sprintf("Failed to open release URL in browser: %v", err))
+					}
 				}
 			}
 		case <-t.checkUpdateItem.ClickedCh:
 			go t.manualCheckUpdate()
 		case <-t.openItem.ClickedCh:
-			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
-				_ = exec.Command("rundll32", "url.dll,FileProtocolHandler", t.server.URL()).Start()
+			if !t.server.IsWebUIEnabled() {
+				t.server.SetWebUIEnabled(true)
+			}
+			if !t.server.IsRunning() {
+				if _, err := t.server.Start(config.Get().GetPort()); err != nil {
+					logger.Warn("tray", fmt.Sprintf("Failed to start WebUI server: %v", err))
+				}
+			}
+			if t.server.IsRunning() {
+				if t.toggleItem != nil {
+					t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
+				}
+				if err := openBrowser(t.server.URL()); err != nil {
+					logger.Warn("tray", fmt.Sprintf("Failed to open WebUI in browser: %v", err))
+				}
 			}
 		case <-t.toggleItem.ClickedCh:
 			if t.server.IsWebUIEnabled() {
@@ -151,7 +168,6 @@ func (t *Tray) eventLoop() {
 				if !t.server.IsJSONEnabled() {
 					t.server.Stop()
 				}
-				t.openItem.Disable()
 				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
 			} else {
 				t.server.SetWebUIEnabled(true)
@@ -159,7 +175,6 @@ func (t *Tray) eventLoop() {
 					_, _ = t.server.Start(config.Get().GetPort())
 				}
 				if t.server.IsRunning() {
-					t.openItem.Enable()
 					t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
 				}
 			}
@@ -179,7 +194,7 @@ func (t *Tray) manualCheckUpdate() {
 
 	status, err := t.updaterInstance.Check(ctx)
 	if err != nil {
-		_ = toast.Show(toast.Notification{
+		_ = showToast(toast.Notification{
 			Title:   "Satellite Update",
 			Message: fmt.Sprintf("Update check failed: %v", err),
 		})
@@ -187,13 +202,13 @@ func (t *Tray) manualCheckUpdate() {
 	}
 
 	if status.Available {
-		_ = toast.Show(toast.Notification{
+		_ = showToast(toast.Notification{
 			Title:   "Satellite Update Available",
 			Message: fmt.Sprintf("Version %s is available. Click to download.", status.LatestVersion),
 			URL:     status.ReleaseURL,
 		})
 	} else {
-		_ = toast.Show(toast.Notification{
+		_ = showToast(toast.Notification{
 			Title:   "Satellite Up to Date",
 			Message: fmt.Sprintf("Satellite is up to date (%s).", config.Version),
 		})

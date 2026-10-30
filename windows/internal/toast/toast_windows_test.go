@@ -57,3 +57,11 @@ func TestShowReportsNotifyFailureAndDoesNotOpenURL(t *testing.T) {
 		t.Fatal("URL opened although the notification failed")
 	}
 }
+
+func TestOpenBrowserRejectsUnsafeURLs(t *testing.T) {
+	for _, u := range []string{"", "calc.exe", "file:///C:/Windows/System32/calc.exe", "http://127.0.0.1/?a=1&calc"} {
+		if err := OpenBrowser(u); err == nil {
+			t.Fatalf("expected OpenBrowser(%q) to fail", u)
+		}
+	}
+}
