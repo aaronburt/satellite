@@ -177,3 +177,63 @@ func TestEventLoop(t *testing.T) {
 		t.Fatal("expected eventLoop to terminate on quitItem click")
 	}
 }
+
+func TestOpenWebUIBrowserInvocation(t *testing.T) {
+	opened := make(chan string, 4)
+	origOpen := openBrowser
+	openBrowser = func(u string) error {
+		opened <- u
+		return nil
+	}
+	t.Cleanup(func() { openBrowser = origOpen })
+
+	client := mqtt.NewClient()
+	collector := telemetry.NewCollector()
+	server := webui.NewServer(collector, client)
+	server.SetWebUIEnabled(false)
+	defer server.Stop()
+
+	tray := &Tray{
+		server:          server,
+		mqttClient:      client,
+		statusItem:      newMockMenuItem(),
+		openItem:        newMockMenuItem(),
+		toggleItem:      newMockMenuItem(),
+		updateItem:      newMockMenuItem(),
+		checkUpdateItem: newMockMenuItem(),
+		quitItem:        newMockMenuItem(),
+	}
+
+	done := make(chan struct{})
+	go func() {
+		tray.eventLoop()
+		close(done)
+	}()
+	t.Cleanup(func() {
+		tray.quitItem.ClickedCh <- struct{}{}
+		<-done
+	})
+
+	tray.openItem.ClickedCh <- struct{}{}
+	select {
+	case got := <-opened:
+		if !server.IsWebUIEnabled() || !server.IsRunning() {
+			t.Fatal("expected server to be enabled and running after Open WebUI click")
+		}
+		if got != server.URL() {
+			t.Fatalf("opened %q, want %q", got, server.URL())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for browser invocation from stopped state")
+	}
+
+	tray.openItem.ClickedCh <- struct{}{}
+	select {
+	case got := <-opened:
+		if got != server.URL() {
+			t.Fatalf("opened %q, want %q", got, server.URL())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for browser invocation from running state")
+	}
+}
