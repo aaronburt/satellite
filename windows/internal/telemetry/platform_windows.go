@@ -14,6 +14,7 @@ import (
 	"time"
 	"unsafe"
 
+	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
 
@@ -23,6 +24,10 @@ var (
 	modIphlpapi = syscall.NewLazyDLL("iphlpapi.dll")
 	modOle32    = syscall.NewLazyDLL("ole32.dll")
 	modWlanapi  = syscall.NewLazyDLL("wlanapi.dll")
+	modWtsapi32 = syscall.NewLazyDLL("wtsapi32.dll")
+
+	procWTSQuerySessionInformationW = modWtsapi32.NewProc("WTSQuerySessionInformationW")
+	procWTSFreeMemory               = modWtsapi32.NewProc("WTSFreeMemory")
 
 	procGetLastInputInfo                 = modUser32.NewProc("GetLastInputInfo")
 	procGetForegroundWindow              = modUser32.NewProc("GetForegroundWindow")
@@ -297,13 +302,61 @@ func GetActiveWindowAndProcess() (processName, windowTitle string) {
 	return processName, windowTitle
 }
 
+const (
+	wtsCurrentServerHandle = 0
+	wtsCurrentSession      = 0xFFFFFFFF
+	wtsSessionInfoEx       = 25 // WTS_INFO_CLASS WTSSessionInfoEx
+)
+
+// IsSessionLocked reports whether this process's Windows session is locked.
+//
+// It asks the session manager (WTSSessionInfoEx) rather than relying on
+// OpenInputDesktop alone. On Windows 10/11 the lock screen runs on the normal
+// Default desktop, so OpenInputDesktop can keep succeeding while the PC is
+// locked and the sensor never changes. OpenInputDesktop is kept only as a
+// fallback for when WTS can't answer.
 func IsSessionLocked() bool {
+	locked, known := wtsSessionLocked()
+	return resolveSessionLocked(locked, known, inputDesktopOpenable())
+}
+
+func wtsSessionLocked() (locked, known bool) {
+	var buf uintptr
+	var size uint32
+	ret, _, _ := procWTSQuerySessionInformationW.Call(
+		wtsCurrentServerHandle,
+		wtsCurrentSession,
+		wtsSessionInfoEx,
+		uintptr(unsafe.Pointer(&buf)),
+		uintptr(unsafe.Pointer(&size)),
+	)
+	if ret == 0 || buf == 0 {
+		return false, false
+	}
+	defer procWTSFreeMemory.Call(buf)
+
+	raw := unsafe.Slice((*byte)(toUnsafePointer(buf)), size)
+	flags, ok := wtsSessionFlagsFromInfoEx(raw)
+	if !ok {
+		return false, false
+	}
+	return lockStateFromWTSFlags(flags, windowsBuildNumber())
+}
+
+func windowsBuildNumber() uint32 {
+	if v := windows.RtlGetVersion(); v != nil {
+		return v.BuildNumber
+	}
+	return 0
+}
+
+func inputDesktopOpenable() bool {
 	hDesk, _, _ := procOpenInputDesktop.Call(0, 0, DESKTOP_SWITCHDESKTOP)
 	if hDesk == 0 {
-		return true
+		return false
 	}
 	procCloseDesktop.Call(hDesk)
-	return false
+	return true
 }
 
 const monitorDefaultToNearest = 2
