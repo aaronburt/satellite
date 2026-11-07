@@ -388,6 +388,33 @@ func BuildSensors(expose config.ExposeConfig, caps capabilities.PlatformCapabili
 			b.add(s)
 		}
 	}
+	if b.on(expose.ICUERGB, "icue_rgb") {
+		s := b.base("icue_rgb", GroupDevices, "iCUE RGB")
+		if snap.RGB == nil {
+			b.waiting(&s)
+		} else {
+			switch snap.RGB.Status {
+			case "connected", "partial":
+				s.Value = fmt.Sprintf("%d RGB devices", len(snap.RGB.Devices))
+				leds := 0
+				for _, d := range snap.RGB.Devices {
+					leds += len(d.LEDs)
+				}
+				s.Detail = fmt.Sprintf("%d LEDs · Read only", leds)
+				if snap.RGB.Status == "partial" {
+					s.Detail += " · Some devices could not be read"
+					s.State = StateWarn
+				}
+			case "sdk_missing":
+				s.Value, s.Detail, s.State = "SDK not installed", "Install the iCUE SDK DLL and restart Satellite; see the README", StateWaiting
+			case "access_denied":
+				s.Value, s.Detail, s.State = "Access denied", "Allow Satellite in iCUE SDK settings", StateWarn
+			default:
+				s.Value, s.Detail, s.State = "iCUE unavailable", "Keep iCUE running with SDK integration enabled", StateWaiting
+			}
+		}
+		b.add(s)
+	}
 
 	return b.out
 }

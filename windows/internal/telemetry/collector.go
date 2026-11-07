@@ -2,10 +2,12 @@ package telemetry
 
 import (
 	"math"
+	"reflect"
 	"sync"
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/icue"
 	"satellite/internal/privacy"
 )
 
@@ -19,10 +21,11 @@ type Collector struct {
 	lastNetTime  time.Time
 	lastSnapshot Snapshot
 	now          func() time.Time
+	readRGB      func(bool) *icue.State
 }
 
 func NewCollector() *Collector {
-	return &Collector{now: time.Now}
+	return &Collector{now: time.Now, readRGB: icue.Read}
 }
 
 func (c *Collector) clock() time.Time {
@@ -204,6 +207,9 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 	if expose.GPU {
 		snap.GPUs = GetGPUInfo(expose.NvidiaNVML)
 	}
+	if c.readRGB != nil {
+		snap.RGB = c.readRGB(expose.ICUERGB)
+	}
 
 	snap = snap.ApplyPrivacy()
 	c.lastSnapshot = snap
@@ -217,6 +223,9 @@ func (c *Collector) Last() Snapshot {
 }
 
 func HasSignificantDelta(prev, curr Snapshot) bool {
+	if !reflect.DeepEqual(prev.RGB, curr.RGB) {
+		return true
+	}
 	if (prev.CPUPercent == nil) != (curr.CPUPercent == nil) {
 		return true
 	}

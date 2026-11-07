@@ -47,6 +47,7 @@ type ExposeConfig struct {
 	RemoteLock      bool `json:"remote_lock"`
 	Webcam          bool `json:"webcam"`
 	AudioOutput     bool `json:"audio_output"`
+	ICUERGB         bool `json:"icue_rgb"`
 	Wifi            bool `json:"wifi"`
 	DisplayState    bool `json:"display_state"`
 	Notifications   bool `json:"notifications"`

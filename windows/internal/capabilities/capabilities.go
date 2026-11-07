@@ -18,6 +18,7 @@ type PlatformCapabilities struct {
 	Microphone      bool   `json:"microphone"`
 	DisplayState    bool   `json:"display_state"`
 	AudioOutput     bool   `json:"audio_output"`
+	ICUERGB         bool   `json:"icue_rgb"`
 	Wifi            bool   `json:"wifi"`
 	Notifications   bool   `json:"notifications"`
 	SystemTheme     bool   `json:"system_theme"`
@@ -65,6 +66,8 @@ func (p PlatformCapabilities) IsSupported(feature string) bool {
 		return p.DisplayState
 	case "audio_output":
 		return p.AudioOutput
+	case "icue_rgb":
+		return p.ICUERGB
 	case "wifi":
 		return p.Wifi
 	case "notifications":

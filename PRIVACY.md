@@ -1,6 +1,6 @@
 # Privacy statement
 
-Last reviewed: 24 October 2026. Applies to Satellite for Windows, Linux, and Android.
+Last reviewed: 7 November 2026. Applies to Satellite for Windows, Linux, and Android.
 
 I do not collect or share your device data through Satellite. The apps do not send
 your readings, credentials, configuration, or logs to me. There is no Satellite
@@ -38,7 +38,7 @@ and remote-control switches are off. Depending on the switches and platform,
 readings can include storage and GPU statistics, battery state, local IP and
 Wi-Fi name, presence and idle time, session and display state, process names,
 exact window titles, media titles and artists, microphone/webcam usage, and
-(on Windows) a low-resolution screen thumbnail.
+(on Windows) a low-resolution screen thumbnail and opt-in iCUE RGB device colours.
 Snapshots also include a timestamp and whether a battery is present. MQTT
 discovery includes the configured device ID and app version. The default ID is
 based on your hostname; desktop telemetry webhooks include your actual hostname
@@ -58,7 +58,7 @@ The microphone and webcam features do not record or upload audio or video.
 
 The Windows tray's **Quick Privacy Pause** temporarily stops the High and
 Critical privacy groups: presence/idle time, session lock, media details, active
-process, window titles, microphone/webcam usage, and all screen thumbnails. Choose
+process, window titles, microphone/webcam usage, iCUE RGB colours, and all screen thumbnails. Choose
 5, 15, 30, or 60 minutes; the tray shows a countdown and can resume early. Saved
 sensor choices are preserved. The deadline includes time asleep; restarting
 Satellite ends the pause. Sensitive readings are filtered from MQTT, telemetry
@@ -66,6 +66,12 @@ webhooks and their retries/tests, and local snapshot/preview endpoints. Cached
 previews are cleared. Other telemetry and enabled remote commands continue.
 Requests already sent and copies held by destinations or browsers cannot be
 retracted.
+
+The optional Windows iCUE RGB sensor reads supported devices' LED colours,
+device models, and hashed device identifiers. It does not publish raw serial
+numbers or change lighting. Readings go to the same enabled telemetry outputs
+as other sensors. Screen-reactive RGB effects can reveal screen or application
+activity, so RGB readings are included in privacy pause.
 
 The Windows screen thumbnail is off by default. When you turn it on, Satellite
 sends a picture of your main screen with each telemetry update (every 5 seconds

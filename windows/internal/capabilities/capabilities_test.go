@@ -46,6 +46,7 @@ func TestIsSupported(t *testing.T) {
 		Microphone:      true,
 		DisplayState:    true,
 		AudioOutput:     true,
+		ICUERGB:         true,
 		Wifi:            true,
 		Notifications:   true,
 		SystemTheme:     true,
@@ -60,7 +61,7 @@ func TestIsSupported(t *testing.T) {
 		"battery", "gpu", "session_lock", "user_presence", "media_control",
 		"remote_lock", "webcam", "microphone", "display_state", "audio_output",
 		"wifi", "notifications", "system_theme", "fullscreen", "active_window",
-		"update_pending", "screen_thumbnail",
+		"update_pending", "screen_thumbnail", "icue_rgb",
 	}
 
 	for _, k := range keys {
