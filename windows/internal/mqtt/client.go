@@ -479,6 +479,41 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	return err
 }
 
+// ScreenThumbnailEnabled reports whether the running config has the screen
+// thumbnail switched on.
+func (c *Client) ScreenThumbnailEnabled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.cfg.Expose.ScreenThumbnail
+}
+
+// PublishScreenThumbnail sends JPEG thumbnail bytes for the Home Assistant
+// image entity. It is not retained, so the broker does not keep a copy after
+// delivering it, and it is dropped while disconnected rather than queued.
+func (c *Client) PublishScreenThumbnail(jpeg []byte) error {
+	c.mu.RLock()
+	if c.status != StatusConnected || c.pahoClient == nil || !c.cfg.Expose.ScreenThumbnail {
+		c.mu.RUnlock()
+		return nil
+	}
+	topic := ScreenThumbnailTopic(c.cfg.MQTT.TopicPrefix, c.cfg.NodeID)
+	pClient := c.pahoClient
+	c.mu.RUnlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_, err := pClient.Publish(ctx, &paho.Publish{
+		Topic:   topic,
+		Payload: jpeg,
+		QoS:     0,
+		Retain:  false,
+	})
+	if err == nil {
+		logger.Log("MQTT", "screen_thumbnail", fmt.Sprintf("Published screen thumbnail to %s (%d bytes)", topic, len(jpeg)))
+	}
+	return err
+}
+
 func TestConnection(cfg config.MQTTConfig) error {
 	if cfg.Broker == "" {
 		return fmt.Errorf("broker address cannot be empty")

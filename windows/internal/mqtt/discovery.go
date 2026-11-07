@@ -7,6 +7,7 @@ import (
 
 	"satellite/internal/capabilities"
 	"satellite/internal/config"
+	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 )
 
@@ -41,6 +42,8 @@ type EntityDiscoveryPayload struct {
 	JSONAttributesTopic    string     `json:"json_attributes_topic,omitempty"`
 	JSONAttributesTemplate string     `json:"json_attributes_template,omitempty"`
 	Icon                   string     `json:"icon,omitempty"`
+	ImageTopic             string     `json:"image_topic,omitempty"`
+	ContentType            string     `json:"content_type,omitempty"`
 }
 
 // Seams so tests can control which drives and GPUs discovery sees.
@@ -71,6 +74,14 @@ func driveKey(mount string) string {
 		return "root"
 	}
 	return discoveryID(clean)
+}
+
+// ScreenThumbnailTopic is where the raw JPEG thumbnail bytes are published.
+func ScreenThumbnailTopic(topicPrefix, nodeID string) string {
+	if topicPrefix == "" {
+		topicPrefix = "satellite"
+	}
+	return fmt.Sprintf("%s/%s/screen_thumbnail", topicPrefix, nodeID)
 }
 
 type DiscoveryItem struct {
@@ -107,6 +118,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 	stateTopic := fmt.Sprintf("%s/%s/state", topicPrefix, nodeID)
 	availTopic := fmt.Sprintf("%s/%s/status", topicPrefix, nodeID)
 	commandTopic := fmt.Sprintf("%s/%s/command", topicPrefix, nodeID)
+	thumbTopic := ScreenThumbnailTopic(topicPrefix, nodeID)
 
 	definitions := []struct {
 		Key       string
@@ -616,6 +628,20 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 				Device:            device,
 				AvailabilityTopic: availTopic,
 				Icon:              "mdi:monitor-off",
+			},
+		},
+		{
+			Key:       "screen_thumbnail",
+			ShouldRun: cfg.Expose.ScreenThumbnail && isCap("screen_thumbnail"),
+			Payload: EntityDiscoveryPayload{
+				Component:         "image",
+				Name:              "Screen Thumbnail",
+				ImageTopic:        thumbTopic,
+				ContentType:       screenthumb.ContentType,
+				UniqueID:          nodeID + "_screen_thumbnail",
+				Device:            device,
+				AvailabilityTopic: availTopic,
+				Icon:              "mdi:monitor-screenshot",
 			},
 		},
 	}

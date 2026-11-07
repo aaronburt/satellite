@@ -50,6 +50,9 @@ type ExposeConfig struct {
 	Notifications bool `json:"notifications"`
 	GPU           bool `json:"gpu"`
 	NvidiaNVML    bool `json:"nvidia_nvml"`
+	// ScreenThumbnail publishes a 100px screen thumbnail every 30 seconds.
+	// Privacy-sensitive, so it is off unless the user turns it on.
+	ScreenThumbnail bool `json:"screen_thumbnail"`
 }
 
 type WebhookConfig struct {
@@ -107,30 +110,31 @@ var (
 
 func DefaultExpose() ExposeConfig {
 	return ExposeConfig{
-		CPU:           true,
-		Memory:        true,
-		Storage:       false,
-		Network:       true,
-		Uptime:        false,
-		UserPresence:  false,
-		SessionLock:   false,
-		Microphone:    false,
-		Fullscreen:    false,
-		SystemTheme:   false,
-		LocalIP:       false,
-		Battery:       false,
-		ActiveWindow:  false,
-		WindowTitle:   false,
-		UpdatePending: false,
-		MediaControl:  false,
-		RemoteLock:    false,
-		Webcam:        false,
-		AudioOutput:   false,
-		Wifi:          false,
-		DisplayState:  false,
-		Notifications: false,
-		GPU:           false,
-		NvidiaNVML:    false,
+		CPU:             true,
+		Memory:          true,
+		Storage:         false,
+		Network:         true,
+		Uptime:          false,
+		UserPresence:    false,
+		SessionLock:     false,
+		Microphone:      false,
+		Fullscreen:      false,
+		SystemTheme:     false,
+		LocalIP:         false,
+		Battery:         false,
+		ActiveWindow:    false,
+		WindowTitle:     false,
+		UpdatePending:   false,
+		MediaControl:    false,
+		RemoteLock:      false,
+		Webcam:          false,
+		AudioOutput:     false,
+		Wifi:            false,
+		DisplayState:    false,
+		Notifications:   false,
+		GPU:             false,
+		NvidiaNVML:      false,
+		ScreenThumbnail: false,
 	}
 }
 

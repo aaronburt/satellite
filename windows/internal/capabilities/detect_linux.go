@@ -106,5 +106,7 @@ func detectPlatformCapabilities() PlatformCapabilities {
 		Fullscreen:    hasDisplay,
 		ActiveWindow:  hasDisplay,
 		UpdatePending: hasUpdatePending(),
+		// Screen thumbnails are Windows-only for now.
+		ScreenThumbnail: false,
 	}
 }

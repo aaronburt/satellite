@@ -20,6 +20,7 @@ The local web UI (`satellite v0.23.0`) lets you choose which sensors are publish
 
 - **Telemetry:** CPU, GPU (Core Load, VRAM, Temperature, Power), RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
 - **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, System Dark/Light Theme, Pending Reboot.
+- **Screen Thumbnail (Windows, opt-in):** a tiny 100px picture of the main screen every 30 seconds, shown in Home Assistant as an image entity. Off by default; see [Screen thumbnail](#screen-thumbnail).
 - **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls or Linux MPRIS D-Bus.
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
@@ -202,6 +203,34 @@ When connected to your MQTT broker, Home Assistant automatically discovers:
 - Telemetry sensors and binary sensors (including Webcam, Display Power, Audio Output, and Wi-Fi).
 - `media_player.<node_id>_media_player` entity.
 - Quick action buttons (Lock PC, Sleep Displays, Play/Pause, Next, Previous, Mute, Volume).
+- `image.<node_id>_screen_thumbnail`, if you turn on the screen thumbnail (Windows only).
+
+### Screen thumbnail
+
+This is a privacy-sensitive feature, so it is **off by default** and is never
+switched on by the web UI's "enable all" option. Turn it on under
+**Sensitive Content & Surveillance → Screen Thumbnail** in the web UI, or set
+`expose.screen_thumbnail` to `true` in the config file.
+
+When it is on, every 30 seconds Satellite takes a picture of the main (primary)
+monitor, scaled so its longest side is 100 pixels with the screen's shape kept
+(a 1920×1080 screen gives 100×56). It is published as a JPEG to
+`<topic_prefix>/<node_id>/screen_thumbnail` and appears in Home Assistant as an
+image entity.
+
+- Windows scales the screen down while copying it, so Satellite never holds a
+  full-size screenshot in memory. Only the 100px image is made.
+- Nothing is saved to disk. The MQTT message is not retained, so the broker does
+  not keep a copy. Home Assistant shows the latest image; it can keep its own
+  copy like any other entity state.
+- Nothing is captured while the PC is locked or while MQTT is disconnected.
+- The thumbnail goes to MQTT only. It is not added to the telemetry webhook or
+  the `/json` endpoint.
+
+At 100px text is unreadable, but the picture can still show what kind of thing
+is on screen (a video, a game, a document, a dark or light page). Only turn it on
+if you are happy for everyone who can read your MQTT topics or your Home
+Assistant to see that.
 
 ---
 

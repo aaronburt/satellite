@@ -1,29 +1,30 @@
 package capabilities
 
 type PlatformCapabilities struct {
-	OS            string `json:"os"`
-	CPU           bool   `json:"cpu"`
-	Memory        bool   `json:"memory"`
-	Storage       bool   `json:"storage"`
-	Network       bool   `json:"network"`
-	Uptime        bool   `json:"uptime"`
-	LocalIP       bool   `json:"local_ip"`
-	Battery       bool   `json:"battery"`
-	GPU           bool   `json:"gpu"`
-	SessionLock   bool   `json:"session_lock"`
-	UserPresence  bool   `json:"user_presence"`
-	MediaControl  bool   `json:"media_control"`
-	RemoteLock    bool   `json:"remote_lock"`
-	Webcam        bool   `json:"webcam"`
-	Microphone    bool   `json:"microphone"`
-	DisplayState  bool   `json:"display_state"`
-	AudioOutput   bool   `json:"audio_output"`
-	Wifi          bool   `json:"wifi"`
-	Notifications bool   `json:"notifications"`
-	SystemTheme   bool   `json:"system_theme"`
-	Fullscreen    bool   `json:"fullscreen"`
-	ActiveWindow  bool   `json:"active_window"`
-	UpdatePending bool   `json:"update_pending"`
+	OS              string `json:"os"`
+	CPU             bool   `json:"cpu"`
+	Memory          bool   `json:"memory"`
+	Storage         bool   `json:"storage"`
+	Network         bool   `json:"network"`
+	Uptime          bool   `json:"uptime"`
+	LocalIP         bool   `json:"local_ip"`
+	Battery         bool   `json:"battery"`
+	GPU             bool   `json:"gpu"`
+	SessionLock     bool   `json:"session_lock"`
+	UserPresence    bool   `json:"user_presence"`
+	MediaControl    bool   `json:"media_control"`
+	RemoteLock      bool   `json:"remote_lock"`
+	Webcam          bool   `json:"webcam"`
+	Microphone      bool   `json:"microphone"`
+	DisplayState    bool   `json:"display_state"`
+	AudioOutput     bool   `json:"audio_output"`
+	Wifi            bool   `json:"wifi"`
+	Notifications   bool   `json:"notifications"`
+	SystemTheme     bool   `json:"system_theme"`
+	Fullscreen      bool   `json:"fullscreen"`
+	ActiveWindow    bool   `json:"active_window"`
+	UpdatePending   bool   `json:"update_pending"`
+	ScreenThumbnail bool   `json:"screen_thumbnail"`
 }
 
 func Detect() PlatformCapabilities {
@@ -76,6 +77,8 @@ func (p PlatformCapabilities) IsSupported(feature string) bool {
 		return p.ActiveWindow
 	case "update_pending":
 		return p.UpdatePending
+	case "screen_thumbnail":
+		return p.ScreenThumbnail
 	default:
 		return false
 	}

@@ -15,7 +15,7 @@ import (
 
 // Home Assistant only accepts discovery topics of this shape; anything else
 // is silently ignored, so the entity never appears.
-var haDiscoveryTopic = regexp.MustCompile(`^homeassistant/(sensor|binary_sensor|button|media_player|switch|number)/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/config$`)
+var haDiscoveryTopic = regexp.MustCompile(`^homeassistant/(sensor|binary_sensor|button|media_player|switch|number|image)/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+/config$`)
 
 var valueJSONField = regexp.MustCompile(`value_json\.([a-z_]+)`)
 

@@ -16,6 +16,7 @@ default node ID comes from the lowercased hostname with spaces replaced by `-`.
 | Device commands | `<base>/command` | 1 subscription | Publish commands without retain |
 | Device notifications | `<base>/notify` | 1 subscription | Publish notifications without retain |
 | Broadcast notifications | `<topic_prefix>/all/notify` | 1 subscription | Publish notifications without retain |
+| Screen thumbnail (opt-in, Windows) | `<base>/screen_thumbnail` | 0 | No |
 | Per-entity discovery | `homeassistant/<component>/<node_id>/<unique_id>/config` | 1 | Yes |
 
 Discovery topic node/unique-ID segments are sanitized for Home Assistant.
@@ -23,6 +24,10 @@ Discovery is sent when the agent connects. Disabled/unsupported discovery items
 are cleared with an empty retained payload. State is published on significant
 changes or a heartbeat (default 60 seconds), checked on each collection tick
 (default 5 seconds). Availability payloads are `online` and `offline`.
+
+The screen thumbnail payload is raw JPEG bytes (at most 100px on the longest
+side, every 30 seconds) for the Home Assistant `image` entity. It is only sent
+when `expose.screen_thumbnail` is on, and is off by default.
 
 Commands accept plain text (`lock`) or JSON (`{"action":"lock"}` or
 `{"command":"lock"}`). Canonical actions and their required settings:
