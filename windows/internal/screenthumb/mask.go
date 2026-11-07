@@ -10,7 +10,7 @@ import (
 
 // MaxHiddenApps bounds the hide list so a bad config cannot make every tick
 // slow.
-const MaxHiddenApps = 50
+const MaxHiddenApps = 128
 
 // Rect is a rectangle in screen pixels.
 type Rect struct{ X, Y, W, H int }

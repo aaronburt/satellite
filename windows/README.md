@@ -162,26 +162,28 @@ running locally, and permission for Satellite in iCUE's SDK integration settings
 Run Satellite and iCUE at the same privilege level. Not every device visible in
 iCUE is necessarily exposed by the SDK.
 
-Install the official SDK once. From the `windows/` source directory, run:
+On Windows x64, enable **iCUE RGB Colours (Read Only)** under
+**User Presence & Application Activity** in Settings. Satellite immediately checks
+whether the SDK DLL is present and can be loaded. If it is missing or unusable,
+a setup prompt links to [Corsair's official SDK downloads](https://github.com/CorsairOfficial/cue-sdk/releases)
+and [licence terms](https://corsairofficial.github.io/cue-sdk/#end-user-license-agreement).
+Satellite and its installer do not bundle, download, or install the SDK.
 
-```powershell
-.\scripts\install-icue-sdk.ps1
-```
-
-The helper downloads SDK 4.0.84 directly from Corsair's GitHub release, verifies
-the archive SHA256, and installs its x64 DLL under `%APPDATA%\satellite\sdk`.
-The SDK is supplied by Corsair under its own
-[license terms](https://corsairofficial.github.io/cue-sdk/#end-user-license-agreement);
-it is not bundled with Satellite. Alternatively, download the
-[official SDK archive](https://github.com/CorsairOfficial/cue-sdk/releases/tag/v4.0.84)
-and copy `iCUESDK/redist/x64/iCUESDK.x64_2019.dll` into that folder or beside
-`satellite.exe`. The Microsoft Visual C++ 2015–2022 x64 runtime may be needed
+Download the Windows SDK archive yourself and extract
+`iCUESDK/redist/x64/iCUESDK.x64_2019.dll`. Create
+`%APPDATA%\satellite\sdk` if needed and copy the DLL there, or place it beside
+`satellite.exe`. Satellite checks beside its executable first, then the current
+user's SDK folder. The Microsoft Visual C++ 2015–2022 x64 runtime may be needed
 for the SDK DLL to load.
 
-Restart Satellite after setup. When iCUE or the SDK is detected, Settings shows
-**iCUE RGB Colours (Read Only)** under **User Presence & Application Activity**.
-Enable it and save. The Sensors tab shows the connection status and counts of
-readable devices and LEDs, including a message if the SDK is missing.
+While RGB is checked and Settings is visible, Satellite rechecks every 3 seconds
+until it can load the SDK. You can close the prompt while installing it. Checks
+stop when RGB is unchecked, you leave Settings, or the browser tab is hidden;
+they resume when you return. A successful check closes the prompt and tells you
+to apply your settings. If RGB was already saved as enabled, readings resume on
+the next collection tick without restarting Satellite. The check itself neither
+enables reporting nor connects to iCUE. The Sensors tab shows connection status
+and counts of readable devices and LEDs. Bulk enable does not enable RGB.
 
 Readings appear under `rgb` in the existing `<topic_prefix>/<node_id>/state`
 MQTT JSON message. Each device contains a stable hashed identifier, model, SDK
@@ -340,7 +342,16 @@ Moving or rotating a display recreates its capture resources automatically.
   after), so a closed or backgrounded tab costs nothing. This works even when
   MQTT is not connected.
 
-**Hiding programs.** Under the thumbnail size you can list programs (for
+**Hiding programs.** The program filter is prefilled with common browsers,
+messaging apps (including Discord, WhatsApp, Signal and Telegram), and email
+clients. Browser variants that share an executable name are covered by that
+entry; renamed executables and other programs need to be added manually.
+Existing custom lists are preserved. You can edit or clear the defaults; an
+explicitly cleared list stays empty after saving, restarting, or exporting and
+importing. Up to 128 program names are supported. Thumbnails remain off until
+you enable them.
+
+Under the thumbnail size you can list programs (for
 example `chrome.exe`, one per line) whose windows are painted black in the
 picture, in the web UI or as `screen_thumbnail_hidden_apps` in the config file.
 Satellite finds the visible windows of those programs on each selected screen each

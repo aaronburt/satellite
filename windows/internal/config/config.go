@@ -82,7 +82,7 @@ type Config struct {
 	ScreenThumbnailDisplays []int `json:"screen_thumbnail_displays,omitempty"`
 	// ScreenThumbnailHiddenApps lists program names (such as chrome.exe) whose
 	// windows are blacked out of the screen thumbnail.
-	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps,omitempty"`
+	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps"`
 	HeartbeatSec              int           `json:"heartbeat_sec,omitempty"`
 	Port                      int           `json:"port,omitempty"`
 	WebUIPort                 int           `json:"webui_port"`
@@ -173,15 +173,16 @@ func DefaultConfig() Config {
 			ClientID:    "satellite-" + hostname,
 			TopicPrefix: "satellite",
 		},
-		Expose:              DefaultExpose(),
-		IntervalSec:         5,
-		ScreenThumbnailSize: screenthumb.DefaultSide,
-		HeartbeatSec:        60,
-		Port:                0,
-		WebUIPort:           0,
-		BindAddress:         "127.0.0.1",
-		JSONEnabled:         false,
-		APIKey:              "",
+		Expose:                    DefaultExpose(),
+		IntervalSec:               5,
+		ScreenThumbnailSize:       screenthumb.DefaultSide,
+		ScreenThumbnailHiddenApps: defaultHiddenApps(),
+		HeartbeatSec:              60,
+		Port:                      0,
+		WebUIPort:                 0,
+		BindAddress:               "127.0.0.1",
+		JSONEnabled:               false,
+		APIKey:                    "",
 		Webhook: WebhookConfig{
 			Enabled:  false,
 			URL:      "",
