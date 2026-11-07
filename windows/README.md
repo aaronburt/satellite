@@ -10,11 +10,11 @@ Lightweight Windows & Linux telemetry agent and remote controller for Home Assis
 
 ## Screenshots
 
-The local web UI (`satellite v0.23.0`) lets you choose which sensors are published and shows what the agent is reporting:
+The local web UI lets you choose which sensors are published. Its **Sensors** tab shows a live card for every sensor you have turned on (including the screen preview, if enabled), grouped by System, Network, Session, Media & devices and Screen, and it works on a phone-sized window too:
 
-| Processes | Performance | Settings |
+| Sensors | Performance | Settings |
 | --- | --- | --- |
-| ![Processes view](docs/screenshots/processes.jpg) | ![Performance view](docs/screenshots/performance.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
+| ![Sensors view](docs/screenshots/sensors.jpg) | ![Performance view](docs/screenshots/performance.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
 
 ## Features
 
@@ -225,7 +225,7 @@ image entity.
 - Nothing is saved to disk. The MQTT message is not retained, so the broker does
   not keep a copy. Home Assistant shows the latest image; it can keep its own
   copy like any other entity state.
-- Nothing is captured while the PC is locked or while MQTT is disconnected.
+- Nothing is captured while the PC is locked. It is also not captured while MQTT is disconnected, unless you have the web UI's **Sensors** tab open (see below).
 - If **NVIDIA NVML** under the GPU sensors is also on, the screen is shrunk on
   the graphics card instead (Windows Desktop Duplication, which works with any
   GPU that drives your main monitor). The full frame stays in video memory
@@ -236,8 +236,14 @@ image entity.
   off to 10 minutes). Opening the GPU path loads graphics driver libraries, so
   expect Satellite's memory use to rise by tens of MB while it is on. Turn off
   NVML to release it.
-- The thumbnail goes to MQTT only. It is not added to the telemetry webhook or
-  the `/json` endpoint.
+- The thumbnail goes to MQTT, and to the web UI's **Sensors** tab as a live
+  preview. It is not added to the telemetry webhook or the `/json` endpoint.
+- For the preview, Satellite keeps only the latest 200px frame in memory, drops
+  it as soon as the sensor is turned off, and serves it at
+  `/api/screen-thumbnail`, which needs the web UI token. It captures for the
+  preview only while a browser has the Sensors tab open (and for a few seconds
+  after), so a closed or backgrounded tab costs nothing. This works even when
+  MQTT is not connected.
 
 At 200px ordinary text is unreadable, but large headings and titles may be
 guessable, and the picture shows what kind of thing is on screen (a video, a

@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"satellite/internal/capabilities"
@@ -25,6 +26,7 @@ import (
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/output"
+	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -48,6 +50,9 @@ const (
 	// logBuffer is how many log events a slow stream can fall behind before
 	// events are dropped for that stream.
 	logBuffer = 256
+	// thumbViewWindow is how long after a page last asked for the screen
+	// preview the agent keeps capturing it for the page.
+	thumbViewWindow = 15 * time.Second
 )
 
 type Server struct {
@@ -67,6 +72,10 @@ type Server struct {
 	jsonEnabled  bool
 	apiKey       string
 	devMode      bool
+	thumbs       *screenthumb.Store
+	// thumbSeen is when a page last asked for the screen preview
+	// (unix nanoseconds, 0 = never).
+	thumbSeen atomic.Int64
 }
 
 func NewServer(collector *telemetry.Collector, mqttClient *mqtt.Client) *Server {
@@ -95,6 +104,25 @@ func (s *Server) SetDevMode(enabled bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.devMode = enabled
+}
+
+// SetThumbnailStore sets where the latest screen thumbnail is read from.
+func (s *Server) SetThumbnailStore(store *screenthumb.Store) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.thumbs = store
+}
+
+// ThumbnailWanted reports whether a page has asked for the screen preview
+// recently. The agent only captures the screen for the page while this is
+// true, so a closed tab costs nothing.
+func (s *Server) ThumbnailWanted() bool {
+	seen := s.thumbSeen.Load()
+	return seen != 0 && time.Since(time.Unix(0, seen)) < thumbViewWindow
+}
+
+func (s *Server) noteThumbnailViewer() {
+	s.thumbSeen.Store(time.Now().UnixNano())
 }
 
 func generateSecureToken() string {
@@ -364,6 +392,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/", s.webUIMiddleware(s.handleIndex))
 	mux.HandleFunc("/api/status", api(s.handleStatus))
 	mux.HandleFunc("/api/capabilities", api(s.handleCapabilities))
+	mux.HandleFunc("/api/screen-thumbnail", api(s.handleScreenThumbnail))
 	mux.HandleFunc("/api/config", api(s.handleConfig))
 	mux.HandleFunc("/api/config/export", api(s.handleConfigExport))
 	mux.HandleFunc("/api/config/import", api(s.handleConfigImport))
@@ -525,6 +554,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	s.mu.Lock()
 	u := s.updater
+	caps := s.caps
+	store := s.thumbs
 	s.mu.Unlock()
 
 	var updateStatus interface{}
@@ -532,11 +563,53 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		updateStatus = u.Status()
 	}
 
+	expose := config.Get().Expose
+	// The page adds thumb=1 while it is showing the screen preview.
+	if r.URL.Query().Get("thumb") == "1" && expose.ScreenThumbnail && caps.ScreenThumbnail {
+		s.noteThumbnailViewer()
+	}
+	var frame Frame
+	if store != nil {
+		_, frame.At, frame.Have = store.Latest()
+	}
+	snap := s.collector.Last()
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"mqtt_status":   string(s.mqttClient.Status()),
-		"telemetry":     s.collector.Last(),
+		"telemetry":     snap,
+		"sensors":       BuildSensors(expose, caps, snap, frame, time.Now()),
 		"update_status": updateStatus,
 	})
+}
+
+// handleScreenThumbnail serves the latest screen thumbnail as a JPEG. It is
+// only available while the sensor is switched on.
+func (s *Server) handleScreenThumbnail(w http.ResponseWriter, r *http.Request) {
+	if !requireGET(w, r) {
+		return
+	}
+	s.mu.Lock()
+	caps := s.caps
+	store := s.thumbs
+	s.mu.Unlock()
+
+	if !caps.ScreenThumbnail || !config.Get().Expose.ScreenThumbnail {
+		http.NotFound(w, r)
+		return
+	}
+	s.noteThumbnailViewer()
+	if store == nil {
+		http.NotFound(w, r)
+		return
+	}
+	jpeg, _, ok := store.Latest()
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", screenthumb.ContentType)
+	w.Header().Set("Content-Length", strconv.Itoa(len(jpeg)))
+	_, _ = w.Write(jpeg)
 }
 
 func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
