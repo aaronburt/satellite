@@ -101,11 +101,18 @@ before the method check.
 | `telemetry` | Last collected snapshot; fields depend on enabled sensors and platform support |
 | `sensors` | Every sensor that is switched on and supported here, each with a ready-to-show reading (see below). Empty list when none are on |
 | `update_status` | Update-check status, or `null` if no checker is configured |
+| `privacy_pause` | Quick privacy pause status: `paused`, `until` (RFC 3339 timestamp; zero time when no deadline is set), and `remaining_seconds` (rounded up) |
 
 Snapshot fields, including `cpu_percent`, `memory_percent`, `has_battery`, and
 the Unix-seconds `timestamp`, are defined in
 [`types.go`](../windows/internal/telemetry/types.go). This endpoint reads the
 last snapshot rather than triggering a fresh collection.
+
+During a Windows tray privacy pause, High and Critical privacy readings are
+omitted from `telemetry`, `/json`, and `sensors`; screen-thumbnail requests return
+404. Configured sensor switches remain unchanged. The tray menu and tooltip show
+the countdown. The pause ends automatically at its deadline, on early resume, or
+when Satellite exits. The API exposes its status but has no pause/resume route.
 
 Each entry of `sensors` has `id`, `group`, `label`, `value`, `state` and
 optionally `detail`, `percent` (draws a gauge), `level` (`mid` or `high`, for

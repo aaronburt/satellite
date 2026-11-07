@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+
+	"satellite/internal/privacy"
 )
 
 type displayRunner struct {
@@ -33,7 +35,7 @@ func (m *Manager) Tick() error {
 		return nil
 	}
 	var ids []int
-	if m.Enabled != nil && m.Enabled() {
+	if !privacy.Default.Status().Paused && m.Enabled != nil && m.Enabled() {
 		ids = SelectedDisplays(m.Selected())
 	}
 	if m.Store != nil {

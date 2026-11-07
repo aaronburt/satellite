@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/privacy"
 )
 
 type Collector struct {
@@ -60,9 +61,14 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	privacyStatus := privacy.Default.Status()
+	if privacyStatus.Paused {
+		expose = expose.WithoutSensitive()
+	}
 	collectedAt := c.clock()
 	snap := Snapshot{
-		Timestamp: collectedAt.Unix(),
+		Timestamp:         collectedAt.Unix(),
+		privacyGeneration: privacyStatus.Generation,
 	}
 
 	if expose.CPU {
@@ -199,6 +205,7 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 		snap.GPUs = GetGPUInfo(expose.NvidiaNVML)
 	}
 
+	snap = snap.ApplyPrivacy()
 	c.lastSnapshot = snap
 	return snap
 }
@@ -206,7 +213,7 @@ func (c *Collector) Collect(expose config.ExposeConfig) Snapshot {
 func (c *Collector) Last() Snapshot {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.lastSnapshot
+	return c.lastSnapshot.ApplyPrivacy()
 }
 
 func HasSignificantDelta(prev, curr Snapshot) bool {

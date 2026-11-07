@@ -56,6 +56,17 @@ states, are off until enabled. You can pause reporting and revoke permissions.
 
 The microphone and webcam features do not record or upload audio or video.
 
+The Windows tray's **Quick Privacy Pause** temporarily stops the High and
+Critical privacy groups: presence/idle time, session lock, media details, active
+process, window titles, microphone/webcam usage, and all screen thumbnails. Choose
+5, 15, 30, or 60 minutes; the tray shows a countdown and can resume early. Saved
+sensor choices are preserved. The deadline includes time asleep; restarting
+Satellite ends the pause. Sensitive readings are filtered from MQTT, telemetry
+webhooks and their retries/tests, and local snapshot/preview endpoints. Cached
+previews are cleared. Other telemetry and enabled remote commands continue.
+Requests already sent and copies held by destinations or browsers cannot be
+retracted.
+
 The Windows screen thumbnail is off by default. When you turn it on, Satellite
 sends a picture of your main screen with each telemetry update (every 5 seconds
 by default), 200 pixels on its longest side by default (adjustable, never above 400), to your MQTT broker. The screen is scaled down by Windows

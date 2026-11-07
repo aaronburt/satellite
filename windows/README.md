@@ -28,6 +28,7 @@ The local web UI lets you choose which sensors are published. Its **Sensors** ta
 - **Generic Webhook:** Optionally POST telemetry snapshots as JSON on changes or heartbeats, alongside (or instead of) MQTT.
 - **Connection Diagnostics:** The web UI's Diagnostics tab shows MQTT and telemetry webhook health, attempts, reconnects, successful telemetry writes, recent failures with suggested fixes, and scheduled retries. Test saved connections or copy a report without server addresses, credentials or sensor readings.
 - **Tray, Web UI & Headless:** Windows system tray, local Web UI for setup, and headless operation (`--headless`) including Linux systemd user services. Linux has no tray implementation.
+- **Quick Privacy Pause (Windows tray):** pause sensitive sensors for 5, 15, 30, or 60 minutes, with a live countdown, early resume, and automatic resume.
 
 ---
 
@@ -126,6 +127,30 @@ for an encrypted export/import; the passphrase is supplied as a command-line
 argument. Import adapts node/client identity to the current hostname by default;
 use `--reset-node-id=false` to retain the imported identity. Restart the agent
 after importing. Linux uses `./satellite` with the same flags.
+
+## Quick privacy pause
+
+From the Windows tray, open **Quick Privacy Pause** and choose **5, 15, 30, or
+60 minutes**. The tray menu and hover tooltip show the remaining time, updated
+every second. Choosing another duration starts a new countdown from that moment.
+Choose **Resume sensitive sensors now** to end it early.
+
+The pause covers the **High** and **Critical Privacy Risk** groups in Settings:
+user presence/idle time, session lock, media details, active process, window
+titles, microphone/webcam usage, and thumbnails from every selected display.
+These readings are omitted from MQTT, telemetry webhooks (including queued
+retries and connection tests), `/json`, and the Sensors view. Thumbnail capture
+stops and cached previews are cleared. Old snapshots and frames cannot reappear
+after resume; fresh readings arrive on the next normal collection tick.
+
+Hardware telemetry, network/peripheral context, notifications, and enabled
+remote commands keep working. Saved sensor choices are preserved, including
+changes made during the pause. Only sensors currently enabled resume when the
+deadline passes. Time spent asleep counts toward the duration.
+
+The pause lasts for the current Satellite session; exiting or restarting the app
+ends it. It cannot retract requests already sent or erase readings/images already
+stored by Home Assistant, brokers, webhook receivers, or an open browser.
 
 ## Remote Commands
 
