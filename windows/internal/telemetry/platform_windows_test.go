@@ -133,3 +133,19 @@ func getEnv(k string) string {
 	v, _ := syscall.Getenv(k)
 	return v
 }
+
+func TestWindowsBuildNumberIsModern(t *testing.T) {
+	if b := windowsBuildNumber(); b < firstBuildWithCorrectWTSFlags {
+		t.Fatalf("build %d: RtlGetVersion should report Windows 8 or later on CI", b)
+	}
+}
+
+// The CI runner is never locked, so a known WTS state must say unlocked.
+// Runners in session 0 may get no answer, which is allowed.
+func TestWTSSessionLockedOnUnlockedRunner(t *testing.T) {
+	locked, known := wtsSessionLocked()
+	if known && locked {
+		t.Fatal("WTS reports the CI session as locked")
+	}
+	t.Logf("WTS known=%v locked=%v, input desktop openable=%v", known, locked, inputDesktopOpenable())
+}
