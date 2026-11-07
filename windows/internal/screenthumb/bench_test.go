@@ -7,7 +7,7 @@ import (
 
 func BenchmarkThumbSize(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _, _ = ThumbSize(1920, 1080, MaxSide)
+		_, _, _ = ThumbSize(1920, 1080, DefaultSide)
 	}
 }
 

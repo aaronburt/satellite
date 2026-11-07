@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"satellite/internal/screenthumb"
 )
 
 // Version is the app version, MAJOR.MINOR. Release builds set it to the
@@ -70,19 +72,21 @@ type TelemetryWebhookConfig struct {
 }
 
 type Config struct {
-	NodeID       string        `json:"node_id"`
-	MQTT         MQTTConfig    `json:"mqtt"`
-	Expose       ExposeConfig  `json:"expose"`
-	IntervalSec  int           `json:"interval_sec"`
-	HeartbeatSec int           `json:"heartbeat_sec,omitempty"`
-	Port         int           `json:"port,omitempty"`
-	WebUIPort    int           `json:"webui_port"`
-	BindAddress  string        `json:"bind_address,omitempty"`
-	JSONEnabled  bool          `json:"json_enabled"`
-	APIKey       string        `json:"api_key"`
-	Webhook      WebhookConfig `json:"webhook"`
-	CheckUpdates bool          `json:"check_updates"`
-	UpdateRepo   string        `json:"update_repo,omitempty"`
+	NodeID      string       `json:"node_id"`
+	MQTT        MQTTConfig   `json:"mqtt"`
+	Expose      ExposeConfig `json:"expose"`
+	IntervalSec int          `json:"interval_sec"`
+	// ScreenThumbnailSize is the longest edge in pixels of the screen thumbnail.
+	ScreenThumbnailSize int           `json:"screen_thumbnail_size,omitempty"`
+	HeartbeatSec        int           `json:"heartbeat_sec,omitempty"`
+	Port                int           `json:"port,omitempty"`
+	WebUIPort           int           `json:"webui_port"`
+	BindAddress         string        `json:"bind_address,omitempty"`
+	JSONEnabled         bool          `json:"json_enabled"`
+	APIKey              string        `json:"api_key"`
+	Webhook             WebhookConfig `json:"webhook"`
+	CheckUpdates        bool          `json:"check_updates"`
+	UpdateRepo          string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
@@ -164,14 +168,15 @@ func DefaultConfig() Config {
 			ClientID:    "satellite-" + hostname,
 			TopicPrefix: "satellite",
 		},
-		Expose:       DefaultExpose(),
-		IntervalSec:  5,
-		HeartbeatSec: 60,
-		Port:         0,
-		WebUIPort:    0,
-		BindAddress:  "127.0.0.1",
-		JSONEnabled:  false,
-		APIKey:       "",
+		Expose:              DefaultExpose(),
+		IntervalSec:         5,
+		ScreenThumbnailSize: screenthumb.DefaultSide,
+		HeartbeatSec:        60,
+		Port:                0,
+		WebUIPort:           0,
+		BindAddress:         "127.0.0.1",
+		JSONEnabled:         false,
+		APIKey:              "",
 		Webhook: WebhookConfig{
 			Enabled:  false,
 			URL:      "",
@@ -218,6 +223,7 @@ func Load() (Config, error) {
 	if cfg.Webhook.MinLevel == "" {
 		cfg.Webhook.MinLevel = "info"
 	}
+	cfg.ScreenThumbnailSize = screenthumb.ClampSide(cfg.ScreenThumbnailSize)
 
 	current = cfg
 	return current, nil

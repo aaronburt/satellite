@@ -25,7 +25,7 @@ are cleared with an empty retained payload. State is published on significant
 changes or a heartbeat (default 60 seconds), checked on each collection tick
 (default 5 seconds). Availability payloads are `online` and `offline`.
 
-The screen thumbnail payload is raw JPEG bytes (at most 200px on the longest
+The screen thumbnail payload is raw JPEG bytes (200px by default, at most 400px, on the longest
 side, once per telemetry collection tick) for the Home Assistant `image` entity. It is only sent
 when `expose.screen_thumbnail` is on, and is off by default.
 

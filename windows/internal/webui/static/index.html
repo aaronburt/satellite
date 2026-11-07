@@ -1625,7 +1625,8 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
                 <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
                 <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-                <label class="toggle-item" data-cap="screen_thumbnail" title="Each time Satellite sends an update, it also sends a picture of your main screen, no larger than 200px, to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk. If NVIDIA sensors (NVML) are also on, the shrinking is done on the graphics card, with the standard method as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (200px, every update)</span></label>
+                <label class="toggle-item" data-cap="screen_thumbnail" title="Each time Satellite sends an update, it also sends a picture of your main screen, no larger than 200px, to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk. If NVIDIA sensors (NVML) are also on, the shrinking is done on the graphics card, with the standard method as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (every update)</span></label>
+                <div class="field" id="screen-thumb-size-field"><label for="screen-thumb-size">Thumbnail size (longest edge, px)</label><input type="number" class="mono" id="screen-thumb-size" min="64" max="400" step="1" value="200" title="Longest edge of the screen thumbnail, 64 to 400 pixels. Larger sizes show more detail, and above about 200 pixels large on-screen text can become readable."></div>
               </div>
             </div>
           </div>
@@ -2533,6 +2534,7 @@ async function loadConfig() {
     $('prefix').value = cfg.mqtt ? cfg.mqtt.topic_prefix : '';
     $('insecure_tls').checked = cfg.mqtt ? !!cfg.mqtt.insecure_tls : false;
     $('interval').value = cfg.interval_sec || 5;
+    $('screen-thumb-size').value = cfg.screen_thumbnail_size || 200;
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
     updateBindWarning();
     $('port').value = cfg.port || cfg.webui_port || '';
@@ -2746,6 +2748,7 @@ $('cfg-form').onsubmit = async (e) => {
     },
     expose: newExpose,
     interval_sec: intervalSec,
+    screen_thumbnail_size: Math.min(400, Math.max(64, parseInt($('screen-thumb-size').value, 10) || 200)),
     bind_address: $('bind_address').value.trim() || '127.0.0.1',
     port: parseInt($('port').value, 10) || 0,
     webui_port: parseInt($('port').value, 10) || 0,
