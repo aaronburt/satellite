@@ -282,7 +282,7 @@ CI gates: unit tests, lint, detekt, discovery golden tests. Integration tests ru
 ## 8. CI/CD & release
 
 - **GitHub Actions:** `build` (assembleDebug, lint, detekt, unit tests) on every PR; `integration` (Mosquitto service) on relevant paths; `release` on `v*` tags (sign with repository secrets, create GitHub Release).
-- **Versioning:** semver tags; `versionCode` = `major*10000 + minor*100 + patch` from CI.
+- **Versioning:** semver tags; `versionCode` = `major*10000 + minor*100 + patch` from CI. (Superseded: releases are now `MAJOR.MINOR`, one per merged PR; see `CONTRIBUTING.md`.)
 - **R8 full mode + baseline profiles** in release builds; keep rules for Netty/Tink verified by an instrumented smoke test on release builds.
 - **F-Droid:** metadata + reproducible build notes once stable (no Play services dependency — we should avoid Firebase entirely).
 - **No telemetry by default.** Diagnostics stay local; optional user-initiated log export only.

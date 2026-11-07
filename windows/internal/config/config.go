@@ -10,7 +10,11 @@ import (
 	"sync"
 )
 
-const Version = "0.27.3"
+// Version is the app version, MAJOR.MINOR. Release builds set it to the
+// released version with -ldflags "-X satellite/internal/config.Version=...".
+// The value here is used by local builds and is the floor for the next
+// release: raise it to jump to a new version (see CONTRIBUTING.md).
+var Version = "0.28"
 
 type MQTTConfig struct {
 	Broker      string `json:"broker"`

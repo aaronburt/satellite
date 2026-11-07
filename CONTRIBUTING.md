@@ -98,22 +98,41 @@ testing. Its development credentials and exposed ports are documented there.
 
 ## Releases
 
-The root [release workflow](.github/workflows/release.yml) builds one release
-containing desktop and Android artifacts:
+Versions are `MAJOR.MINOR` (from `0.28`; earlier releases were `X.Y.Z`), and
+every pull request merged to `main` is released. You do not bump anything by
+hand.
 
-1. Update `const Version` in `windows/internal/config/config.go` to `X.Y.Z`.
-2. Run the relevant application checks and review the changes.
-3. Push the approved change to `main`. The workflow also supports manual dispatch.
-4. Check the workflow result and the assets on the generated `vX.Y.Z` release.
+When a PR merges, the root [release workflow](.github/workflows/release.yml):
 
-The workflow skips a version if its release already exists. Build jobs run Go
-and Android unit tests before publication; separate CI jobs provide additional
-checks. Linux tests run in Go CI, while the release workflow cross-compiles the
-Linux binary on Windows.
+1. Works out the next version with
+   [`next-version.sh`](.github/scripts/next-version.sh): the latest `v*` tag
+   with its minor number bumped by one (`v0.28` -> `v0.29` -> `v0.30`).
+2. Runs the Go and Android unit tests and builds the desktop and Android
+   artifacts with that version baked in.
+3. Publishes them as a single `vMAJOR.MINOR` release with generated notes.
 
-Android release `versionName` comes from the shared version. `versionCode` is
-`major * 10000 + minor * 100 + patch`; keep minor and patch below 100 so versions
-remain ordered within that encoding. Local Android builds use the defaults in
+Nothing is committed back to `main`, so the version in the source does not
+change with each release. `var Version` in `windows/internal/config/config.go`
+is a floor and the version local builds report. To bump the major version (or
+jump ahead), raise it in a PR, for example to `1.0`: that PR is released as
+`v1.0`, and the next one as `v1.1`.
+
+Runs queue one at a time. If several PRs merge while a release is building,
+the next run releases them together under one version. A failed run publishes
+nothing; the next merge (or a manual re-run) releases everything since the last
+release. Re-running the workflow on a commit that already has a release tag
+does nothing. Separate CI jobs provide additional checks; Linux tests run in Go
+CI, while the release workflow cross-compiles the Linux binary on Windows.
+
+The Windows build sets the version with
+`-ldflags "-X satellite/internal/config.Version=MAJOR.MINOR"`, and the release
+fails if a binary was built without it. Android release `versionName` is the
+same version, and `versionCode` is `major * 1000000 + minor * 100`, so minor can
+go up to 9999. Old three-part releases used `major * 10000 + minor * 100 +
+patch` (`0.27.3` was `2703`); the two encodings agree for every `0.x` version,
+so `0.28` (`2800`) is newer than all of them. Android apps on `0.27.3` or
+older only understand three-part tags, so install the `v0.28` APK by hand once;
+in-app updates work from then on. Local Android builds use the defaults in
 `app/build.gradle.kts` unless overridden with `-PversionName` and `-PversionCode`.
 
 Publishing a signed APK requires repository secrets `RELEASE_KEYSTORE_BASE64`,

@@ -165,6 +165,27 @@ class UpdateManagerTest {
     }
 
     @Test
+    fun `a two-part release tag is an update over an older three-part install`() = runTest {
+        source.result = { release("v0.6") }
+        manager.checkAndDownload()
+
+        val ready = manager.state.value as UpdateState.Ready
+        assertEquals("0.6", ready.versionName)
+        assertEquals(600, ready.versionCode)
+        assertEquals(1, downloader.calls)
+    }
+
+    @Test
+    fun `same or older two-part release is up to date`() = runTest {
+        for (tag in listOf("v0.5", "v0.4")) {
+            source.result = { release(tag) }
+            manager.checkAndDownload()
+            assertEquals(tag, UpdateState.UpToDate("0.5.1"), manager.state.value)
+        }
+        assertEquals(0, downloader.calls)
+    }
+
+    @Test
     fun `a release tag without a version is treated as up to date`() = runTest {
         source.result = { release("nightly") }
         manager.checkAndDownload()

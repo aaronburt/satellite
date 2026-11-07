@@ -1,9 +1,15 @@
 name: Release
 
-# One release per version. Bumping `const Version` in
-# windows/internal/config/config.go and pushing to main builds the Windows
-# binaries/installer and the signed Android APK, then publishes them together
-# as a single vX.Y.Z release. If the release already exists, nothing is built.
+# One release per merged pull request. Every push to main (main is protected,
+# so that means every merged PR) publishes the next MAJOR.MINOR version: the
+# latest release tag with its minor number bumped by one (v0.28, v0.29, ...).
+# It builds the Windows binaries/installer and the signed Android APK and
+# publishes them together as a single vMAJOR.MINOR release.
+#
+# Nothing is committed back to main. The version is worked out from the
+# existing tags by .github/scripts/next-version.sh and passed into each build.
+# `Version` in windows/internal/config/config.go is a floor: raise it (for
+# example to 1.0) to make the next release jump to that version.
 #
 # The Windows app reads only the release tag, and the Android app takes the
 # first .apk attached to the latest release, so both update from this release.
@@ -12,15 +18,14 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'windows/**'
-      - 'android/**'
-      - '.github/workflows/release.yml'
   workflow_dispatch:
 
 permissions:
   contents: write
 
+# Runs queue one at a time so each one sees the tag the previous one made. If
+# several PRs merge while a release is building, the queued run releases them
+# together.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -41,38 +46,43 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v7
 
-      - name: Extract and Validate Version
+      # Release tags only; the workflow never pushes commits.
+      - name: Fetch release tags
+        run: git fetch --force --tags origin
+
+      - name: Test version script
+        run: .github/scripts/next-version-test.sh
+
+      - name: Work out next version
         id: get_version
         run: |
-          VERSION=$(sed -nE 's/^const[[:space:]]+Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' windows/internal/config/config.go | head -n1)
-          if [[ -z "$VERSION" ]]; then
-            echo "::error::Could not find 'const Version' in windows/internal/config/config.go"
+          FLOOR=$(sed -nE 's/^var[[:space:]]+Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' windows/internal/config/config.go | head -n1)
+          if [[ -z "$FLOOR" ]]; then
+            echo "::error::Could not find 'var Version' in windows/internal/config/config.go"
             exit 1
           fi
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Version '$VERSION' is not semver (expected X.Y.Z)"
-            exit 1
-          fi
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          echo "Found version: $VERSION"
+          mapfile -t TAGS < <(git tag --list 'v*')
+          VERSION=$(.github/scripts/next-version.sh "$FLOOR" "${TAGS[@]}")
+          IFS='.' read -r MAJOR MINOR <<< "$VERSION"
+          echo "Next version: $VERSION (floor $FLOOR)"
+          # Same encoding as VersionCodes in android/core/update. Old three-part
+          # releases used major*10000 + minor*100 + patch, so 0.27.3 was 2703
+          # and 0.28 is 2800.
           {
             echo "version=$VERSION"
             echo "tag=v$VERSION"
-            echo "code=$((10#$MAJOR * 10000 + 10#$MINOR * 100 + 10#$PATCH))"
+            echo "code=$((10#$MAJOR * 1000000 + 10#$MINOR * 100))"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Check if Release Exists
+      # A manual re-run on a commit that was already released does nothing.
+      - name: Check if this commit is already released
         id: check_release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.get_version.outputs.tag }}
         run: |
-          EXISTING=$(gh release list --limit 1000 --json tagName --jq '.[].tagName')
-          if grep -Fxq "$TAG" <<< "$EXISTING"; then
-            echo "Release $TAG already exists. Skipping build."
+          RELEASED=$(git tag --points-at HEAD --list 'v*' | head -n1)
+          if [[ -n "$RELEASED" ]]; then
+            echo "This commit is already released as $RELEASED. Skipping build."
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Release $TAG does not exist. Proceeding with build."
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -116,11 +126,12 @@ jobs:
       - name: Build Binaries
         shell: pwsh
         run: |
-          go build -ldflags="-H windowsgui -s -w" -o satellite.exe .
+          $setVersion = "-X satellite/internal/config.Version=${{ needs.version.outputs.version }}"
+          go build -ldflags="-H windowsgui -s -w $setVersion" -o satellite.exe .
           $env:GOOS = "linux"
           $env:GOARCH = "amd64"
           $env:CGO_ENABLED = "0"
-          go build -ldflags="-s -w" -o satellite-linux-amd64 .
+          go build -ldflags="-s -w $setVersion" -o satellite-linux-amd64 .
           $env:GOOS = "windows"
 
       - name: Smoke Test Binaries
@@ -134,6 +145,12 @@ jobs:
               exit 1
             }
             Write-Host "$f OK ($([math]::Round($size/1MB,1)) MB)"
+            # The version must have been baked in, not left at the floor.
+            $want = "config.Version=${{ needs.version.outputs.version }}"
+            if (-not (go version -m $f | Select-String -SimpleMatch $want)) {
+              Write-Error "$f was not built with $want"
+              exit 1
+            }
           }
 
       - name: Build Inno Setup Installer

@@ -40,6 +40,15 @@ class GitHubReleaseParserTest {
     }
 
     @Test
+    fun `parses a two-part major-minor release tag`() {
+        val release = GitHubReleaseParser.parse("""{"tag_name":"v0.28","assets":[]}""")
+
+        assertEquals("v0.28", release.tag)
+        assertEquals("0.28", release.versionName)
+        assertEquals(2_800, release.versionCode)
+    }
+
+    @Test
     fun `picks the apk asset and reads its digest`() {
         val apk = GitHubReleaseParser.parse(json).apk
 
