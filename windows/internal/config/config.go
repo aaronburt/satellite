@@ -77,16 +77,19 @@ type Config struct {
 	Expose      ExposeConfig `json:"expose"`
 	IntervalSec int          `json:"interval_sec"`
 	// ScreenThumbnailSize is the longest edge in pixels of the screen thumbnail.
-	ScreenThumbnailSize int           `json:"screen_thumbnail_size,omitempty"`
-	HeartbeatSec        int           `json:"heartbeat_sec,omitempty"`
-	Port                int           `json:"port,omitempty"`
-	WebUIPort           int           `json:"webui_port"`
-	BindAddress         string        `json:"bind_address,omitempty"`
-	JSONEnabled         bool          `json:"json_enabled"`
-	APIKey              string        `json:"api_key"`
-	Webhook             WebhookConfig `json:"webhook"`
-	CheckUpdates        bool          `json:"check_updates"`
-	UpdateRepo          string        `json:"update_repo,omitempty"`
+	ScreenThumbnailSize int `json:"screen_thumbnail_size,omitempty"`
+	// ScreenThumbnailHiddenApps lists program names (such as chrome.exe) whose
+	// windows are blacked out of the screen thumbnail.
+	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps,omitempty"`
+	HeartbeatSec              int           `json:"heartbeat_sec,omitempty"`
+	Port                      int           `json:"port,omitempty"`
+	WebUIPort                 int           `json:"webui_port"`
+	BindAddress               string        `json:"bind_address,omitempty"`
+	JSONEnabled               bool          `json:"json_enabled"`
+	APIKey                    string        `json:"api_key"`
+	Webhook                   WebhookConfig `json:"webhook"`
+	CheckUpdates              bool          `json:"check_updates"`
+	UpdateRepo                string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
@@ -224,6 +227,7 @@ func Load() (Config, error) {
 		cfg.Webhook.MinLevel = "info"
 	}
 	cfg.ScreenThumbnailSize = screenthumb.ClampSide(cfg.ScreenThumbnailSize)
+	cfg.ScreenThumbnailHiddenApps = screenthumb.NormalizeApps(cfg.ScreenThumbnailHiddenApps)
 
 	current = cfg
 	return current, nil

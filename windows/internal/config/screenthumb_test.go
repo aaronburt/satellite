@@ -98,3 +98,41 @@ func TestScreenThumbnailSizeSurvivesExportImport(t *testing.T) {
 		t.Fatalf("size = %d, want 288", res.Config.ScreenThumbnailSize)
 	}
 }
+
+func TestHiddenAppsNormalizedOnLoadAndImport(t *testing.T) {
+	testutil.IsolateConfigDir(t, t.TempDir())
+	if err := os.MkdirAll(ConfigDir(), 0700); err != nil {
+		t.Fatal(err)
+	}
+	raw := `{"node_id":"x","screen_thumbnail_hidden_apps":[" Chrome.EXE ","C:\\Apps\\Edge.exe","chrome.exe",""]}`
+	if err := os.WriteFile(ConfigFilePath(), []byte(raw), 0600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := cfg.ScreenThumbnailHiddenApps; len(got) != 2 || got[0] != "chrome.exe" || got[1] != "edge.exe" {
+		t.Fatalf("loaded %v", got)
+	}
+
+	orig := DefaultConfig()
+	orig.ScreenThumbnailHiddenApps = []string{"chrome.exe", "vlc.exe"}
+	data, err := ExportConfig(orig, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := ImportConfig(data, ImportOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := res.Config.ScreenThumbnailHiddenApps; len(got) != 2 || got[1] != "vlc.exe" {
+		t.Fatalf("imported %v", got)
+	}
+}
+
+func TestHiddenAppsEmptyByDefault(t *testing.T) {
+	if len(DefaultConfig().ScreenThumbnailHiddenApps) != 0 {
+		t.Fatal("no apps should be hidden by default")
+	}
+}

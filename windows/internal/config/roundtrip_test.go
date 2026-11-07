@@ -31,6 +31,11 @@ func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 			f.SetBool(true)
 		case reflect.Int, reflect.Int64, reflect.Int32:
 			f.SetInt(int64(1000 + *counter))
+		case reflect.Slice:
+			if f.Type().Elem().Kind() != reflect.String {
+				t.Fatalf("fillAllFields: unsupported slice of %s for %s; extend the helper", f.Type().Elem().Kind(), name)
+			}
+			f.Set(reflect.ValueOf([]string{fmt.Sprintf("value-%s-%d.exe", strings.ToLower(name), *counter)}))
 		case reflect.Struct:
 			fillAllFields(t, f, name+".", counter)
 		default:

@@ -247,6 +247,16 @@ image entity.
   after), so a closed or backgrounded tab costs nothing. This works even when
   MQTT is not connected.
 
+**Hiding programs.** Under the thumbnail size you can list programs (for
+example `chrome.exe`, one per line) whose windows are painted black in the
+picture, in the web UI or as `screen_thumbnail_hidden_apps` in the config file.
+Satellite finds the visible windows of those programs on the main screen each
+time and blacks out their whole rectangle, even where another window overlaps
+it. If the window lookup fails, no picture is sent for that update. Matching is
+by program file name, so apps that run inside a shared host process (some Store
+apps) cannot be told apart. This is separate from DRM: protected video is often
+blank in screen captures anyway, but do not rely on that.
+
 At the default 200px ordinary text is unreadable (larger sizes show more, and
 small text can become readable above about 200px), but large headings and titles may be
 guessable, and the picture shows what kind of thing is on screen (a video, a

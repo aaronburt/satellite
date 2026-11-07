@@ -159,6 +159,8 @@ func main() {
 		Locked:  telemetry.IsSessionLocked,
 		Capture: thumbSource.Capture,
 		Side:    func() int { return config.Get().ScreenThumbnailSize },
+		Hide: screenthumb.NewHider(func() []string { return config.Get().ScreenThumbnailHiddenApps },
+			screenthumb.PlatformHiddenRects),
 		Publish: mqttClient.PublishScreenThumbnail,
 	}
 	reportThumbErr := screenthumb.LogOnChange(func(err error) {
