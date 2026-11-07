@@ -137,11 +137,23 @@ func main() {
 		webhookSink,
 	}
 
+	thumbs := &screenthumb.Runner{
+		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
+		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },
+		Locked:  telemetry.IsSessionLocked,
+		Capture: screenthumb.Capture,
+		Publish: mqttClient.PublishScreenThumbnail,
+	}
+	reportThumbErr := screenthumb.LogOnChange(func(err error) {
+		logger.Warn("screen_thumbnail", fmt.Sprintf("Screen thumbnail failed: %v", err))
+	})
+
 	var tickCount uint64
 	collectLoop := collectloop.New(cfg.IntervalSec, func() {
 		tickCount++ // only touched on the loop goroutine
 		snap := collector.Collect(config.Get().Expose)
 		output.PublishAll(sinks, snap)
+		thumbs.Trigger(reportThumbErr)
 		if tickCount%12 == 0 {
 			telemetry.TrimWorkingSet()
 		}
@@ -151,24 +163,11 @@ func main() {
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go collectLoop.Run(tickerCtx)
 
-	thumbs := &screenthumb.Runner{
-		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
-		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },
-		Locked:  telemetry.IsSessionLocked,
-		Capture: screenthumb.Capture,
-		Publish: mqttClient.PublishScreenThumbnail,
-	}
-	thumbCtx, cancelThumbs := context.WithCancel(context.Background())
-	go thumbs.Run(thumbCtx, screenthumb.Interval, screenthumb.LogOnChange(func(err error) {
-		logger.Warn("screen_thumbnail", fmt.Sprintf("Screen thumbnail failed: %v", err))
-	}))
-
 	onExit := func() {
 		logger.Info("system", "Satellite agent shutting down")
 		cancelUpdater()
 		stopIntervalWatch()
 		cancelTicker()
-		cancelThumbs()
 		webhookSink.Close()
 		mqttClient.Stop()
 		server.Stop()

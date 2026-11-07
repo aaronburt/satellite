@@ -2,17 +2,15 @@ package screenthumb
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"image"
 	"image/jpeg"
-	"time"
+	"sync/atomic"
 )
 
 const (
-	Interval    = 30 * time.Second
-	MaxSide     = 100
+	MaxSide     = 200
 	ContentType = "image/jpeg"
 
 	jpegQuality = 75
@@ -75,6 +73,8 @@ type Runner struct {
 	Locked  func() bool
 	Capture func(maxSide int) (image.Image, error)
 	Publish func(jpeg []byte) error
+
+	running atomic.Bool
 }
 
 type Result int
@@ -109,20 +109,17 @@ func (r *Runner) Tick() (Result, error) {
 	return Published, nil
 }
 
-func (r *Runner) Run(ctx context.Context, interval time.Duration, report func(error)) {
-	t := time.NewTicker(interval)
-	defer t.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-t.C:
-			_, err := r.Tick()
-			if report != nil {
-				report(err)
-			}
-		}
+func (r *Runner) Trigger(report func(error)) {
+	if !r.running.CompareAndSwap(false, true) {
+		return
 	}
+	go func() {
+		defer r.running.Store(false)
+		_, err := r.Tick()
+		if report != nil {
+			report(err)
+		}
+	}()
 }
 
 func LogOnChange(log func(error)) func(error) {

@@ -12,7 +12,7 @@ func BenchmarkThumbSize(b *testing.B) {
 }
 
 func BenchmarkFromBGRA(b *testing.B) {
-	w, h := 100, 56
+	w, h := 200, 113
 	buf := make([]byte, w*h*4)
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -24,7 +24,7 @@ func BenchmarkFromBGRA(b *testing.B) {
 }
 
 func BenchmarkEncode(b *testing.B) {
-	img := image.NewRGBA(image.Rect(0, 0, 100, 56))
+	img := image.NewRGBA(image.Rect(0, 0, 200, 113))
 	for i := range img.Pix {
 		img.Pix[i] = byte(i * 7)
 	}
