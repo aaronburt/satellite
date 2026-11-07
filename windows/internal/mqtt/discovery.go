@@ -76,7 +76,6 @@ func driveKey(mount string) string {
 	return discoveryID(clean)
 }
 
-// ScreenThumbnailTopic is where the raw JPEG thumbnail bytes are published.
 func ScreenThumbnailTopic(topicPrefix, nodeID string) string {
 	if topicPrefix == "" {
 		topicPrefix = "satellite"

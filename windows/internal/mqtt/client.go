@@ -479,17 +479,12 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	return err
 }
 
-// ScreenThumbnailEnabled reports whether the running config has the screen
-// thumbnail switched on.
 func (c *Client) ScreenThumbnailEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.cfg.Expose.ScreenThumbnail
 }
 
-// PublishScreenThumbnail sends JPEG thumbnail bytes for the Home Assistant
-// image entity. It is not retained, so the broker does not keep a copy after
-// delivering it, and it is dropped while disconnected rather than queued.
 func (c *Client) PublishScreenThumbnail(jpeg []byte) error {
 	c.mu.RLock()
 	if c.status != StatusConnected || c.pahoClient == nil || !c.cfg.Expose.ScreenThumbnail {

@@ -1924,7 +1924,6 @@ function filterSensors(query) {
 
 function bulkToggleEntities(checked) {
   document.querySelectorAll('.exp-chk').forEach(el => {
-    // Bulk "enable all" never switches on screen capture; it must be ticked on purpose.
     if (checked && el.dataset.noBulk !== undefined) return;
     el.checked = checked;
   });

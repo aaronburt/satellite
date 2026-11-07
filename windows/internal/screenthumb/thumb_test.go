@@ -54,7 +54,6 @@ func TestThumbSizeRejectsBadInput(t *testing.T) {
 }
 
 func TestFromBGRASwapsChannelsAndSetsOpaque(t *testing.T) {
-	// 2x1: a blue pixel then a red one, in BGRA with alpha 0 as GDI returns.
 	buf := []byte{255, 0, 0, 0, 0, 0, 255, 0}
 	img, err := FromBGRA(buf, 2, 1)
 	if err != nil {

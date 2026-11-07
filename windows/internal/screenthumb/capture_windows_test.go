@@ -4,9 +4,6 @@ package screenthumb
 
 import "testing"
 
-// CI runners may have no interactive desktop, so a failed capture skips.
-// When capture works, the result must already be thumbnail-sized and match
-// the screen's aspect ratio.
 func TestCaptureReturnsThumbnailOfPrimaryScreen(t *testing.T) {
 	img, err := Capture(MaxSide)
 	if err != nil {

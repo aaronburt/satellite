@@ -6,9 +6,6 @@ import (
 	"testing"
 )
 
-// The settings page must offer the screen thumbnail switch, save it under the
-// config key the agent reads, hide it where unsupported, and keep it out of
-// the "enable all" bulk toggle so it is only ever switched on deliberately.
 func TestSettingsPageScreenThumbnailToggle(t *testing.T) {
 	page := string(indexHTML)
 	label := regexp.MustCompile(`<label[^>]*data-cap="screen_thumbnail"[^>]*>\s*<input[^>]*id="exp-screen-thumb"[^>]*>`)

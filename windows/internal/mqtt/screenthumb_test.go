@@ -89,7 +89,7 @@ func TestPublishScreenThumbnailSendsRawBytesUnretained(t *testing.T) {
 
 func TestPublishScreenThumbnailDropsWhenDisabled(t *testing.T) {
 	b := startBroker(t, "", "")
-	c := startClient(t, brokerConfig(b)) // feature off
+	c := startClient(t, brokerConfig(b))
 	if err := c.PublishScreenThumbnail([]byte("img")); err != nil {
 		t.Fatal(err)
 	}

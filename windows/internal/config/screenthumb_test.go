@@ -13,7 +13,6 @@ func TestScreenThumbnailIsOffByDefault(t *testing.T) {
 	}
 }
 
-// Config files written before the setting existed must load with it off.
 func TestScreenThumbnailStaysOffForOlderConfigFiles(t *testing.T) {
 	testutil.IsolateConfigDir(t, t.TempDir())
 	if err := os.MkdirAll(ConfigDir(), 0700); err != nil {

@@ -151,8 +151,6 @@ func main() {
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go collectLoop.Run(tickerCtx)
 
-	// Optional screen thumbnail (off by default). Only a 100px image is ever
-	// captured; see internal/screenthumb.
 	thumbs := &screenthumb.Runner{
 		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
 		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },

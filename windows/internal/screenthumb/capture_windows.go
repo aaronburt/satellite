@@ -57,9 +57,6 @@ type bitmapInfo struct {
 	Colors [1]uint32
 }
 
-// Capture copies the primary monitor straight into a bitmap of thumbnail
-// size. Windows scales it during the copy (StretchBlt with HALFTONE), so
-// the full-resolution screen is never read into this process.
 func Capture(maxSide int) (image.Image, error) {
 	sw, _, _ := procGetSystemMetrics.Call(smCxScreen)
 	sh, _, _ := procGetSystemMetrics.Call(smCyScreen)
@@ -90,20 +87,18 @@ func Capture(maxSide int) (image.Image, error) {
 	defer procSelectObject.Call(memDC, old)
 
 	procSetStretchBltMode.Call(memDC, halftone)
-	procSetBrushOrgEx.Call(memDC, 0, 0, 0) // required after selecting HALFTONE
+	procSetBrushOrgEx.Call(memDC, 0, 0, 0)
 	ok, _, callErr := procStretchBlt.Call(memDC, 0, 0, uintptr(w), uintptr(h),
 		screenDC, 0, 0, sw, sh, srcCopy)
 	if ok == 0 {
-		// Fails on the secure desktop (lock screen, UAC prompt).
 		return nil, fmt.Errorf("StretchBlt failed: %v", callErr)
 	}
 
-	// Deselect the bitmap before reading it, as GetDIBits requires.
 	procSelectObject.Call(memDC, old)
 
 	bi := bitmapInfo{Header: bitmapInfoHeader{
 		Width:       int32(w),
-		Height:      -int32(h), // negative: top-down rows
+		Height:      -int32(h),
 		Planes:      1,
 		BitCount:    32,
 		Compression: biRGB,
