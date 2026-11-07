@@ -130,3 +130,17 @@ func NewHider(apps func() []string, find HiddenRects) func(image.Image) error {
 		return MaskImage(img, sw, sh, rects)
 	}
 }
+
+func NewDisplayHider(display Display, apps func() []string, find HiddenRects) func(image.Image) error {
+	return NewHider(apps, func(apps []string) ([]Rect, int, int, error) {
+		rects, _, _, err := find(apps)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		for i := range rects {
+			rects[i].X -= display.X
+			rects[i].Y -= display.Y
+		}
+		return rects, display.Width, display.Height, nil
+	})
+}

@@ -51,12 +51,22 @@ type Sensor struct {
 	// frame was captured (unix seconds); 0 means there is none yet.
 	Image   bool  `json:"image,omitempty"`
 	FrameTS int64 `json:"frame_ts,omitempty"`
+	Display int   `json:"display,omitempty"`
 }
 
 // Frame describes the latest screen thumbnail, if any.
 type Frame struct {
-	Have bool
-	At   time.Time
+	Have     bool
+	At       time.Time
+	Displays []DisplayFrame
+}
+
+type DisplayFrame struct {
+	ID        int
+	Name      string
+	Available bool
+	Have      bool
+	At        time.Time
 }
 
 // BuildSensors lists every sensor that is switched on in expose and supported
@@ -351,17 +361,32 @@ func BuildSensors(expose config.ExposeConfig, caps capabilities.PlatformCapabili
 	}
 
 	if b.on(expose.ScreenThumbnail, "screen_thumbnail") {
-		s := b.base("screen_thumbnail", GroupScreen, "Screen preview")
-		s.Image = true
-		if frame.Have {
-			s.FrameTS = frame.At.Unix()
-			s.Value = "Live"
-			s.State = StateActive
-			s.Detail = "Updated " + formatAge(now.Sub(frame.At))
+		if frame.Displays != nil {
+			for _, f := range frame.Displays {
+				s := b.base(fmt.Sprintf("screen_thumbnail_display_%d", f.ID), GroupScreen, f.Name)
+				s.Image, s.Display = true, f.ID
+				s.Value, s.State = "Waiting for the first capture", StateWaiting
+				if !f.Available {
+					s.Value, s.Detail = "Display unavailable", "Reconnect this display to resume thumbnails"
+				} else if f.Have {
+					s.FrameTS, s.Value, s.State = f.At.Unix(), "Live", StateActive
+					s.Detail = "Updated " + formatAge(now.Sub(f.At))
+				}
+				b.add(s)
+			}
 		} else {
-			s.Value, s.State = "Waiting for the first capture", StateWaiting
+			s := b.base("screen_thumbnail", GroupScreen, "Screen preview")
+			s.Image = true
+			if frame.Have {
+				s.FrameTS = frame.At.Unix()
+				s.Value = "Live"
+				s.State = StateActive
+				s.Detail = "Updated " + formatAge(now.Sub(frame.At))
+			} else {
+				s.Value, s.State = "Waiting for the first capture", StateWaiting
+			}
+			b.add(s)
 		}
-		b.add(s)
 	}
 
 	return b.out

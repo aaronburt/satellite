@@ -117,8 +117,8 @@ func TestEveryClickActionHasAHandler(t *testing.T) {
 func TestEveryNavButtonHasAPanel(t *testing.T) {
 	page := string(indexHTML)
 	tabs := regexp.MustCompile(`(?m)^  ([a-z]+): \{ panel: '([a-z-]+)', nav: '([a-z-]+)'`).FindAllStringSubmatch(page, -1)
-	if len(tabs) != 4 {
-		t.Fatalf("found %d tabs, want 4", len(tabs))
+	if len(tabs) != 5 {
+		t.Fatalf("found %d tabs, want 5", len(tabs))
 	}
 	for _, m := range tabs {
 		tab, panel, nav := m[1], m[2], m[3]

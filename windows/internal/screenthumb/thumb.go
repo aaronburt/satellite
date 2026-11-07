@@ -82,6 +82,7 @@ func Encode(img image.Image) ([]byte, error) {
 }
 
 type Runner struct {
+	Display int
 	Enabled func() bool
 	// Ready reports whether anything wants a frame right now: a connected
 	// MQTT broker or an open web UI page.
@@ -113,7 +114,7 @@ const (
 func (r *Runner) Tick() (Result, error) {
 	if r.Enabled == nil || !r.Enabled() {
 		if r.Store != nil {
-			r.Store.Clear()
+			r.Store.ClearDisplay(r.Display)
 		}
 		return Skipped, nil
 	}
@@ -140,8 +141,14 @@ func (r *Runner) Tick() (Result, error) {
 	if err != nil {
 		return Failed, err
 	}
+	if !r.Enabled() || (r.Locked != nil && r.Locked()) {
+		if r.Store != nil && !r.Enabled() {
+			r.Store.ClearDisplay(r.Display)
+		}
+		return Skipped, nil
+	}
 	if r.Store != nil {
-		r.Store.Set(data)
+		r.Store.SetDisplay(r.Display, data)
 	}
 	if err := r.Publish(data); err != nil {
 		return Failed, err

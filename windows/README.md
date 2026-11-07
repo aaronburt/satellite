@@ -26,6 +26,7 @@ The local web UI lets you choose which sensors are published. Its **Sensors** ta
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
 - **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
 - **Generic Webhook:** Optionally POST telemetry snapshots as JSON on changes or heartbeats, alongside (or instead of) MQTT.
+- **Connection Diagnostics:** The web UI's Diagnostics tab shows MQTT and telemetry webhook health, attempts, reconnects, successful telemetry writes, recent failures with suggested fixes, and scheduled retries. Test saved connections or copy a report without server addresses, credentials or sensor readings.
 - **Tray, Web UI & Headless:** Windows system tray, local Web UI for setup, and headless operation (`--headless`) including Linux systemd user services. Linux has no tray implementation.
 
 ---
@@ -209,10 +210,10 @@ When connected to your MQTT broker, Home Assistant automatically discovers:
 
 This is a privacy-sensitive feature, so it is **off by default** and is never
 switched on by the web UI's "enable all" option. Turn it on under
-**Sensitive Content & Surveillance → Screen Thumbnail** in the web UI, or set
+**Sensitive Content & Surveillance → Screen Thumbnails** in the web UI, or set
 `expose.screen_thumbnail` to `true` in the config file.
 
-When it is on, Satellite takes a picture of the main (primary) monitor each time
+By default, Satellite takes a picture of the main (primary) monitor each time
 it collects telemetry (every `interval_sec` seconds, 5 by default), scaled so its
 longest side is 200 pixels by default with the screen's shape kept (a
 1920×1080 screen gives 200×113). The size can be changed in the web UI or with
@@ -222,6 +223,25 @@ picture is taken. It is published as a JPEG to
 `<topic_prefix>/<node_id>/screen_thumbnail` and appears in Home Assistant as an
 image entity.
 
+To capture other monitors, set **Displays to capture → Choose displays**, then
+select **Display 1**, **Display 2**, **Display 3**, and so on. **Select all connected**
+selects every currently connected display; newly connected displays need to be
+selected explicitly. The list shows each display's resolution and which one is
+primary. Use **Refresh displays** after connecting or disconnecting a monitor.
+Selections are saved as `screen_thumbnail_displays`, for example `[1, 2, 3]`.
+Numbers identify Windows display devices and can change when Windows reassigns
+them after hardware or driver changes. Review the selection after such changes.
+
+Each selected display gets a separate Sensors preview, MQTT topic
+`<topic_prefix>/<node_id>/screen_thumbnail_display_<number>`, and Home Assistant
+image named **Screen Thumbnail Display 1**, **Screen Thumbnail Display 2**, etc.
+Display numbers from 1 to 64 are supported. An empty or omitted selection keeps
+the existing primary-display topic and entity. Switching to numbered displays
+removes the legacy image from discovery; switching back restores it. Deselecting
+a display removes its discovery entry. A disconnected selected display shows
+as unavailable in the web UI, keeps its selection, and resumes after reconnecting.
+Moving or rotating a display recreates its capture resources automatically.
+
 - Windows scales the screen down while copying it, so Satellite never holds a
   full-size screenshot in memory. Only the 200px image is made.
 - Nothing is saved to disk. The MQTT message is not retained, so the broker does
@@ -230,7 +250,7 @@ image entity.
 - Nothing is captured while the PC is locked. It is also not captured while MQTT is disconnected, unless you have the web UI's **Sensors** tab open (see below).
 - If **NVIDIA NVML** under the GPU sensors is also on, the screen is shrunk on
   the graphics card instead (Windows Desktop Duplication, which works with any
-  GPU that drives your main monitor). The full frame stays in video memory
+  GPU that drives each selected monitor). The full frame stays in video memory
   only while it is being shrunk and is never copied to normal memory; only the
   200px result is read back. If the GPU path is unavailable or fails for any
   reason (remote desktop, rotated screen, driver errors) Satellite uses the
@@ -240,7 +260,7 @@ image entity.
   NVML to release it.
 - The thumbnail goes to MQTT, and to the web UI's **Sensors** tab as a live
   preview. It is not added to the telemetry webhook or the `/json` endpoint.
-- For the preview, Satellite keeps only the latest 200px frame in memory, drops
+- For the preview, Satellite keeps only the latest small frame per selected display in memory, drops
   it as soon as the sensor is turned off, and serves it at
   `/api/screen-thumbnail`, which needs the web UI token. It captures for the
   preview only while a browser has the Sensors tab open (and for a few seconds
@@ -250,12 +270,17 @@ image entity.
 **Hiding programs.** Under the thumbnail size you can list programs (for
 example `chrome.exe`, one per line) whose windows are painted black in the
 picture, in the web UI or as `screen_thumbnail_hidden_apps` in the config file.
-Satellite finds the visible windows of those programs on the main screen each
+Satellite finds the visible windows of those programs on each selected screen each
 time and blacks out their whole rectangle, even where another window overlaps
 it. If the window lookup fails, no picture is sent for that update. Matching is
 by program file name, so apps that run inside a shared host process (some Store
 apps) cannot be told apart. This is separate from DRM: protected video is often
 blank in screen captures anyway, but do not rely on that.
+
+Masking also covers windows spanning multiple monitors, including displays
+above or to the left of the primary screen. Thumbnail size, hidden programs,
+and the update interval apply to all selected displays. Capture work and GPU
+memory use increase with the number of selected displays.
 
 At the default 200px ordinary text is unreadable (larger sizes show more, and
 small text can become readable above about 200px), but large headings and titles may be

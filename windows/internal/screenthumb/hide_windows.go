@@ -95,6 +95,8 @@ var enumLock = make(chan struct{}, 1)
 // PlatformHiddenRects lists the visible top-level windows of the given apps,
 // in coordinates of the primary screen that Capture reads.
 func PlatformHiddenRects(apps []string) ([]Rect, int, int, error) {
+	restore := physicalCoordinates()
+	defer restore()
 	enumLock <- struct{}{}
 	defer func() { <-enumLock }()
 	enumState.apps = apps

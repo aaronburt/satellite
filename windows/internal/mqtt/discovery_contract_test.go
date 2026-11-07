@@ -104,6 +104,9 @@ func TestDiscoveryPayloadsAreValidForHomeAssistant(t *testing.T) {
 		topics[item.Topic] = item.Key
 
 		if !item.ShouldRun {
+			if strings.HasPrefix(item.Key, "screen_thumbnail_display_") && len(item.Payload) == 0 {
+				continue
+			}
 			t.Errorf("%s: everything is exposed, item should be enabled", item.Key)
 			continue
 		}

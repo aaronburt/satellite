@@ -126,6 +126,7 @@ func release(p *unsafe.Pointer) {
 }
 
 type comCapturer struct {
+	target                    string
 	device, ctx, dup, staging unsafe.Pointer
 	stagingW, stagingH        int
 	srcW, srcH                int
@@ -146,6 +147,15 @@ type comCapturer struct {
 func platformNewGPU() (gpuCapturer, error) {
 	c, err := newComCapturer()
 	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func platformNewDisplayGPU(display Display) (gpuCapturer, error) {
+	c := &comCapturer{target: display.Device}
+	if err := c.open(); err != nil {
+		c.Close()
 		return nil, err
 	}
 	return c, nil
@@ -180,7 +190,7 @@ func (c *comCapturer) open() error {
 				break
 			}
 			if !failed(vcall(c.output, vtOutputGetDesc, ptr(&c.outDesc))) &&
-				c.outDesc.Attached != 0 && c.outDesc.Left == 0 && c.outDesc.Top == 0 {
+				c.outDesc.Attached != 0 && c.matchesOutput() {
 				found = true
 				break
 			}
@@ -191,7 +201,7 @@ func (c *comCapturer) open() error {
 		}
 	}
 	if !found {
-		return errors.New("no GPU output found for the primary monitor")
+		return fmt.Errorf("no GPU output found for display %q", c.target)
 	}
 	if c.outDesc.Rotation > 1 {
 		return errors.New("rotated displays are not supported by GPU capture")
@@ -221,6 +231,13 @@ func (c *comCapturer) open() error {
 	release(&c.adapter)
 	release(&c.factory)
 	return nil
+}
+
+func (c *comCapturer) matchesOutput() bool {
+	if c.target != "" {
+		return syscall.UTF16ToString(c.outDesc.DeviceName[:]) == c.target
+	}
+	return c.outDesc.Left == 0 && c.outDesc.Top == 0
 }
 
 func (c *comCapturer) Close() {

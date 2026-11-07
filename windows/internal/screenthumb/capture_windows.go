@@ -6,6 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"runtime"
+	"slices"
+	"strconv"
+	"strings"
+	"sync"
 	"syscall"
 	"unsafe"
 )
@@ -14,9 +19,12 @@ var (
 	modUser32 = syscall.NewLazyDLL("user32.dll")
 	modGdi32  = syscall.NewLazyDLL("gdi32.dll")
 
-	procGetDC            = modUser32.NewProc("GetDC")
-	procReleaseDC        = modUser32.NewProc("ReleaseDC")
-	procGetSystemMetrics = modUser32.NewProc("GetSystemMetrics")
+	procGetDC               = modUser32.NewProc("GetDC")
+	procReleaseDC           = modUser32.NewProc("ReleaseDC")
+	procGetSystemMetrics    = modUser32.NewProc("GetSystemMetrics")
+	procEnumDisplayMonitors = modUser32.NewProc("EnumDisplayMonitors")
+	procGetMonitorInfo      = modUser32.NewProc("GetMonitorInfoW")
+	procSetThreadDPI        = modUser32.NewProc("SetThreadDpiAwarenessContext")
 
 	procCreateCompatibleDC     = modGdi32.NewProc("CreateCompatibleDC")
 	procCreateCompatibleBitmap = modGdi32.NewProc("CreateCompatibleBitmap")
@@ -58,9 +66,21 @@ type bitmapInfo struct {
 }
 
 func Capture(maxSide int) (image.Image, error) {
-	sw, _, _ := procGetSystemMetrics.Call(smCxScreen)
-	sh, _, _ := procGetSystemMetrics.Call(smCyScreen)
-	w, h, err := ThumbSize(int(sw), int(sh), maxSide)
+	displays, err := Displays()
+	if err != nil {
+		return nil, err
+	}
+	display, ok := ResolveDisplay(displays, 0)
+	if !ok {
+		return nil, errors.New("primary display is not available")
+	}
+	return CaptureDisplay(display, maxSide)
+}
+
+func CaptureDisplay(display Display, maxSide int) (image.Image, error) {
+	restore := physicalCoordinates()
+	defer restore()
+	w, h, err := ThumbSize(display.Width, display.Height, maxSide)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +109,7 @@ func Capture(maxSide int) (image.Image, error) {
 	procSetStretchBltMode.Call(memDC, halftone)
 	procSetBrushOrgEx.Call(memDC, 0, 0, 0)
 	ok, _, callErr := procStretchBlt.Call(memDC, 0, 0, uintptr(w), uintptr(h),
-		screenDC, 0, 0, sw, sh, srcCopy)
+		screenDC, uintptr(display.X), uintptr(display.Y), uintptr(display.Width), uintptr(display.Height), srcCopy)
 	if ok == 0 {
 		return nil, fmt.Errorf("StretchBlt failed: %v", callErr)
 	}
@@ -111,4 +131,74 @@ func Capture(maxSide int) (image.Image, error) {
 		return nil, fmt.Errorf("GetDIBits copied %d of %d rows", lines, h)
 	}
 	return FromBGRA(buf, w, h)
+}
+
+type monitorInfo struct {
+	Size    uint32
+	Monitor winRect
+	Work    winRect
+	Flags   uint32
+	Device  [32]uint16
+}
+
+var displayEnumeration struct {
+	sync.Mutex
+	displays []Display
+	err      error
+}
+
+var displayCallback = syscall.NewCallback(func(monitor, _, _, _ uintptr) uintptr {
+	info := monitorInfo{}
+	info.Size = uint32(unsafe.Sizeof(info))
+	if ok, _, err := procGetMonitorInfo.Call(monitor, uintptr(unsafe.Pointer(&info))); ok == 0 {
+		displayEnumeration.err = fmt.Errorf("GetMonitorInfo failed: %v", err)
+		return 0
+	}
+	device := syscall.UTF16ToString(info.Device[:])
+	id, err := strconv.Atoi(strings.TrimPrefix(strings.ToUpper(device), `\\.\DISPLAY`))
+	if err != nil || id <= 0 || id > MaxDisplays {
+		displayEnumeration.err = fmt.Errorf("unsupported display identifier %q", device)
+		return 0
+	}
+	displayEnumeration.displays = append(displayEnumeration.displays, Display{
+		ID: id, Name: fmt.Sprintf("Display %d", id), Device: device,
+		Primary: info.Flags&1 != 0,
+		X:       int(info.Monitor.Left), Y: int(info.Monitor.Top),
+		Width: int(info.Monitor.Right - info.Monitor.Left), Height: int(info.Monitor.Bottom - info.Monitor.Top),
+	})
+	return 1
+})
+
+func platformDisplays() ([]Display, error) {
+	displayEnumeration.Lock()
+	defer displayEnumeration.Unlock()
+	restore := physicalCoordinates()
+	defer restore()
+	displayEnumeration.displays = nil
+	displayEnumeration.err = nil
+	ok, _, err := procEnumDisplayMonitors.Call(0, 0, displayCallback, 0)
+	if displayEnumeration.err != nil {
+		return nil, displayEnumeration.err
+	}
+	if ok == 0 {
+		return nil, fmt.Errorf("EnumDisplayMonitors failed: %v", err)
+	}
+	displays := displayEnumeration.displays
+	displayEnumeration.displays = nil
+	slices.SortFunc(displays, func(a, b Display) int { return a.ID - b.ID })
+	return displays, nil
+}
+
+func physicalCoordinates() func() {
+	runtime.LockOSThread()
+	var previous uintptr
+	if procSetThreadDPI.Find() == nil {
+		previous, _, _ = procSetThreadDPI.Call(^uintptr(3))
+	}
+	return func() {
+		if previous != 0 {
+			procSetThreadDPI.Call(previous)
+		}
+		runtime.UnlockOSThread()
+	}
 }

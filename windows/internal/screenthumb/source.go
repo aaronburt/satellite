@@ -47,6 +47,14 @@ func NewSource(useGPU func() bool) *Source {
 	}
 }
 
+func NewDisplaySource(display Display, useGPU func() bool) *Source {
+	return &Source{
+		UseGPU: useGPU,
+		GDI:    func(side int) (image.Image, error) { return CaptureDisplay(display, side) },
+		NewGPU: func() (gpuCapturer, error) { return platformNewDisplayGPU(display) },
+	}
+}
+
 func (s *Source) now() time.Time {
 	if s.Now != nil {
 		return s.Now()

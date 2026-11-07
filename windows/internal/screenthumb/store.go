@@ -5,14 +5,15 @@ import (
 	"time"
 )
 
-// Store keeps the most recent encoded thumbnail so the web UI can show it.
-// Only one small JPEG is ever held, and it is dropped as soon as the sensor
-// is turned off.
 type Store struct {
-	mu   sync.RWMutex
+	mu     sync.RWMutex
+	now    func() time.Time
+	frames map[int]storedFrame
+}
+
+type storedFrame struct {
 	jpeg []byte
 	at   time.Time
-	now  func() time.Time
 }
 
 func NewStore() *Store {
@@ -28,28 +29,56 @@ func (s *Store) clock() time.Time {
 
 // Set replaces the stored frame with a copy of jpeg.
 func (s *Store) Set(jpeg []byte) {
+	s.SetDisplay(0, jpeg)
+}
+
+func (s *Store) SetDisplay(display int, jpeg []byte) {
 	cp := append([]byte(nil), jpeg...)
 	s.mu.Lock()
-	s.jpeg = cp
-	s.at = s.clock()
+	if s.frames == nil {
+		s.frames = make(map[int]storedFrame)
+	}
+	s.frames[display] = storedFrame{jpeg: cp, at: s.clock()}
 	s.mu.Unlock()
 }
 
 // Clear forgets the stored frame.
 func (s *Store) Clear() {
+	s.ClearDisplay(0)
+}
+
+func (s *Store) ClearDisplay(display int) {
 	s.mu.Lock()
-	s.jpeg = nil
-	s.at = time.Time{}
+	delete(s.frames, display)
 	s.mu.Unlock()
+}
+
+func (s *Store) KeepDisplays(ids []int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id := range s.frames {
+		keep := false
+		for _, selected := range ids {
+			keep = keep || selected == id
+		}
+		if !keep {
+			delete(s.frames, id)
+		}
+	}
 }
 
 // Latest returns the stored frame and when it was captured. ok is false when
 // there is no frame. The returned slice must not be modified.
 func (s *Store) Latest() (jpeg []byte, at time.Time, ok bool) {
+	return s.LatestDisplay(0)
+}
+
+func (s *Store) LatestDisplay(display int) (jpeg []byte, at time.Time, ok bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if len(s.jpeg) == 0 {
+	frame := s.frames[display]
+	if len(frame.jpeg) == 0 {
 		return nil, time.Time{}, false
 	}
-	return s.jpeg, s.at, true
+	return frame.jpeg, frame.at, true
 }
