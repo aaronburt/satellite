@@ -95,6 +95,9 @@ type Runner struct {
 	// Store, when set, keeps the latest frame for the web UI. It is cleared
 	// while the sensor is disabled.
 	Store *Store
+	// Hide, when set, blacks out hidden apps' windows on the captured image.
+	// If it fails the frame is dropped rather than published unmasked.
+	Hide func(image.Image) error
 
 	running atomic.Bool
 }
@@ -127,6 +130,11 @@ func (r *Runner) Tick() (Result, error) {
 	img, err := r.Capture(ClampSide(side))
 	if err != nil {
 		return Failed, err
+	}
+	if r.Hide != nil {
+		if err := r.Hide(img); err != nil {
+			return Failed, fmt.Errorf("hiding apps: %w", err)
+		}
 	}
 	data, err := Encode(img)
 	if err != nil {

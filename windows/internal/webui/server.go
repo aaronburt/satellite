@@ -754,6 +754,7 @@ func mergeIncomingConfig(prev, next config.Config) config.Config {
 		next.IntervalSec = 5
 	}
 	next.ScreenThumbnailSize = screenthumb.ClampSide(next.ScreenThumbnailSize)
+	next.ScreenThumbnailHiddenApps = screenthumb.NormalizeApps(next.ScreenThumbnailHiddenApps)
 	next.NodeID = strings.TrimSpace(next.NodeID)
 	if next.NodeID == "" {
 		next.NodeID = prev.NodeID
