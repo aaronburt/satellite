@@ -1574,7 +1574,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
                 <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
                 <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-                <label class="toggle-item" data-cap="screen_thumbnail" title="Each time Satellite sends an update, it also sends a picture of your main screen, no larger than 200px, to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (200px, every update)</span></label>
+                <label class="toggle-item" data-cap="screen_thumbnail" title="Each time Satellite sends an update, it also sends a picture of your main screen, no larger than 200px, to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk. If NVIDIA sensors (NVML) are also on, the shrinking is done on the graphics card, with the standard method as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (200px, every update)</span></label>
               </div>
             </div>
           </div>

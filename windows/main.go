@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"strings"
 	"syscall"
 	"time"
 
@@ -137,11 +138,21 @@ func main() {
 		webhookSink,
 	}
 
+	thumbSource := screenthumb.NewSource(func() bool {
+		e := config.Get().Expose
+		return e.GPU && e.NvidiaNVML
+	})
+	thumbSource.OnBackend = func(b screenthumb.Backend) {
+		logger.Info("screen_thumbnail", fmt.Sprintf("Screen thumbnail capture is using %s", strings.ToUpper(string(b))))
+	}
+	thumbSource.OnFallback = func(err error) {
+		logger.Warn("screen_thumbnail", fmt.Sprintf("%v; using the standard capture", err))
+	}
 	thumbs := &screenthumb.Runner{
 		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
 		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },
 		Locked:  telemetry.IsSessionLocked,
-		Capture: screenthumb.Capture,
+		Capture: thumbSource.Capture,
 		Publish: mqttClient.PublishScreenThumbnail,
 	}
 	reportThumbErr := screenthumb.LogOnChange(func(err error) {
@@ -168,6 +179,7 @@ func main() {
 		cancelUpdater()
 		stopIntervalWatch()
 		cancelTicker()
+		thumbSource.Close()
 		webhookSink.Close()
 		mqttClient.Stop()
 		server.Stop()

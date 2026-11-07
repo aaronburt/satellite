@@ -1,0 +1,19 @@
+name: GPU capture check
+on:
+  push:
+    branches: [ claude/project-thread-vl8vmc ]
+jobs:
+  gpu:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: 'windows/go.mod'
+      - name: GPU pipeline tests
+        run: go test ./internal/screenthumb -count=1 -v -run "TestGPU|TestReal|TestReport"
+      - name: Benchmark
+        run: go test ./internal/screenthumb -run xxx -bench "Capture|WARP" -benchmem -benchtime 2s -count 2
