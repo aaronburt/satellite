@@ -89,6 +89,7 @@ func (w *Webhook) Close() { w.cancel() }
 // the heartbeat is due. If a delivery is already running (or waiting to
 // retry), the snapshot replaces any earlier queued one and is sent next.
 func (w *Webhook) Publish(snap telemetry.Snapshot) error {
+	snap = snap.ApplyPrivacy()
 	if w.ctx.Err() != nil {
 		return nil
 	}
@@ -146,6 +147,8 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 		w.activeDiagnostics = stats
 		w.mu.Unlock()
 		stats.Attempt()
+		payload.State = payload.State.ApplyPrivacy()
+		snap = snap.ApplyPrivacy()
 		err := send(w.ctx, w.client, url, token, payload)
 		if err == nil {
 			stats.Published()
@@ -321,7 +324,7 @@ func BuildPayload(nodeID string, snap telemetry.Snapshot, now time.Time) Webhook
 		Platform:   runtime.GOOS,
 		AppVersion: config.Version,
 		Timestamp:  now.UnixMilli(),
-		State:      snap,
+		State:      snap.ApplyPrivacy(),
 	}
 }
 
@@ -332,6 +335,7 @@ func Send(client *http.Client, url, bearerToken string, payload WebhookPayload) 
 }
 
 func send(ctx context.Context, client *http.Client, url, bearerToken string, payload WebhookPayload) error {
+	payload.State = payload.State.ApplyPrivacy()
 	url = strings.TrimSpace(url)
 	if url == "" {
 		return &permanentError{fmt.Errorf("webhook URL is empty")}

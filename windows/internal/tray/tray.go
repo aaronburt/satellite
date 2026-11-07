@@ -12,6 +12,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
+	"satellite/internal/privacy"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
 	"satellite/internal/webui"
@@ -37,6 +38,9 @@ type Tray struct {
 	openItem        *systray.MenuItem
 	toggleItem      *systray.MenuItem
 	quitItem        *systray.MenuItem
+	privacyItem     *systray.MenuItem
+	resumeItem      *systray.MenuItem
+	pauseItems      [4]*systray.MenuItem
 	onExit          func()
 	cancel          context.CancelFunc
 	mu              sync.Mutex
@@ -68,6 +72,15 @@ func (t *Tray) onReady() {
 
 	systray.AddSeparator()
 
+	t.privacyItem = systray.AddMenuItem("Quick Privacy Pause", "Pause presence, session lock, media details, active app, window titles, microphone/webcam usage and screen thumbnails")
+	for i, minutes := range privacyMinutes {
+		t.pauseItems[i] = t.privacyItem.AddSubMenuItem(fmt.Sprintf("Pause for %d minutes", minutes), "Automatically resume your enabled sensitive sensors after this duration")
+	}
+	t.resumeItem = t.privacyItem.AddSubMenuItem("Resume sensitive sensors now", "End the privacy pause early")
+	t.refreshPrivacy()
+
+	systray.AddSeparator()
+
 	t.openItem = systray.AddMenuItem("Open WebUI", "Open WebUI configuration in browser")
 	t.toggleItem = systray.AddMenuItem("WebUI: Disabled (Click to Enable)", "Enable or disable embedded WebUI HTTP server")
 	t.checkUpdateItem = systray.AddMenuItem("Check for Updates", "Check GitHub for newer versions")
@@ -92,7 +105,7 @@ func (t *Tray) onSystrayExit() {
 }
 
 func (t *Tray) statusUpdater(ctx context.Context) {
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -100,6 +113,7 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			t.refreshPrivacy()
 			status := t.mqttClient.Status()
 			title := fmt.Sprintf("Status: %s", status)
 			switch status {
@@ -134,6 +148,16 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 func (t *Tray) eventLoop() {
 	for {
 		select {
+		case <-clicked(t.pauseItems[0]):
+			t.pausePrivacy(time.Duration(privacyMinutes[0]) * time.Minute)
+		case <-clicked(t.pauseItems[1]):
+			t.pausePrivacy(time.Duration(privacyMinutes[1]) * time.Minute)
+		case <-clicked(t.pauseItems[2]):
+			t.pausePrivacy(time.Duration(privacyMinutes[2]) * time.Minute)
+		case <-clicked(t.pauseItems[3]):
+			t.pausePrivacy(time.Duration(privacyMinutes[3]) * time.Minute)
+		case <-clicked(t.resumeItem):
+			t.pausePrivacy(0)
 		case <-t.updateItem.ClickedCh:
 			if t.updaterInstance != nil {
 				status := t.updaterInstance.Status()
@@ -182,6 +206,43 @@ func (t *Tray) eventLoop() {
 			systray.Quit()
 			return
 		}
+	}
+}
+
+var privacyMinutes = [...]int{5, 15, 30, 60}
+
+func clicked(item *systray.MenuItem) <-chan struct{} {
+	if item == nil {
+		return nil
+	}
+	return item.ClickedCh
+}
+
+func privacyTitle(status privacy.Status) string {
+	if !status.Paused {
+		return "Quick Privacy Pause"
+	}
+	return fmt.Sprintf("Privacy paused: %02d:%02d remaining", status.RemainingSeconds/60, status.RemainingSeconds%60)
+}
+
+func (t *Tray) pausePrivacy(duration time.Duration) {
+	t.server.PausePrivacy(duration)
+	t.refreshPrivacy()
+}
+
+func (t *Tray) refreshPrivacy() {
+	if t.privacyItem == nil || t.resumeItem == nil {
+		return
+	}
+	status := privacy.Default.Status()
+	title := privacyTitle(status)
+	t.privacyItem.SetTitle(title)
+	if status.Paused {
+		t.resumeItem.Enable()
+		systray.SetTooltip("Satellite Agent - " + title)
+	} else {
+		t.resumeItem.Disable()
+		systray.SetTooltip("Satellite Agent - Home Assistant")
 	}
 }
 

@@ -17,6 +17,7 @@ import (
 	"satellite/internal/config"
 	"satellite/internal/diagnostics"
 	"satellite/internal/logger"
+	"satellite/internal/privacy"
 	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
@@ -492,6 +493,7 @@ func commandAllowed(e config.ExposeConfig, action string) bool {
 }
 
 func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
+	snap = snap.ApplyPrivacy()
 	c.mu.Lock()
 	if c.status != StatusConnected || c.pahoClient == nil {
 		c.mu.Unlock()
@@ -554,7 +556,7 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 func (c *Client) ScreenThumbnailEnabled() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	return c.cfg.Expose.ScreenThumbnail
+	return c.cfg.Expose.ScreenThumbnail && !privacy.Default.Status().Paused
 }
 
 func (c *Client) PublishScreenThumbnail(jpeg []byte) error {
@@ -562,6 +564,9 @@ func (c *Client) PublishScreenThumbnail(jpeg []byte) error {
 }
 
 func (c *Client) PublishDisplayThumbnail(display int, jpeg []byte) error {
+	if privacy.Default.Status().Paused {
+		return nil
+	}
 	c.mu.RLock()
 	if c.status != StatusConnected || c.pahoClient == nil || !c.cfg.Expose.ScreenThumbnail || !screenthumb.DisplaySelected(c.cfg.ScreenThumbnailDisplays, display) {
 		c.mu.RUnlock()

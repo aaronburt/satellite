@@ -29,6 +29,7 @@ type GPUInfo struct {
 }
 
 type Snapshot struct {
+	privacyGeneration uint64
 	CPUPercent        *float64   `json:"cpu_percent,omitempty"`
 	MemoryUsedGB      *float64   `json:"memory_used_gb,omitempty"`
 	MemoryTotalGB     *float64   `json:"memory_total_gb,omitempty"`

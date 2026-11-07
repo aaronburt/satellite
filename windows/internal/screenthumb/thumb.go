@@ -7,6 +7,8 @@ import (
 	"image"
 	"image/jpeg"
 	"sync/atomic"
+
+	"satellite/internal/privacy"
 )
 
 const (
@@ -112,7 +114,8 @@ const (
 )
 
 func (r *Runner) Tick() (Result, error) {
-	if r.Enabled == nil || !r.Enabled() {
+	status := privacy.Default.Status()
+	if status.Paused || r.Enabled == nil || !r.Enabled() {
 		if r.Store != nil {
 			r.Store.ClearDisplay(r.Display)
 		}
@@ -141,14 +144,17 @@ func (r *Runner) Tick() (Result, error) {
 	if err != nil {
 		return Failed, err
 	}
-	if !r.Enabled() || (r.Locked != nil && r.Locked()) {
-		if r.Store != nil && !r.Enabled() {
+	if !privacy.Default.Allows(status.Generation) || !r.Enabled() || (r.Locked != nil && r.Locked()) {
+		if r.Store != nil && (!privacy.Default.Allows(status.Generation) || !r.Enabled()) {
 			r.Store.ClearDisplay(r.Display)
 		}
 		return Skipped, nil
 	}
 	if r.Store != nil {
-		r.Store.SetDisplay(r.Display, data)
+		r.Store.setDisplay(r.Display, data, status.Generation)
+	}
+	if !privacy.Default.Allows(status.Generation) {
+		return Skipped, nil
 	}
 	if err := r.Publish(data); err != nil {
 		return Failed, err

@@ -3,6 +3,8 @@ package screenthumb
 import (
 	"sync"
 	"time"
+
+	"satellite/internal/privacy"
 )
 
 type Store struct {
@@ -12,8 +14,9 @@ type Store struct {
 }
 
 type storedFrame struct {
-	jpeg []byte
-	at   time.Time
+	jpeg       []byte
+	at         time.Time
+	generation uint64
 }
 
 func NewStore() *Store {
@@ -33,12 +36,20 @@ func (s *Store) Set(jpeg []byte) {
 }
 
 func (s *Store) SetDisplay(display int, jpeg []byte) {
+	status := privacy.Default.Status()
+	s.setDisplay(display, jpeg, status.Generation)
+}
+
+func (s *Store) setDisplay(display int, jpeg []byte, generation uint64) {
+	if !privacy.Default.Allows(generation) {
+		return
+	}
 	cp := append([]byte(nil), jpeg...)
 	s.mu.Lock()
 	if s.frames == nil {
 		s.frames = make(map[int]storedFrame)
 	}
-	s.frames[display] = storedFrame{jpeg: cp, at: s.clock()}
+	s.frames[display] = storedFrame{jpeg: cp, at: s.clock(), generation: generation}
 	s.mu.Unlock()
 }
 
@@ -77,7 +88,7 @@ func (s *Store) LatestDisplay(display int) (jpeg []byte, at time.Time, ok bool) 
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	frame := s.frames[display]
-	if len(frame.jpeg) == 0 {
+	if len(frame.jpeg) == 0 || !privacy.Default.Allows(frame.generation) {
 		return nil, time.Time{}, false
 	}
 	return frame.jpeg, frame.at, true

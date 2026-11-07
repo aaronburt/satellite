@@ -26,6 +26,7 @@ import (
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/output"
+	"satellite/internal/privacy"
 	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
@@ -576,6 +577,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 	cfg := config.Get()
 	expose := cfg.Expose
+	pause := privacy.Default.Status()
+	if pause.Paused {
+		expose = expose.WithoutSensitive()
+	}
 	// The page adds thumb=1 while it is showing the screen preview.
 	if r.URL.Query().Get("thumb") == "1" && expose.ScreenThumbnail && caps.ScreenThumbnail {
 		s.noteThumbnailViewer()
@@ -595,6 +600,7 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"telemetry":     snap,
 		"sensors":       BuildSensors(expose, caps, snap, frame, time.Now()),
 		"update_status": updateStatus,
+		"privacy_pause": pause,
 	})
 }
 
@@ -609,7 +615,7 @@ func (s *Server) handleScreenThumbnail(w http.ResponseWriter, r *http.Request) {
 	store := s.thumbs
 	s.mu.Unlock()
 
-	if !caps.ScreenThumbnail || !config.Get().Expose.ScreenThumbnail {
+	if privacy.Default.Status().Paused || !caps.ScreenThumbnail || !config.Get().Expose.ScreenThumbnail {
 		http.NotFound(w, r)
 		return
 	}
