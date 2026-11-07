@@ -753,6 +753,7 @@ func mergeIncomingConfig(prev, next config.Config) config.Config {
 	if next.IntervalSec <= 0 {
 		next.IntervalSec = 5
 	}
+	next.ScreenThumbnailSize = screenthumb.ClampSide(next.ScreenThumbnailSize)
 	next.NodeID = strings.TrimSpace(next.NodeID)
 	if next.NodeID == "" {
 		next.NodeID = prev.NodeID

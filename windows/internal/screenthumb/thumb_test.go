@@ -31,23 +31,60 @@ func TestThumbSizeKeepsAspectRatio(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			w, h, err := ThumbSize(c.w, c.h, MaxSide)
+			w, h, err := ThumbSize(c.w, c.h, DefaultSide)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if w != c.wantW || h != c.wantH {
 				t.Fatalf("ThumbSize(%d,%d) = %dx%d, want %dx%d", c.w, c.h, w, h, c.wantW, c.wantH)
 			}
-			if max(w, h) > MaxSide {
-				t.Fatalf("longest side %d exceeds %d", max(w, h), MaxSide)
+			if max(w, h) > DefaultSide {
+				t.Fatalf("longest side %d exceeds %d", max(w, h), DefaultSide)
 			}
 		})
 	}
 }
 
-func TestMaxSideIs200(t *testing.T) {
-	if MaxSide != 200 {
-		t.Fatalf("MaxSide = %d, want 200", MaxSide)
+func TestDefaultSideIs200(t *testing.T) {
+	if DefaultSide != 200 {
+		t.Fatalf("DefaultSide = %d, want 200", DefaultSide)
+	}
+}
+
+func TestClampSide(t *testing.T) {
+	for in, want := range map[int]int{-5: 200, 0: 200, 1: MinSide, 63: MinSide, 64: 64, 300: 300, 400: 400, 401: MaxSide, 100000: MaxSide} {
+		if got := ClampSide(in); got != want {
+			t.Errorf("ClampSide(%d) = %d, want %d", in, got, want)
+		}
+	}
+}
+
+func TestRunnerUsesConfiguredSide(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		side func() int
+		want int
+	}{
+		{"unset", nil, 200},
+		{"custom", func() int { return 320 }, 320},
+		{"over cap", func() int { return 5000 }, MaxSide},
+		{"zero", func() int { return 0 }, 200},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var got int
+			r := &Runner{
+				Enabled: func() bool { return true },
+				Side:    tc.side,
+				Capture: func(n int) (image.Image, error) { got = n; return image.NewRGBA(image.Rect(0, 0, 4, 4)), nil },
+				Publish: func([]byte) error { return nil },
+			}
+			if res, err := r.Tick(); res != Published || err != nil {
+				t.Fatalf("Tick = %v, %v", res, err)
+			}
+			if got != tc.want {
+				t.Fatalf("Capture asked for %d, want %d", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -100,8 +137,8 @@ func TestEncodeProducesSmallJPEG(t *testing.T) {
 func TestEncodeRefusesFullSizeImages(t *testing.T) {
 	for _, r := range []image.Rectangle{
 		image.Rect(0, 0, 1920, 1080),
-		image.Rect(0, 0, 201, 50),
-		image.Rect(0, 0, 50, 201),
+		image.Rect(0, 0, 401, 50),
+		image.Rect(0, 0, 50, 401),
 		image.Rect(0, 0, 0, 0),
 	} {
 		if _, err := Encode(image.NewRGBA(r)); err == nil {
@@ -147,8 +184,8 @@ func TestTickPublishesThumbnail(t *testing.T) {
 	if err != nil || res != Published {
 		t.Fatalf("Tick = %v, %v", res, err)
 	}
-	if f.maxSide != MaxSide {
-		t.Errorf("capture asked for %d px, want %d", f.maxSide, MaxSide)
+	if f.maxSide != DefaultSide {
+		t.Errorf("capture asked for %d px, want %d", f.maxSide, DefaultSide)
 	}
 	if len(f.published) != 1 || !bytes.HasPrefix(f.published[0], []byte{0xff, 0xd8}) {
 		t.Fatalf("published %d items, want one JPEG", len(f.published))

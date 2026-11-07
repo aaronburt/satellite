@@ -158,6 +158,7 @@ func main() {
 		Store:   thumbStore,
 		Locked:  telemetry.IsSessionLocked,
 		Capture: thumbSource.Capture,
+		Side:    func() int { return config.Get().ScreenThumbnailSize },
 		Publish: mqttClient.PublishScreenThumbnail,
 	}
 	reportThumbErr := screenthumb.LogOnChange(func(err error) {

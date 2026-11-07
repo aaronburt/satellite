@@ -43,6 +43,8 @@ func fullyPopulatedConfig(t *testing.T) Config {
 	var cfg Config
 	n := 0
 	fillAllFields(t, reflect.ValueOf(&cfg).Elem(), "", &n)
+	// Normalised on load and import, so the distinct value must be in range.
+	cfg.ScreenThumbnailSize = 333
 	return cfg
 }
 

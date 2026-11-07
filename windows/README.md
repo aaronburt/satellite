@@ -20,7 +20,7 @@ The local web UI lets you choose which sensors are published. Its **Sensors** ta
 
 - **Telemetry:** CPU, GPU (Core Load, VRAM, Temperature, Power), RAM, Disk, Network, Battery, Uptime, Local IP, Wi-Fi SSID & Signal Strength.
 - **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, System Dark/Light Theme, Pending Reboot.
-- **Screen Thumbnail (Windows, opt-in):** a tiny picture of the main screen (200px at most), taken with each telemetry update (every 5 seconds by default), shown in Home Assistant as an image entity. Off by default; see [Screen thumbnail](#screen-thumbnail).
+- **Screen Thumbnail (Windows, opt-in):** a tiny picture of the main screen (200px by default, adjustable from 64 to 400px), taken with each telemetry update (every 5 seconds by default), shown in Home Assistant as an image entity. Off by default; see [Screen thumbnail](#screen-thumbnail).
 - **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls or Linux MPRIS D-Bus.
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
@@ -214,8 +214,10 @@ switched on by the web UI's "enable all" option. Turn it on under
 
 When it is on, Satellite takes a picture of the main (primary) monitor each time
 it collects telemetry (every `interval_sec` seconds, 5 by default), scaled so its
-longest side is 200 pixels with the screen's shape kept (a 1920×1080 screen
-gives 200×113). Changing the update interval in settings changes how often the
+longest side is 200 pixels by default with the screen's shape kept (a
+1920×1080 screen gives 200×113). The size can be changed in the web UI or with
+`screen_thumbnail_size` in the config file. It is limited to 64 to 400 pixels;
+400 is a hard privacy cap. Changing the update interval in settings changes how often the
 picture is taken. It is published as a JPEG to
 `<topic_prefix>/<node_id>/screen_thumbnail` and appears in Home Assistant as an
 image entity.
@@ -245,7 +247,8 @@ image entity.
   after), so a closed or backgrounded tab costs nothing. This works even when
   MQTT is not connected.
 
-At 200px ordinary text is unreadable, but large headings and titles may be
+At the default 200px ordinary text is unreadable (larger sizes show more, and
+small text can become readable above about 200px), but large headings and titles may be
 guessable, and the picture shows what kind of thing is on screen (a video, a
 game, a document, a dark or light page). Only turn it on
 if you are happy for everyone who can read your MQTT topics or your Home

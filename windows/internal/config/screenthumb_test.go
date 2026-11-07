@@ -46,3 +46,55 @@ func TestScreenThumbnailSettingRoundTrips(t *testing.T) {
 		t.Fatal("enabled setting was lost on save/load")
 	}
 }
+
+func TestScreenThumbnailSizeDefaultsTo200(t *testing.T) {
+	if got := DefaultConfig().ScreenThumbnailSize; got != 200 {
+		t.Fatalf("default size = %d, want 200", got)
+	}
+}
+
+func TestScreenThumbnailSizeLoad(t *testing.T) {
+	for name, tc := range map[string]struct {
+		json string
+		want int
+	}{
+		"missing":   {`{"node_id":"x"}`, 200},
+		"custom":    {`{"node_id":"x","screen_thumbnail_size":320}`, 320},
+		"too big":   {`{"node_id":"x","screen_thumbnail_size":4000}`, 400},
+		"too small": {`{"node_id":"x","screen_thumbnail_size":5}`, 64},
+		"negative":  {`{"node_id":"x","screen_thumbnail_size":-1}`, 200},
+	} {
+		t.Run(name, func(t *testing.T) {
+			testutil.IsolateConfigDir(t, t.TempDir())
+			if err := os.MkdirAll(ConfigDir(), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(ConfigFilePath(), []byte(tc.json), 0600); err != nil {
+				t.Fatal(err)
+			}
+			cfg, err := Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.ScreenThumbnailSize != tc.want {
+				t.Fatalf("size = %d, want %d", cfg.ScreenThumbnailSize, tc.want)
+			}
+		})
+	}
+}
+
+func TestScreenThumbnailSizeSurvivesExportImport(t *testing.T) {
+	orig := DefaultConfig()
+	orig.ScreenThumbnailSize = 288
+	data, err := ExportConfig(orig, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := ImportConfig(data, ImportOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Config.ScreenThumbnailSize != 288 {
+		t.Fatalf("size = %d, want 288", res.Config.ScreenThumbnailSize)
+	}
+}

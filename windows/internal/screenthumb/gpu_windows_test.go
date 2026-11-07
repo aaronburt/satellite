@@ -70,10 +70,10 @@ func TestGPUPipelineDownscalesSyntheticScreen(t *testing.T) {
 				}
 				return [4]byte{0, 0, 255, 255}
 			})
-			if err := c.downscale(tex, tc.w, tc.h, MaxSide); err != nil {
+			if err := c.downscale(tex, tc.w, tc.h, DefaultSide); err != nil {
 				t.Fatal(err)
 			}
-			img, err := c.readStaging(MaxSide)
+			img, err := c.readStaging(DefaultSide)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -101,10 +101,10 @@ func TestGPUPipelineAveragesFineDetail(t *testing.T) {
 		}
 		return [4]byte{0, 0, 0, 255}
 	})
-	if err := c.downscale(tex, 1920, 1080, MaxSide); err != nil {
+	if err := c.downscale(tex, 1920, 1080, DefaultSide); err != nil {
 		t.Fatal(err)
 	}
-	img, err := c.readStaging(MaxSide)
+	img, err := c.readStaging(DefaultSide)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,18 +117,18 @@ func TestGPUPipelineAveragesFineDetail(t *testing.T) {
 func TestGPUPipelineReusesStagingForSameSize(t *testing.T) {
 	c := warpCapturer(t)
 	tex := uploadTexture(t, c, 1920, 1080, func(x, y int) [4]byte { return [4]byte{9, 9, 9, 255} })
-	if err := c.downscale(tex, 1920, 1080, MaxSide); err != nil {
+	if err := c.downscale(tex, 1920, 1080, DefaultSide); err != nil {
 		t.Fatal(err)
 	}
 	first := c.staging
-	if err := c.downscale(tex, 1920, 1080, MaxSide); err != nil {
+	if err := c.downscale(tex, 1920, 1080, DefaultSide); err != nil {
 		t.Fatal(err)
 	}
 	if c.staging != first {
 		t.Fatal("staging texture should be reused when the screen size is unchanged")
 	}
 	small := uploadTexture(t, c, 1280, 720, func(x, y int) [4]byte { return [4]byte{9, 9, 9, 255} })
-	if err := c.downscale(small, 1280, 720, MaxSide); err != nil {
+	if err := c.downscale(small, 1280, 720, DefaultSide); err != nil {
 		t.Fatal(err)
 	}
 	if c.stagingW != 320 || c.stagingH != 180 {
@@ -140,7 +140,7 @@ func TestGPUCapturerCloseIsSafeToRepeat(t *testing.T) {
 	c := warpCapturer(t)
 	c.Close()
 	c.Close()
-	if _, err := c.Capture(MaxSide); err == nil {
+	if _, err := c.Capture(DefaultSide); err == nil {
 		t.Fatal("a closed capturer must refuse to capture")
 	}
 }
@@ -151,20 +151,20 @@ func TestRealGPUCaptureMatchesGDISize(t *testing.T) {
 		t.Skipf("desktop duplication is not available here: %v", err)
 	}
 	defer gpu.Close()
-	gpuImg, err := gpu.Capture(MaxSide)
+	gpuImg, err := gpu.Capture(DefaultSide)
 	if err != nil {
 		t.Skipf("GPU capture failed here: %v", err)
 	}
 	t.Logf("GPU capture works: %v", gpuImg.Bounds())
-	gdiImg, err := Capture(MaxSide)
+	gdiImg, err := Capture(DefaultSide)
 	if err != nil {
 		t.Skipf("GDI capture failed here: %v", err)
 	}
 	if gpuImg.Bounds() != gdiImg.Bounds() {
 		t.Logf("GPU %v vs GDI %v (can differ on DPI-scaled screens)", gpuImg.Bounds(), gdiImg.Bounds())
 	}
-	if max(gpuImg.Bounds().Dx(), gpuImg.Bounds().Dy()) > MaxSide {
-		t.Fatalf("GPU thumbnail %v is larger than %dpx", gpuImg.Bounds(), MaxSide)
+	if max(gpuImg.Bounds().Dx(), gpuImg.Bounds().Dy()) > DefaultSide {
+		t.Fatalf("GPU thumbnail %v is larger than %dpx", gpuImg.Bounds(), DefaultSide)
 	}
 }
 
@@ -192,7 +192,7 @@ func TestReportGPUMemoryCost(t *testing.T) {
 	}
 	defer gpu.Close()
 	for i := 0; i < 10; i++ {
-		if _, err := gpu.Capture(MaxSide); err != nil {
+		if _, err := gpu.Capture(DefaultSide); err != nil {
 			t.Skipf("GPU capture failed here: %v", err)
 		}
 	}
@@ -208,13 +208,13 @@ func BenchmarkGPUCapture(b *testing.B) {
 		b.Skipf("desktop duplication is not available here: %v", err)
 	}
 	defer gpu.Close()
-	if _, err := gpu.Capture(MaxSide); err != nil {
+	if _, err := gpu.Capture(DefaultSide); err != nil {
 		b.Skipf("GPU capture failed here: %v", err)
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := gpu.Capture(MaxSide); err != nil {
+		if _, err := gpu.Capture(DefaultSide); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -226,10 +226,10 @@ func BenchmarkGPUPipelineWARP(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if err := c.downscale(tex, 1920, 1080, MaxSide); err != nil {
+		if err := c.downscale(tex, 1920, 1080, DefaultSide); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := c.readStaging(MaxSide); err != nil {
+		if _, err := c.readStaging(DefaultSide); err != nil {
 			b.Fatal(err)
 		}
 	}

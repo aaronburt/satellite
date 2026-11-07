@@ -5,26 +5,26 @@ package screenthumb
 import "testing"
 
 func BenchmarkCapture(b *testing.B) {
-	if _, err := Capture(MaxSide); err != nil {
+	if _, err := Capture(DefaultSide); err != nil {
 		b.Skipf("no capturable desktop here: %v", err)
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := Capture(MaxSide); err != nil {
+		if _, err := Capture(DefaultSide); err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
 func BenchmarkCaptureAndEncode(b *testing.B) {
-	if _, err := Capture(MaxSide); err != nil {
+	if _, err := Capture(DefaultSide); err != nil {
 		b.Skipf("no capturable desktop here: %v", err)
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		img, err := Capture(MaxSide)
+		img, err := Capture(DefaultSide)
 		if err != nil {
 			b.Fatal(err)
 		}

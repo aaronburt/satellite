@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"satellite/internal/screenthumb"
 )
 
 var (
@@ -38,19 +40,20 @@ type ImportOptions struct {
 }
 
 type ExportData struct {
-	NodeID       string        `json:"node_id,omitempty"`
-	MQTT         MQTTConfig    `json:"mqtt"`
-	Expose       ExposeConfig  `json:"expose"`
-	IntervalSec  int           `json:"interval_sec"`
-	HeartbeatSec int           `json:"heartbeat_sec,omitempty"`
-	Port         int           `json:"port,omitempty"`
-	WebUIPort    int           `json:"webui_port,omitempty"`
-	BindAddress  string        `json:"bind_address,omitempty"`
-	JSONEnabled  bool          `json:"json_enabled,omitempty"`
-	APIKey       string        `json:"api_key,omitempty"`
-	Webhook      WebhookConfig `json:"webhook"`
-	CheckUpdates bool          `json:"check_updates"`
-	UpdateRepo   string        `json:"update_repo,omitempty"`
+	NodeID              string        `json:"node_id,omitempty"`
+	MQTT                MQTTConfig    `json:"mqtt"`
+	Expose              ExposeConfig  `json:"expose"`
+	IntervalSec         int           `json:"interval_sec"`
+	ScreenThumbnailSize int           `json:"screen_thumbnail_size,omitempty"`
+	HeartbeatSec        int           `json:"heartbeat_sec,omitempty"`
+	Port                int           `json:"port,omitempty"`
+	WebUIPort           int           `json:"webui_port,omitempty"`
+	BindAddress         string        `json:"bind_address,omitempty"`
+	JSONEnabled         bool          `json:"json_enabled,omitempty"`
+	APIKey              string        `json:"api_key,omitempty"`
+	Webhook             WebhookConfig `json:"webhook"`
+	CheckUpdates        bool          `json:"check_updates"`
+	UpdateRepo          string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
@@ -109,19 +112,20 @@ func isVersionNewer(v1, v2 string) bool {
 
 func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 	exportData := ExportData{
-		NodeID:       cfg.NodeID,
-		MQTT:         cfg.MQTT,
-		Expose:       cfg.Expose,
-		IntervalSec:  cfg.IntervalSec,
-		HeartbeatSec: cfg.HeartbeatSec,
-		Port:         cfg.Port,
-		WebUIPort:    cfg.WebUIPort,
-		BindAddress:  cfg.BindAddress,
-		JSONEnabled:  cfg.JSONEnabled,
-		APIKey:       cfg.APIKey,
-		Webhook:      cfg.Webhook,
-		CheckUpdates: cfg.CheckUpdates,
-		UpdateRepo:   cfg.UpdateRepo,
+		NodeID:              cfg.NodeID,
+		MQTT:                cfg.MQTT,
+		Expose:              cfg.Expose,
+		IntervalSec:         cfg.IntervalSec,
+		ScreenThumbnailSize: cfg.ScreenThumbnailSize,
+		HeartbeatSec:        cfg.HeartbeatSec,
+		Port:                cfg.Port,
+		WebUIPort:           cfg.WebUIPort,
+		BindAddress:         cfg.BindAddress,
+		JSONEnabled:         cfg.JSONEnabled,
+		APIKey:              cfg.APIKey,
+		Webhook:             cfg.Webhook,
+		CheckUpdates:        cfg.CheckUpdates,
+		UpdateRepo:          cfg.UpdateRepo,
 
 		TelemetryWebhook: cfg.TelemetryWebhook,
 	}
@@ -261,19 +265,20 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 
 	def := DefaultConfig()
 	cfg := Config{
-		NodeID:       data.NodeID,
-		MQTT:         data.MQTT,
-		Expose:       data.Expose,
-		IntervalSec:  data.IntervalSec,
-		HeartbeatSec: data.HeartbeatSec,
-		Port:         data.Port,
-		WebUIPort:    data.WebUIPort,
-		BindAddress:  data.BindAddress,
-		JSONEnabled:  data.JSONEnabled,
-		APIKey:       data.APIKey,
-		Webhook:      data.Webhook,
-		CheckUpdates: data.CheckUpdates,
-		UpdateRepo:   data.UpdateRepo,
+		NodeID:              data.NodeID,
+		MQTT:                data.MQTT,
+		Expose:              data.Expose,
+		IntervalSec:         data.IntervalSec,
+		ScreenThumbnailSize: screenthumb.ClampSide(data.ScreenThumbnailSize),
+		HeartbeatSec:        data.HeartbeatSec,
+		Port:                data.Port,
+		WebUIPort:           data.WebUIPort,
+		BindAddress:         data.BindAddress,
+		JSONEnabled:         data.JSONEnabled,
+		APIKey:              data.APIKey,
+		Webhook:             data.Webhook,
+		CheckUpdates:        data.CheckUpdates,
+		UpdateRepo:          data.UpdateRepo,
 
 		TelemetryWebhook: data.TelemetryWebhook,
 	}

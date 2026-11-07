@@ -10,13 +10,27 @@ import (
 )
 
 const (
-	MaxSide     = 200
+	// DefaultSide is the longest thumbnail edge unless configured otherwise.
+	DefaultSide = 200
+	// MinSide and MaxSide bound the configurable longest edge. MaxSide is a
+	// hard privacy cap: above it, ordinary on-screen text becomes readable.
+	MinSide     = 64
+	MaxSide     = 400
 	ContentType = "image/jpeg"
 
 	jpegQuality = 75
 )
 
 var ErrUnsupported = errors.New("screen thumbnails are not supported on this platform")
+
+// ClampSide returns side limited to [MinSide, MaxSide]; zero or negative
+// means unset and gives DefaultSide.
+func ClampSide(side int) int {
+	if side <= 0 {
+		return DefaultSide
+	}
+	return min(max(side, MinSide), MaxSide)
+}
 
 func ThumbSize(w, h, maxSide int) (int, int, error) {
 	if w <= 0 || h <= 0 {
@@ -74,6 +88,9 @@ type Runner struct {
 	Ready   func() bool
 	Locked  func() bool
 	Capture func(maxSide int) (image.Image, error)
+	// Side returns the configured longest edge; it is clamped to
+	// [MinSide, MaxSide]. Nil means DefaultSide.
+	Side    func() int
 	Publish func(jpeg []byte) error
 	// Store, when set, keeps the latest frame for the web UI. It is cleared
 	// while the sensor is disabled.
@@ -103,7 +120,11 @@ func (r *Runner) Tick() (Result, error) {
 	if r.Locked != nil && r.Locked() {
 		return Skipped, nil
 	}
-	img, err := r.Capture(MaxSide)
+	side := DefaultSide
+	if r.Side != nil {
+		side = r.Side()
+	}
+	img, err := r.Capture(ClampSide(side))
 	if err != nil {
 		return Failed, err
 	}
