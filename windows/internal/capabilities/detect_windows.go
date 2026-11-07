@@ -3,6 +3,7 @@
 package capabilities
 
 import (
+	"satellite/internal/icue"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -53,6 +54,7 @@ func detectPlatformCapabilities() PlatformCapabilities {
 		Microphone:      true,
 		DisplayState:    true,
 		AudioOutput:     true,
+		ICUERGB:         icue.Detected(),
 		Wifi:            true,
 		Notifications:   true,
 		SystemTheme:     true,

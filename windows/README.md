@@ -22,6 +22,7 @@ The local web UI lets you choose which sensors are published. Its **Sensors** ta
 - **Sensors:** Workstation Lock, User Presence/Idle, Microphone Active, Webcam Active, Display Power State, Audio Output Device, Fullscreen/Gaming, System Dark/Light Theme, Pending Reboot.
 - **Screen Thumbnail (Windows, opt-in):** a tiny picture of the main screen (200px by default, adjustable from 64 to 400px), taken with each telemetry update (every 5 seconds by default), shown in Home Assistant as an image entity. Off by default; see [Screen thumbnail](#screen-thumbnail).
 - **Media Tracking:** Now Playing track title, artist, and app via Windows Media Transport Controls or Linux MPRIS D-Bus.
+- **iCUE RGB (Windows x64, opt-in):** read device LED colours through Corsair's SDK and publish them in MQTT telemetry, without changing lighting. See [iCUE RGB](#icue-rgb).
 - **Remote Controls:** Workstation Lock, Sleep Displays, Play/Pause, Next/Prev Track, Mute, Volume Up/Down.
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
 - **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
@@ -136,7 +137,7 @@ every second. Choosing another duration starts a new countdown from that moment.
 Choose **Resume sensitive sensors now** to end it early.
 
 The pause covers the **High** and **Critical Privacy Risk** groups in Settings:
-user presence/idle time, session lock, media details, active process, window
+user presence/idle time, session lock, media details, iCUE RGB, active process, window
 titles, microphone/webcam usage, and thumbnails from every selected display.
 These readings are omitted from MQTT, telemetry webhooks (including queued
 retries and connection tests), `/json`, and the Sensors view. Thumbnail capture
@@ -151,6 +152,53 @@ deadline passes. Time spent asleep counts toward the duration.
 The pause lasts for the current Satellite session; exiting or restarting the app
 ends it. It cannot retract requests already sent or erase readings/images already
 stored by Home Assistant, brokers, webhook receivers, or an open browser.
+
+## iCUE RGB
+
+Satellite can read RGB colours from devices exposed by Corsair iCUE. This is
+off by default and read only: Satellite never sets colours, requests exclusive
+control, or switches iCUE profiles. It requires Windows x64, iCUE 4.31 or newer
+running locally, and permission for Satellite in iCUE's SDK integration settings.
+Run Satellite and iCUE at the same privilege level. Not every device visible in
+iCUE is necessarily exposed by the SDK.
+
+Install the official SDK once. From the `windows/` source directory, run:
+
+```powershell
+.\scripts\install-icue-sdk.ps1
+```
+
+The helper downloads SDK 4.0.84 directly from Corsair's GitHub release, verifies
+the archive SHA256, and installs its x64 DLL under `%APPDATA%\satellite\sdk`.
+The SDK is supplied by Corsair under its own
+[license terms](https://corsairofficial.github.io/cue-sdk/#end-user-license-agreement);
+it is not bundled with Satellite. Alternatively, download the
+[official SDK archive](https://github.com/CorsairOfficial/cue-sdk/releases/tag/v4.0.84)
+and copy `iCUESDK/redist/x64/iCUESDK.x64_2019.dll` into that folder or beside
+`satellite.exe`. The Microsoft Visual C++ 2015–2022 x64 runtime may be needed
+for the SDK DLL to load.
+
+Restart Satellite after setup. When iCUE or the SDK is detected, Settings shows
+**iCUE RGB Colours (Read Only)** under **User Presence & Application Activity**.
+Enable it and save. The Sensors tab shows the connection status and counts of
+readable devices and LEDs, including a message if the SDK is missing.
+
+Readings appear under `rgb` in the existing `<topic_prefix>/<node_id>/state`
+MQTT JSON message. Each device contains a stable hashed identifier, model, SDK
+device type, `leds` with numeric IDs and RGBA values from 0–255, and
+`average_rgb`: the rounded arithmetic mean of all returned LED RGB channels,
+including black LEDs, without alpha weighting. Raw serial numbers are omitted.
+Home Assistant discovers an **iCUE RGB Devices** sensor; its attributes contain
+the RGB status and full device list. No light controls are created.
+
+Colours are sampled at the normal collection interval (5 seconds by default).
+Changes trigger normal telemetry publishing; this is not an animation stream.
+Disconnected or unreadable devices are removed from the next reading rather
+than retaining stale colours. A partial read is labelled `partial`. RGB also
+appears in enabled telemetry webhooks and local snapshots. Disabling the sensor
+ends the SDK connection on the next collection tick and omits RGB from subsequent
+snapshots. Privacy pause stops RGB reads and filters cached RGB readings because
+screen-reactive lighting can reveal screen or application activity.
 
 ## Remote Commands
 

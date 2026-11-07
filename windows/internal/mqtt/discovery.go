@@ -129,6 +129,22 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		Payload   EntityDiscoveryPayload
 	}{
 		{
+			Key:       "icue_rgb",
+			ShouldRun: cfg.Expose.ICUERGB && isCap("icue_rgb"),
+			Payload: EntityDiscoveryPayload{
+				Component:              "sensor",
+				Name:                   "iCUE RGB Devices",
+				StateTopic:             stateTopic,
+				ValueTemplate:          "{{ value_json.rgb.devices | count if value_json.rgb is defined else 0 }}",
+				JSONAttributesTopic:    stateTopic,
+				JSONAttributesTemplate: "{{ value_json.rgb | default({'status': 'unavailable', 'devices': []}) | tojson }}",
+				UniqueID:               nodeID + "_icue_rgb",
+				Device:                 device,
+				AvailabilityTopic:      availTopic,
+				Icon:                   "mdi:led-strip-variant",
+			},
+		},
+		{
 			Key:       "cpu",
 			ShouldRun: cfg.Expose.CPU && isCap("cpu"),
 			Payload: EntityDiscoveryPayload{

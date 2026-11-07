@@ -20,7 +20,7 @@ func allCaps() capabilities.PlatformCapabilities {
 		LocalIP: true, Battery: true, GPU: true, SessionLock: true, UserPresence: true,
 		MediaControl: true, RemoteLock: true, Webcam: true, Microphone: true, DisplayState: true,
 		AudioOutput: true, Wifi: true, Notifications: true, SystemTheme: true, Fullscreen: true,
-		ActiveWindow: true, UpdatePending: true, ScreenThumbnail: true,
+		ActiveWindow: true, UpdatePending: true, ScreenThumbnail: true, ICUERGB: true,
 	}
 }
 
@@ -30,7 +30,7 @@ func allExpose() config.ExposeConfig {
 		SessionLock: true, Microphone: true, Fullscreen: true, SystemTheme: true, LocalIP: true,
 		Battery: true, ActiveWindow: true, WindowTitle: true, UpdatePending: true, MediaControl: true,
 		RemoteLock: true, Webcam: true, AudioOutput: true, Wifi: true, DisplayState: true,
-		Notifications: true, GPU: true, NvidiaNVML: true, ScreenThumbnail: true,
+		Notifications: true, GPU: true, NvidiaNVML: true, ScreenThumbnail: true, ICUERGB: true,
 	}
 }
 
@@ -109,7 +109,7 @@ func TestBuildSensorsListsEveryEnabledSensor(t *testing.T) {
 		"network", "local_ip", "wifi",
 		"user_presence", "session_lock", "display_state", "fullscreen", "system_theme", "active_window", "window_title",
 		"media_control", "audio_output", "microphone", "webcam",
-		"screen_thumbnail",
+		"screen_thumbnail", "icue_rgb",
 	}
 	if !reflect.DeepEqual(ids(got), want) {
 		t.Fatalf("sensors =\n%v\nwant\n%v", ids(got), want)
@@ -126,7 +126,7 @@ func TestEveryReportingToggleHasASensor(t *testing.T) {
 		"fullscreen": "fullscreen", "system_theme": "system_theme", "local_ip": "local_ip", "battery": "battery",
 		"active_window": "active_window", "window_title": "window_title", "update_pending": "update_pending",
 		"media_control": "media_control", "webcam": "webcam", "audio_output": "audio_output", "wifi": "wifi",
-		"display_state": "display_state", "gpu": "gpu0", "screen_thumbnail": "screen_thumbnail",
+		"display_state": "display_state", "gpu": "gpu0", "screen_thumbnail": "screen_thumbnail", "icue_rgb": "icue_rgb",
 	}
 	notSensors := map[string]bool{"remote_lock": true, "notifications": true, "nvidia_nvml": true}
 

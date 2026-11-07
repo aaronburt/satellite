@@ -8,7 +8,7 @@ func TestPrivacyMaskKeepsHardwareAndControlChoices(t *testing.T) {
 		LocalIP: true, Wifi: true, Fullscreen: true, AudioOutput: true, DisplayState: true,
 		RemoteLock: true, Notifications: true,
 		UserPresence: true, SessionLock: true, MediaControl: true, ActiveWindow: true,
-		WindowTitle: true, Microphone: true, Webcam: true, ScreenThumbnail: true,
+		WindowTitle: true, Microphone: true, Webcam: true, ScreenThumbnail: true, ICUERGB: true,
 	}
 	want := ExposeConfig{
 		CPU: true, Memory: true, Network: true, GPU: true, NvidiaNVML: true,

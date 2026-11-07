@@ -9,5 +9,6 @@ func (e ExposeConfig) WithoutSensitive() ExposeConfig {
 	e.Microphone = false
 	e.Webcam = false
 	e.ScreenThumbnail = false
+	e.ICUERGB = false
 	return e
 }

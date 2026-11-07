@@ -16,6 +16,7 @@ func (s Snapshot) withoutSensitive() Snapshot {
 	s.UserActive = nil
 	s.SessionLocked = nil
 	s.Media = nil
+	s.RGB = nil
 	s.ActiveProcess = ""
 	s.ActiveWindowTitle = ""
 	s.MicrophoneInUse = nil

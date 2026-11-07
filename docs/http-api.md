@@ -108,6 +108,11 @@ the Unix-seconds `timestamp`, are defined in
 [`types.go`](../windows/internal/telemetry/types.go). This endpoint reads the
 last snapshot rather than triggering a fresh collection.
 
+On Windows x64, enabling `expose.icue_rgb` adds an optional `rgb` object with
+iCUE connection status, devices, and per-LED RGBA values. The Sensors list adds
+an `icue_rgb` card with connection and device counts. See the
+[RGB payload reference](mqtt-and-webhooks.md#icue-rgb-state-windows-x64).
+
 During a Windows tray privacy pause, High and Critical privacy readings are
 omitted from `telemetry`, `/json`, and `sensors`; screen-thumbnail requests return
 404. Configured sensor switches remain unchanged. The tray menu and tooltip show

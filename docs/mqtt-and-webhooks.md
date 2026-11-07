@@ -68,6 +68,44 @@ The runtime routing and discovery definitions are in
 [`client.go`](../windows/internal/mqtt/client.go) and
 [`discovery.go`](../windows/internal/mqtt/discovery.go).
 
+### iCUE RGB state (Windows x64)
+
+With `expose.icue_rgb` enabled and the optional iCUE SDK installed, desktop state
+messages can include:
+
+```json
+{
+  "rgb": {
+    "status": "connected",
+    "devices": [
+      {
+        "id": "sha256-of-sdk-device-id",
+        "model": "Keyboard",
+        "type": 1,
+        "average_rgb": [255, 64, 0],
+        "leds": [{"id": 1, "r": 255, "g": 64, "b": 0, "a": 255}]
+      }
+    ]
+  }
+}
+```
+
+IDs are hashed SDK identifiers, not raw serial numbers. LED IDs and device type
+values follow Corsair's SDK. `average_rgb` is the rounded mean of all returned
+LED colours, including black LEDs and ignoring alpha. Devices and LEDs are
+sorted by ID. A successful connection with no readable RGB devices has an empty
+`devices` array. Connection or read failures also have empty arrays; status can
+be `connecting`, `sdk_missing`, `icue_unavailable`, `access_denied`,
+`disconnected`, `connection_failed`, or `read_failed`. `partial` means only the
+successfully read devices are included. Unsupported platforms report
+`unsupported` if the setting was enabled manually.
+
+The data uses the existing non-retained state topic and collection interval.
+Home Assistant discovers a device-count sensor with `status` and `devices`
+attributes. RGB is omitted while disabled or privacy-paused. It is also included
+in enabled desktop telemetry webhooks and local JSON snapshots. See
+[SDK setup](../windows/README.md#icue-rgb).
+
 ## Android
 
 `<base>` is `satellite/<device_id>`, where the app persists its generated device
