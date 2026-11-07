@@ -46,7 +46,7 @@ type ExportData struct {
 	IntervalSec               int           `json:"interval_sec"`
 	ScreenThumbnailSize       int           `json:"screen_thumbnail_size,omitempty"`
 	ScreenThumbnailDisplays   []int         `json:"screen_thumbnail_displays,omitempty"`
-	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps,omitempty"`
+	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps"`
 	HeartbeatSec              int           `json:"heartbeat_sec,omitempty"`
 	Port                      int           `json:"port,omitempty"`
 	WebUIPort                 int           `json:"webui_port,omitempty"`

@@ -1228,6 +1228,16 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
   outline:2px solid var(--border-focus);
   outline-offset:2px;
 }
+.sdk-dialog{margin:auto;width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:24px;border:1px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text)}
+.sdk-dialog::backdrop{background:rgba(0,0,0,.65)}
+.sdk-dialog h2{font-size:19px;margin-bottom:12px}
+.sdk-dialog p,.sdk-dialog ol{margin-bottom:14px;color:var(--text-dim)}
+.sdk-dialog ol{padding-left:22px}
+.sdk-dialog li{margin-bottom:8px}
+.sdk-dialog code{overflow-wrap:anywhere}
+.sdk-dialog a{color:#75baff}
+.sdk-dialog-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.sdk-check-status{padding:12px;background:var(--surface-alt);border-radius:6px}
 </style>
 </head>
 <body>
@@ -1646,7 +1656,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
               </div>
               <div class="toggle-grid">
                 <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
-                <label class="toggle-item" data-cap="icue_rgb" title="Requires the iCUE SDK DLL; see iCUE RGB in the README"><input type="checkbox" class="exp-chk" id="exp-icue-rgb"><span>iCUE RGB Colours (Read Only)</span></label>
+                <label class="toggle-item" data-cap="icue_rgb"><input type="checkbox" class="exp-chk" id="exp-icue-rgb" data-no-bulk><span>iCUE RGB Colours (Read Only)</span></label>
                 <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
                 <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
@@ -1680,7 +1690,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                   </div>
                 </div>
                 <div class="field" id="screen-thumb-size-field"><label for="screen-thumb-size">Thumbnail size (longest edge, px)</label><input type="number" class="mono" id="screen-thumb-size" min="64" max="400" step="1" value="200" title="Longest edge of the screen thumbnail, 64 to 400 pixels. Larger sizes show more detail, and above about 200 pixels large on-screen text can become readable."></div>
-                <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="3" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea></div>
+                <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="6" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea><p class="field-hint">Prefilled with common browsers, messaging apps and email clients. Edit or remove entries to choose what is hidden. Up to 128 program names.</p></div>
               </div>
             </div>
           </div>
@@ -1881,6 +1891,20 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
 
 <div id="toast-container" class="toast-container" role="status" aria-live="polite"></div>
 
+<dialog id="icue-sdk-dialog" class="sdk-dialog" aria-labelledby="icue-sdk-title" aria-describedby="icue-sdk-intro">
+  <h2 id="icue-sdk-title">Set up iCUE RGB</h2>
+  <p id="icue-sdk-intro">RGB readings need Corsair's iCUE SDK. Download and install it yourself from Corsair's official SDK page. Satellite does not download or install it.</p>
+  <ol>
+    <li>Download the Windows SDK archive from <a href="https://github.com/CorsairOfficial/cue-sdk/releases" target="_blank" rel="noopener noreferrer">Corsair's SDK downloads</a> and review <a href="https://corsairofficial.github.io/cue-sdk/#end-user-license-agreement" target="_blank" rel="noopener noreferrer">Corsair's licence terms</a>.</li>
+    <li>Extract <code>iCUESDK.x64_2019.dll</code> from the archive's <code>redist/x64</code> folder. Create <code>%APPDATA%\satellite\sdk</code> if needed and copy the DLL there, or put it beside <code>satellite.exe</code>.</li>
+    <li>Keep iCUE running. Allow Satellite in iCUE's SDK settings when asked.</li>
+  </ol>
+  <p id="icue-sdk-status" class="sdk-check-status" role="status" aria-live="polite">Checking for the iCUE SDK…</p>
+  <div class="sdk-dialog-actions">
+    <button type="button" class="btn-secondary" id="icue-sdk-close">Close</button>
+  </div>
+</dialog>
+
 <script nonce="{{CSP_NONCE}}">
 const $ = id => document.getElementById(id);
 const urlParams = new URLSearchParams(window.location.search);
@@ -2021,6 +2045,8 @@ function switchNav(tab) {
   try { history.replaceState(null, '', '#' + tab); } catch (e) {}
   // Ask for fresh data (and the screen preview) right away.
   if (pollStarted && (tab === 'sensors' || tab === 'diagnostics') && previous !== tab) poll();
+  if (tab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
+  else stopICUESDKCheck();
 }
 
 function bulkToggleEntities(checked) {
@@ -2029,6 +2055,57 @@ function bulkToggleEntities(checked) {
     el.checked = checked;
   });
   setFormDirty(true);
+  if (!checked) stopICUESDKCheck();
+}
+
+let icueSDKTimer = null;
+let icueSDKGeneration = 0;
+let icueSDKWasMissing = false;
+
+function stopICUESDKCheck() {
+  icueSDKGeneration++;
+  clearTimeout(icueSDKTimer);
+  icueSDKTimer = null;
+  if ($('icue-sdk-dialog').open) $('icue-sdk-dialog').close();
+}
+
+function startICUESDKCheck() {
+  stopICUESDKCheck();
+  if (!$('exp-icue-rgb').checked || activeTab !== 'settings' || document.hidden || sessionExpired) return;
+  const generation = icueSDKGeneration;
+  let wasMissing = false;
+  const check = async () => {
+    if (generation !== icueSDKGeneration || !$('exp-icue-rgb').checked || document.hidden || sessionExpired) return;
+    try {
+      const response = await authFetch('/api/icue-sdk');
+      if (!response.ok) throw new Error('SDK check failed');
+      const sdk = await response.json();
+      if (generation !== icueSDKGeneration || !$('exp-icue-rgb').checked) return;
+      if (sdk.available) {
+        if ($('icue-sdk-dialog').open) $('icue-sdk-dialog').close();
+        if (icueSDKWasMissing) showToast(currentExpose.icue_rgb ? 'iCUE SDK detected. RGB readings will resume shortly.' : 'iCUE SDK detected. Apply your settings to enable RGB readings.');
+        icueSDKWasMissing = false;
+        return;
+      }
+      if (!sdk.supported) {
+        showToast('iCUE RGB requires Windows x64.', true);
+        return;
+      }
+      $('icue-sdk-status').textContent = sdk.status === 'unavailable'
+        ? 'The SDK DLL was found but could not be loaded. Check that it is the x64 SDK and that the Microsoft Visual C++ 2015–2022 x64 runtime is installed. Checking again every 3 seconds.'
+        : 'SDK not found yet. Checking again every 3 seconds. You can close this message while you install it.';
+      if (!wasMissing && !$('icue-sdk-dialog').open) $('icue-sdk-dialog').showModal();
+      wasMissing = true;
+      icueSDKWasMissing = true;
+    } catch (err) {
+      if (generation !== icueSDKGeneration || sessionExpired) return;
+      $('icue-sdk-status').textContent = 'Could not check the SDK. Retrying in 3 seconds.';
+      if (!wasMissing && !$('icue-sdk-dialog').open) $('icue-sdk-dialog').showModal();
+      wasMissing = true;
+    }
+    if (generation === icueSDKGeneration) icueSDKTimer = setTimeout(check, 3000);
+  };
+  check();
 }
 
 async function triggerAction(actionName) {
@@ -2811,6 +2888,7 @@ async function loadConfig() {
         }
       }
     } catch (e) {}
+    if (activeTab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
   } catch (err) {
     if (!sessionExpired) showToast('Could not load settings: ' + err.message, true);
   }
@@ -3345,6 +3423,8 @@ function setFormDirty(dirty) {
 const markDirty = e => { if (!e.target.closest('#portability-card')) setFormDirty(true); };
 $('cfg-form').addEventListener('input', markDirty);
 $('cfg-form').addEventListener('change', markDirty);
+$('exp-icue-rgb').addEventListener('change', startICUESDKCheck);
+$('icue-sdk-close').addEventListener('click', () => $('icue-sdk-dialog').close());
 window.addEventListener('beforeunload', e => {
   if (formDirty) {
     e.preventDefault();
@@ -3360,6 +3440,8 @@ $('bind_address').addEventListener('input', updateBindWarning);
 
 // Stop polling while the tab is hidden, and catch up as soon as it is shown.
 document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopICUESDKCheck();
+  else if (activeTab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
   if (sessionExpired || !pollStarted) return;
   if (document.hidden) {
     pollSeq++;

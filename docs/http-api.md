@@ -113,6 +113,13 @@ iCUE connection status, devices, and per-LED RGBA values. The Sensors list adds
 an `icue_rgb` card with connection and device counts. See the
 [RGB payload reference](mqtt-and-webhooks.md#icue-rgb-state-windows-x64).
 
+`GET /api/icue-sdk` uses the same web UI authentication and reports `supported`,
+`available`, and `status` (`ready`, `missing`, `unavailable`, or `unsupported`).
+It checks local DLL locations and required SDK exports without changing config,
+connecting to iCUE, or downloading anything. `unavailable` means a DLL was found
+but could not be loaded as the expected SDK. The Settings checkbox uses this
+endpoint for user-managed SDK setup and retries while waiting for installation.
+
 During a Windows tray privacy pause, High and Critical privacy readings are
 omitted from `telemetry`, `/json`, and `sensors`; screen-thumbnail requests return
 404. Configured sensor switches remain unchanged. The tray menu and tooltip show

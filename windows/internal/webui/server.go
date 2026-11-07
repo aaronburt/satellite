@@ -23,6 +23,7 @@ import (
 
 	"satellite/internal/capabilities"
 	"satellite/internal/config"
+	"satellite/internal/icue"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/output"
@@ -76,6 +77,7 @@ type Server struct {
 	devMode          bool
 	thumbs           *screenthumb.Store
 	listDisplays     func() ([]screenthumb.Display, error)
+	checkICUESDK     func() icue.SDKStatus
 	// thumbSeen is when a page last asked for the screen preview
 	// (unix nanoseconds, 0 = never).
 	thumbSeen atomic.Int64
@@ -87,6 +89,7 @@ func NewServer(collector *telemetry.Collector, mqttClient *mqtt.Client) *Server 
 		mqttClient:   mqttClient,
 		caps:         capabilities.Detect(),
 		webUIEnabled: true,
+		checkICUESDK: icue.CheckSDK,
 	}
 }
 
@@ -403,6 +406,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/api/diagnostics", api(s.handleDiagnostics))
 	mux.HandleFunc("/api/diagnostics/test", api(s.handleDiagnosticTest))
 	mux.HandleFunc("/api/capabilities", api(s.handleCapabilities))
+	mux.HandleFunc("/api/icue-sdk", api(s.handleICUESDK))
 	mux.HandleFunc("/api/screen-thumbnail", api(s.handleScreenThumbnail))
 	mux.HandleFunc("/api/displays", api(s.handleDisplays))
 	mux.HandleFunc("/api/config", api(s.handleConfig))

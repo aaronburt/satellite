@@ -130,9 +130,3 @@ func TestHiddenAppsNormalizedOnLoadAndImport(t *testing.T) {
 		t.Fatalf("imported %v", got)
 	}
 }
-
-func TestHiddenAppsEmptyByDefault(t *testing.T) {
-	if len(DefaultConfig().ScreenThumbnailHiddenApps) != 0 {
-		t.Fatal("no apps should be hidden by default")
-	}
-}

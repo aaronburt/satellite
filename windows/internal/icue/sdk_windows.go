@@ -12,7 +12,6 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
-	"golang.org/x/sys/windows/registry"
 )
 
 const dllName = "iCUESDK.x64_2019.dll"
@@ -44,39 +43,48 @@ type sdk struct {
 
 func sdkPaths() []string {
 	var paths []string
-	if dir, err := os.UserConfigDir(); err == nil {
-		paths = append(paths, filepath.Join(dir, "satellite", "sdk", dllName))
-	}
 	if exe, err := os.Executable(); err == nil {
 		paths = append(paths, filepath.Join(filepath.Dir(exe), dllName))
+	}
+	if dir, err := os.UserConfigDir(); err == nil {
+		paths = append(paths, filepath.Join(dir, "satellite", "sdk", dllName))
 	}
 	return paths
 }
 
-func Detected() bool {
-	for _, path := range sdkPaths() {
-		if info, err := os.Stat(path); err == nil && !info.IsDir() {
-			return true
-		}
-	}
-	for _, name := range []string{"iCUE.exe", "iCUE Launcher.exe"} {
-		key, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\`+name, registry.QUERY_VALUE)
-		if err == nil {
-			key.Close()
-			return true
-		}
-	}
-	for _, version := range []string{"Corsair iCUE5 Software", "CORSAIR iCUE 4 Software"} {
-		if base := os.Getenv("ProgramFiles"); base != "" {
-			if _, err := os.Stat(filepath.Join(base, "Corsair", version, "iCUE.exe")); err == nil {
-				return true
-			}
-		}
-	}
-	return false
-}
+func Supported() bool { return true }
 
 func newBackend() backend { return &sdk{} }
+
+func CheckSDK() SDKStatus {
+	reader.Lock()
+	defer reader.Unlock()
+	if s, ok := reader.backend.(*sdk); ok && s.dll != nil {
+		return SDKStatus{Supported: true, Available: true, Status: "ready"}
+	}
+	status := probeSDK(sdkPaths())
+	if status.Available {
+		if s, ok := reader.backend.(*sdk); ok {
+			s.nextLoad = time.Time{}
+		}
+	}
+	return status
+}
+
+func probeSDK(paths []string) SDKStatus {
+	status := SDKStatus{Supported: true, Status: "missing"}
+	for _, path := range paths {
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			status.Status = "unavailable"
+		}
+	}
+	s := &sdk{}
+	if s.load(paths) {
+		s.dll.Release()
+		status.Available, status.Status = true, "ready"
+	}
+	return status
+}
 
 func (s *sdk) load(paths []string) bool {
 	for _, path := range paths {

@@ -4,10 +4,30 @@ package icue
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 	"unsafe"
 )
+
+func TestProbeSDKDistinguishesMissingAndUnusableFiles(t *testing.T) {
+	path := filepath.Join(t.TempDir(), dllName)
+	if got := probeSDK([]string{path}); got.Status != "missing" || got.Available || !got.Supported {
+		t.Fatalf("missing: %+v", got)
+	}
+	if err := os.WriteFile(path, []byte("not a DLL"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if got := probeSDK([]string{path}); got.Status != "unavailable" || got.Available {
+		t.Fatalf("invalid: %+v", got)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if got := probeSDK([]string{path}); got.Status != "missing" {
+		t.Fatalf("removed: %+v", got)
+	}
+}
 
 func TestSDKLayouts(t *testing.T) {
 	if unsafe.Sizeof(sdkDevice{}) != 396 || unsafe.Offsetof(sdkDevice{}.LEDCount) != 388 {
@@ -36,6 +56,9 @@ func TestLiveSDKReadOnly(t *testing.T) {
 	path := os.Getenv("SATELLITE_TEST_ICUE_DLL")
 	if path == "" {
 		t.Skip("set SATELLITE_TEST_ICUE_DLL to test against a local iCUE installation")
+	}
+	if status := probeSDK([]string{path}); !status.Available || status.Status != "ready" {
+		t.Fatalf("SDK probe failed: %+v", status)
 	}
 	s := &sdk{}
 	if !s.load([]string{path}) {

@@ -406,7 +406,7 @@ func BuildSensors(expose config.ExposeConfig, caps capabilities.PlatformCapabili
 					s.State = StateWarn
 				}
 			case "sdk_missing":
-				s.Value, s.Detail, s.State = "SDK not installed", "Install the iCUE SDK DLL and restart Satellite; see the README", StateWaiting
+				s.Value, s.Detail, s.State = "SDK not installed", "Open Settings for the Corsair SDK download link and setup instructions", StateWaiting
 			case "access_denied":
 				s.Value, s.Detail, s.State = "Access denied", "Allow Satellite in iCUE SDK settings", StateWarn
 			default:

@@ -28,6 +28,12 @@ type State struct {
 	Devices []Device `json:"devices"`
 }
 
+type SDKStatus struct {
+	Supported bool   `json:"supported"`
+	Available bool   `json:"available"`
+	Status    string `json:"status"`
+}
+
 type backend interface {
 	read() State
 	close()
