@@ -1568,12 +1568,13 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                   <span class="tier-title">Sensitive Content & Surveillance</span>
                   <span class="tier-badge tier-crit">Critical Privacy Risk</span>
                 </div>
-                <span class="tier-desc">Exposes exact window/document titles, microphone capture, and webcam usage</span>
+                <span class="tier-desc">Exposes exact window/document titles, microphone capture, webcam usage, and a tiny picture of your screen</span>
               </div>
               <div class="toggle-grid">
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
                 <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
                 <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+                <label class="toggle-item" data-cap="screen_thumbnail" title="Every 30 seconds, sends a 100px picture of your main screen to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (100px, every 30s)</span></label>
               </div>
             </div>
           </div>
@@ -1923,6 +1924,7 @@ function filterSensors(query) {
 
 function bulkToggleEntities(checked) {
   document.querySelectorAll('.exp-chk').forEach(el => {
+    if (checked && el.dataset.noBulk !== undefined) return;
     el.checked = checked;
   });
 }
@@ -2395,6 +2397,7 @@ async function loadConfig() {
     $('exp-media').checked = !!currentExpose.media_control;
     $('exp-remote-lock').checked = !!currentExpose.remote_lock;
     $('exp-webcam').checked = !!currentExpose.webcam;
+    $('exp-screen-thumb').checked = !!currentExpose.screen_thumbnail;
     $('exp-audio-output').checked = !!currentExpose.audio_output;
     $('exp-wifi').checked = !!currentExpose.wifi;
     $('exp-display').checked = !!currentExpose.display_state;
@@ -2550,6 +2553,7 @@ $('cfg-form').onsubmit = async (e) => {
     media_control: $('exp-media').checked,
     remote_lock: $('exp-remote-lock').checked,
     webcam: $('exp-webcam').checked,
+    screen_thumbnail: $('exp-screen-thumb').checked,
     audio_output: $('exp-audio-output').checked,
     wifi: $('exp-wifi').checked,
     display_state: $('exp-display').checked,

@@ -1,0 +1,257 @@
+package screenthumb
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"sync"
+	"testing"
+	"time"
+)
+
+func TestThumbSizeKeepsAspectRatio(t *testing.T) {
+	cases := []struct {
+		name         string
+		w, h         int
+		wantW, wantH int
+	}{
+		{"1080p landscape", 1920, 1080, 100, 56},
+		{"1440p", 2560, 1440, 100, 56},
+		{"16:10", 1920, 1200, 100, 63},
+		{"ultrawide", 3440, 1440, 100, 42},
+		{"4:3", 1024, 768, 100, 75},
+		{"portrait", 1080, 1920, 56, 100},
+		{"square", 2000, 2000, 100, 100},
+		{"extreme strip keeps 1px", 10000, 10, 100, 1},
+		{"already small is not enlarged", 80, 60, 80, 60},
+		{"exactly max", 100, 40, 100, 40},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			w, h, err := ThumbSize(c.w, c.h, MaxSide)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if w != c.wantW || h != c.wantH {
+				t.Fatalf("ThumbSize(%d,%d) = %dx%d, want %dx%d", c.w, c.h, w, h, c.wantW, c.wantH)
+			}
+			if max(w, h) > MaxSide {
+				t.Fatalf("longest side %d exceeds %d", max(w, h), MaxSide)
+			}
+		})
+	}
+}
+
+func TestThumbSizeRejectsBadInput(t *testing.T) {
+	for _, in := range [][3]int{{0, 1080, 100}, {1920, 0, 100}, {-1, 5, 100}, {1920, 1080, 0}} {
+		if _, _, err := ThumbSize(in[0], in[1], in[2]); err == nil {
+			t.Errorf("ThumbSize%v: want error", in)
+		}
+	}
+}
+
+func TestFromBGRASwapsChannelsAndSetsOpaque(t *testing.T) {
+	buf := []byte{255, 0, 0, 0, 0, 0, 255, 0}
+	img, err := FromBGRA(buf, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := img.RGBAAt(0, 0); got != (color.RGBA{0, 0, 255, 255}) {
+		t.Errorf("pixel 0 = %v, want blue", got)
+	}
+	if got := img.RGBAAt(1, 0); got != (color.RGBA{255, 0, 0, 255}) {
+		t.Errorf("pixel 1 = %v, want red", got)
+	}
+}
+
+func TestFromBGRARejectsWrongLength(t *testing.T) {
+	if _, err := FromBGRA(make([]byte, 7), 2, 1); err == nil {
+		t.Fatal("want error for short buffer")
+	}
+}
+
+func TestEncodeProducesSmallJPEG(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 56))
+	data, err := Encode(img)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if format != "jpeg" || cfg.Width != 100 || cfg.Height != 56 {
+		t.Fatalf("decoded %s %dx%d", format, cfg.Width, cfg.Height)
+	}
+	if _, err := jpeg.Decode(bytes.NewReader(data)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEncodeRefusesFullSizeImages(t *testing.T) {
+	for _, r := range []image.Rectangle{
+		image.Rect(0, 0, 1920, 1080),
+		image.Rect(0, 0, 101, 50),
+		image.Rect(0, 0, 50, 101),
+		image.Rect(0, 0, 0, 0),
+	} {
+		if _, err := Encode(image.NewRGBA(r)); err == nil {
+			t.Errorf("Encode(%v): want error", r)
+		}
+	}
+}
+
+type fakes struct {
+	enabled, ready, locked bool
+	captured               int
+	maxSide                int
+	img                    image.Image
+	captureErr             error
+	published              [][]byte
+	publishErr             error
+}
+
+func (f *fakes) runner() *Runner {
+	return &Runner{
+		Enabled: func() bool { return f.enabled },
+		Ready:   func() bool { return f.ready },
+		Locked:  func() bool { return f.locked },
+		Capture: func(m int) (image.Image, error) {
+			f.captured++
+			f.maxSide = m
+			return f.img, f.captureErr
+		},
+		Publish: func(b []byte) error {
+			f.published = append(f.published, b)
+			return f.publishErr
+		},
+	}
+}
+
+func newFakes() *fakes {
+	return &fakes{enabled: true, ready: true, img: image.NewRGBA(image.Rect(0, 0, 100, 56))}
+}
+
+func TestTickPublishesThumbnail(t *testing.T) {
+	f := newFakes()
+	res, err := f.runner().Tick()
+	if err != nil || res != Published {
+		t.Fatalf("Tick = %v, %v", res, err)
+	}
+	if f.maxSide != MaxSide {
+		t.Errorf("capture asked for %d px, want %d", f.maxSide, MaxSide)
+	}
+	if len(f.published) != 1 || !bytes.HasPrefix(f.published[0], []byte{0xff, 0xd8}) {
+		t.Fatalf("published %d items, want one JPEG", len(f.published))
+	}
+}
+
+func TestTickDoesNotCaptureUnlessAllowed(t *testing.T) {
+	cases := map[string]func(*fakes){
+		"disabled":     func(f *fakes) { f.enabled = false },
+		"no output":    func(f *fakes) { f.ready = false },
+		"session lock": func(f *fakes) { f.locked = true },
+	}
+	for name, mutate := range cases {
+		t.Run(name, func(t *testing.T) {
+			f := newFakes()
+			mutate(f)
+			res, err := f.runner().Tick()
+			if err != nil || res != Skipped {
+				t.Fatalf("Tick = %v, %v; want Skipped", res, err)
+			}
+			if f.captured != 0 {
+				t.Fatal("the screen must not be captured")
+			}
+		})
+	}
+}
+
+func TestTickWithNilEnabledIsOff(t *testing.T) {
+	f := newFakes()
+	r := f.runner()
+	r.Enabled = nil
+	if res, _ := r.Tick(); res != Skipped || f.captured != 0 {
+		t.Fatal("a runner without an Enabled check must stay off")
+	}
+}
+
+func TestTickNeverPublishesOversizedCapture(t *testing.T) {
+	f := newFakes()
+	f.img = image.NewRGBA(image.Rect(0, 0, 1920, 1080))
+	res, err := f.runner().Tick()
+	if res != Failed || err == nil {
+		t.Fatalf("Tick = %v, %v; want failure", res, err)
+	}
+	if len(f.published) != 0 {
+		t.Fatal("a full-size frame was published")
+	}
+}
+
+func TestTickReportsCaptureAndPublishErrors(t *testing.T) {
+	f := newFakes()
+	f.captureErr = errors.New("secure desktop")
+	if res, err := f.runner().Tick(); res != Failed || err == nil || len(f.published) != 0 {
+		t.Fatalf("capture error: Tick = %v, %v", res, err)
+	}
+
+	f = newFakes()
+	f.publishErr = errors.New("broker gone")
+	if res, err := f.runner().Tick(); res != Failed || err == nil {
+		t.Fatalf("publish error: Tick = %v, %v", res, err)
+	}
+}
+
+func TestRunTicksUntilCancelled(t *testing.T) {
+	var mu sync.Mutex
+	published := 0
+	r := &Runner{
+		Enabled: func() bool { return true },
+		Capture: func(int) (image.Image, error) { return image.NewRGBA(image.Rect(0, 0, 10, 10)), nil },
+		Publish: func([]byte) error { mu.Lock(); published++; mu.Unlock(); return nil },
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() { r.Run(ctx, 5*time.Millisecond, nil); close(done) }()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		mu.Lock()
+		n := published
+		mu.Unlock()
+		if n >= 2 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("Run did not tick")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("Run did not stop after cancel")
+	}
+}
+
+func TestLogOnChangeLogsRepeatedFailureOnce(t *testing.T) {
+	var logged []string
+	report := LogOnChange(func(err error) { logged = append(logged, err.Error()) })
+	a, b := errors.New("a"), errors.New("b")
+	for _, err := range []error{a, a, a, b, b, nil, nil, b} {
+		report(err)
+	}
+	want := []string{"a", "b", "b"}
+	if len(logged) != len(want) {
+		t.Fatalf("logged %v, want %v", logged, want)
+	}
+	for i := range want {
+		if logged[i] != want[i] {
+			t.Fatalf("logged %v, want %v", logged, want)
+		}
+	}
+}

@@ -37,7 +37,8 @@ CPU, memory, and network counters are enabled locally by default. Other sensor
 and remote-control switches are off. Depending on the switches and platform,
 readings can include storage and GPU statistics, battery state, local IP and
 Wi-Fi name, presence and idle time, session and display state, process names,
-exact window titles, media titles and artists, and microphone/webcam usage.
+exact window titles, media titles and artists, microphone/webcam usage, and
+(on Windows) a low-resolution screen thumbnail.
 Snapshots also include a timestamp and whether a battery is present. MQTT
 discovery includes the configured device ID and app version. The default ID is
 based on your hostname; desktop telemetry webhooks include your actual hostname
@@ -54,6 +55,14 @@ Optional media-volume and microphone-mute controls, including their reported
 states, are off until enabled. You can pause reporting and revoke permissions.
 
 The microphone and webcam features do not record or upload audio or video.
+
+The Windows screen thumbnail is off by default. When you turn it on, Satellite
+sends a picture of your main screen every 30 seconds, no larger than 100 pixels
+on its longest side, to your MQTT broker. The screen is scaled down by Windows
+as it is copied, so no full-size screenshot is held in memory, and thumbnails are
+never written to disk or retained by the broker. Text is unreadable at that
+size, but the picture can still show the general kind of thing on your screen.
+Nothing is captured while the PC is locked.
 Android's location permission is used to read the Wi-Fi network name on older
 Android versions; Satellite does not read GPS coordinates.
 

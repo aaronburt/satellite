@@ -26,30 +26,31 @@ type MQTTConfig struct {
 }
 
 type ExposeConfig struct {
-	CPU           bool `json:"cpu"`
-	Memory        bool `json:"memory"`
-	Storage       bool `json:"storage"`
-	Network       bool `json:"network"`
-	Uptime        bool `json:"uptime"`
-	UserPresence  bool `json:"user_presence"`
-	SessionLock   bool `json:"session_lock"`
-	Microphone    bool `json:"microphone"`
-	Fullscreen    bool `json:"fullscreen"`
-	SystemTheme   bool `json:"system_theme"`
-	LocalIP       bool `json:"local_ip"`
-	Battery       bool `json:"battery"`
-	ActiveWindow  bool `json:"active_window"`
-	WindowTitle   bool `json:"window_title"`
-	UpdatePending bool `json:"update_pending"`
-	MediaControl  bool `json:"media_control"`
-	RemoteLock    bool `json:"remote_lock"`
-	Webcam        bool `json:"webcam"`
-	AudioOutput   bool `json:"audio_output"`
-	Wifi          bool `json:"wifi"`
-	DisplayState  bool `json:"display_state"`
-	Notifications bool `json:"notifications"`
-	GPU           bool `json:"gpu"`
-	NvidiaNVML    bool `json:"nvidia_nvml"`
+	CPU             bool `json:"cpu"`
+	Memory          bool `json:"memory"`
+	Storage         bool `json:"storage"`
+	Network         bool `json:"network"`
+	Uptime          bool `json:"uptime"`
+	UserPresence    bool `json:"user_presence"`
+	SessionLock     bool `json:"session_lock"`
+	Microphone      bool `json:"microphone"`
+	Fullscreen      bool `json:"fullscreen"`
+	SystemTheme     bool `json:"system_theme"`
+	LocalIP         bool `json:"local_ip"`
+	Battery         bool `json:"battery"`
+	ActiveWindow    bool `json:"active_window"`
+	WindowTitle     bool `json:"window_title"`
+	UpdatePending   bool `json:"update_pending"`
+	MediaControl    bool `json:"media_control"`
+	RemoteLock      bool `json:"remote_lock"`
+	Webcam          bool `json:"webcam"`
+	AudioOutput     bool `json:"audio_output"`
+	Wifi            bool `json:"wifi"`
+	DisplayState    bool `json:"display_state"`
+	Notifications   bool `json:"notifications"`
+	GPU             bool `json:"gpu"`
+	NvidiaNVML      bool `json:"nvidia_nvml"`
+	ScreenThumbnail bool `json:"screen_thumbnail"`
 }
 
 type WebhookConfig struct {
@@ -107,30 +108,31 @@ var (
 
 func DefaultExpose() ExposeConfig {
 	return ExposeConfig{
-		CPU:           true,
-		Memory:        true,
-		Storage:       false,
-		Network:       true,
-		Uptime:        false,
-		UserPresence:  false,
-		SessionLock:   false,
-		Microphone:    false,
-		Fullscreen:    false,
-		SystemTheme:   false,
-		LocalIP:       false,
-		Battery:       false,
-		ActiveWindow:  false,
-		WindowTitle:   false,
-		UpdatePending: false,
-		MediaControl:  false,
-		RemoteLock:    false,
-		Webcam:        false,
-		AudioOutput:   false,
-		Wifi:          false,
-		DisplayState:  false,
-		Notifications: false,
-		GPU:           false,
-		NvidiaNVML:    false,
+		CPU:             true,
+		Memory:          true,
+		Storage:         false,
+		Network:         true,
+		Uptime:          false,
+		UserPresence:    false,
+		SessionLock:     false,
+		Microphone:      false,
+		Fullscreen:      false,
+		SystemTheme:     false,
+		LocalIP:         false,
+		Battery:         false,
+		ActiveWindow:    false,
+		WindowTitle:     false,
+		UpdatePending:   false,
+		MediaControl:    false,
+		RemoteLock:      false,
+		Webcam:          false,
+		AudioOutput:     false,
+		Wifi:            false,
+		DisplayState:    false,
+		Notifications:   false,
+		GPU:             false,
+		NvidiaNVML:      false,
+		ScreenThumbnail: false,
 	}
 }
 

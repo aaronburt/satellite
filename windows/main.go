@@ -16,6 +16,7 @@ import (
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/output"
+	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 	"satellite/internal/updater"
@@ -150,11 +151,24 @@ func main() {
 	tickerCtx, cancelTicker := context.WithCancel(context.Background())
 	go collectLoop.Run(tickerCtx)
 
+	thumbs := &screenthumb.Runner{
+		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
+		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },
+		Locked:  telemetry.IsSessionLocked,
+		Capture: screenthumb.Capture,
+		Publish: mqttClient.PublishScreenThumbnail,
+	}
+	thumbCtx, cancelThumbs := context.WithCancel(context.Background())
+	go thumbs.Run(thumbCtx, screenthumb.Interval, screenthumb.LogOnChange(func(err error) {
+		logger.Warn("screen_thumbnail", fmt.Sprintf("Screen thumbnail failed: %v", err))
+	}))
+
 	onExit := func() {
 		logger.Info("system", "Satellite agent shutting down")
 		cancelUpdater()
 		stopIntervalWatch()
 		cancelTicker()
+		cancelThumbs()
 		webhookSink.Close()
 		mqttClient.Stop()
 		server.Stop()
