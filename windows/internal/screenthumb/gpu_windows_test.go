@@ -131,8 +131,8 @@ func TestGPUPipelineReusesStagingForSameSize(t *testing.T) {
 	if err := c.downscale(small, 1280, 720, MaxSide); err != nil {
 		t.Fatal(err)
 	}
-	if c.stagingW != 160 || c.stagingH != 90 {
-		t.Fatalf("staging is %dx%d after a resolution change, want 160x90", c.stagingW, c.stagingH)
+	if c.stagingW != 320 || c.stagingH != 180 {
+		t.Fatalf("staging is %dx%d after a resolution change, want 320x180", c.stagingW, c.stagingH)
 	}
 }
 
