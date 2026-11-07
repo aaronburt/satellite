@@ -57,11 +57,12 @@ states, are off until enabled. You can pause reporting and revoke permissions.
 The microphone and webcam features do not record or upload audio or video.
 
 The Windows screen thumbnail is off by default. When you turn it on, Satellite
-sends a picture of your main screen every 30 seconds, no larger than 100 pixels
-on its longest side, to your MQTT broker. The screen is scaled down by Windows
+sends a picture of your main screen with each telemetry update (every 5 seconds
+by default), no larger than 200 pixels on its longest side, to your MQTT broker. The screen is scaled down by Windows
 as it is copied, so no full-size screenshot is held in memory, and thumbnails are
-never written to disk or retained by the broker. Text is unreadable at that
-size, but the picture can still show the general kind of thing on your screen.
+never written to disk or retained by the broker. Ordinary text is unreadable at
+that size, but large headings may be guessable and the picture shows the general
+kind of thing on your screen.
 Nothing is captured while the PC is locked.
 Android's location permission is used to read the Wi-Fi network name on older
 Android versions; Satellite does not read GPS coordinates.

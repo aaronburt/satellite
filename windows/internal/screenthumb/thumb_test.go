@@ -2,7 +2,6 @@ package screenthumb
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"image"
 	"image/color"
@@ -18,16 +17,17 @@ func TestThumbSizeKeepsAspectRatio(t *testing.T) {
 		w, h         int
 		wantW, wantH int
 	}{
-		{"1080p landscape", 1920, 1080, 100, 56},
-		{"1440p", 2560, 1440, 100, 56},
-		{"16:10", 1920, 1200, 100, 63},
-		{"ultrawide", 3440, 1440, 100, 42},
-		{"4:3", 1024, 768, 100, 75},
-		{"portrait", 1080, 1920, 56, 100},
-		{"square", 2000, 2000, 100, 100},
-		{"extreme strip keeps 1px", 10000, 10, 100, 1},
-		{"already small is not enlarged", 80, 60, 80, 60},
-		{"exactly max", 100, 40, 100, 40},
+		{"1080p landscape", 1920, 1080, 200, 113},
+		{"1440p", 2560, 1440, 200, 113},
+		{"4k", 3840, 2160, 200, 113},
+		{"16:10", 1920, 1200, 200, 125},
+		{"ultrawide", 3440, 1440, 200, 84},
+		{"4:3", 1024, 768, 200, 150},
+		{"portrait", 1080, 1920, 113, 200},
+		{"square", 2000, 2000, 200, 200},
+		{"extreme strip keeps 1px", 10000, 10, 200, 1},
+		{"already small is not enlarged", 160, 90, 160, 90},
+		{"exactly max", 200, 80, 200, 80},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -45,8 +45,14 @@ func TestThumbSizeKeepsAspectRatio(t *testing.T) {
 	}
 }
 
+func TestMaxSideIs200(t *testing.T) {
+	if MaxSide != 200 {
+		t.Fatalf("MaxSide = %d, want 200", MaxSide)
+	}
+}
+
 func TestThumbSizeRejectsBadInput(t *testing.T) {
-	for _, in := range [][3]int{{0, 1080, 100}, {1920, 0, 100}, {-1, 5, 100}, {1920, 1080, 0}} {
+	for _, in := range [][3]int{{0, 1080, 200}, {1920, 0, 200}, {-1, 5, 200}, {1920, 1080, 0}} {
 		if _, _, err := ThumbSize(in[0], in[1], in[2]); err == nil {
 			t.Errorf("ThumbSize%v: want error", in)
 		}
@@ -74,7 +80,7 @@ func TestFromBGRARejectsWrongLength(t *testing.T) {
 }
 
 func TestEncodeProducesSmallJPEG(t *testing.T) {
-	img := image.NewRGBA(image.Rect(0, 0, 100, 56))
+	img := image.NewRGBA(image.Rect(0, 0, 200, 113))
 	data, err := Encode(img)
 	if err != nil {
 		t.Fatal(err)
@@ -83,7 +89,7 @@ func TestEncodeProducesSmallJPEG(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if format != "jpeg" || cfg.Width != 100 || cfg.Height != 56 {
+	if format != "jpeg" || cfg.Width != 200 || cfg.Height != 113 {
 		t.Fatalf("decoded %s %dx%d", format, cfg.Width, cfg.Height)
 	}
 	if _, err := jpeg.Decode(bytes.NewReader(data)); err != nil {
@@ -94,8 +100,8 @@ func TestEncodeProducesSmallJPEG(t *testing.T) {
 func TestEncodeRefusesFullSizeImages(t *testing.T) {
 	for _, r := range []image.Rectangle{
 		image.Rect(0, 0, 1920, 1080),
-		image.Rect(0, 0, 101, 50),
-		image.Rect(0, 0, 50, 101),
+		image.Rect(0, 0, 201, 50),
+		image.Rect(0, 0, 50, 201),
 		image.Rect(0, 0, 0, 0),
 	} {
 		if _, err := Encode(image.NewRGBA(r)); err == nil {
@@ -132,7 +138,7 @@ func (f *fakes) runner() *Runner {
 }
 
 func newFakes() *fakes {
-	return &fakes{enabled: true, ready: true, img: image.NewRGBA(image.Rect(0, 0, 100, 56))}
+	return &fakes{enabled: true, ready: true, img: image.NewRGBA(image.Rect(0, 0, 200, 113))}
 }
 
 func TestTickPublishesThumbnail(t *testing.T) {
@@ -205,36 +211,74 @@ func TestTickReportsCaptureAndPublishErrors(t *testing.T) {
 	}
 }
 
-func TestRunTicksUntilCancelled(t *testing.T) {
+func TestTriggerRunsATickInTheBackground(t *testing.T) {
+	f := newFakes()
+	r := f.runner()
+	done := make(chan error, 1)
+	r.Trigger(func(err error) { done <- err })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Trigger never ran")
+	}
+	if len(f.published) != 1 {
+		t.Fatalf("published %d thumbnails, want 1", len(f.published))
+	}
+}
+
+func TestTriggerSkipsWhileACaptureIsStillRunning(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
 	var mu sync.Mutex
-	published := 0
+	captures := 0
 	r := &Runner{
 		Enabled: func() bool { return true },
-		Capture: func(int) (image.Image, error) { return image.NewRGBA(image.Rect(0, 0, 10, 10)), nil },
-		Publish: func([]byte) error { mu.Lock(); published++; mu.Unlock(); return nil },
+		Capture: func(int) (image.Image, error) {
+			mu.Lock()
+			captures++
+			mu.Unlock()
+			close(started)
+			<-release
+			return image.NewRGBA(image.Rect(0, 0, 10, 10)), nil
+		},
+		Publish: func([]byte) error { return nil },
 	}
-	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
-	go func() { r.Run(ctx, 5*time.Millisecond, nil); close(done) }()
-
-	deadline := time.Now().Add(2 * time.Second)
-	for {
-		mu.Lock()
-		n := published
-		mu.Unlock()
-		if n >= 2 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatal("Run did not tick")
-		}
-		time.Sleep(time.Millisecond)
+	r.Trigger(func(error) { close(done) })
+	<-started
+	for i := 0; i < 5; i++ {
+		r.Trigger(nil)
 	}
-	cancel()
-	select {
-	case <-done:
-	case <-time.After(time.Second):
-		t.Fatal("Run did not stop after cancel")
+	close(release)
+	<-done
+
+	mu.Lock()
+	defer mu.Unlock()
+	if captures != 1 {
+		t.Fatalf("captures = %d, want 1: a slow capture must not stack up", captures)
+	}
+}
+
+func TestTriggerCanRunAgainAfterFinishing(t *testing.T) {
+	f := newFakes()
+	r := f.runner()
+	for i := 0; i < 2; i++ {
+		done := make(chan struct{})
+		r.Trigger(func(error) { close(done) })
+		select {
+		case <-done:
+		case <-time.After(2 * time.Second):
+			t.Fatalf("trigger %d never ran", i)
+		}
+		for r.running.Load() {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	if len(f.published) != 2 {
+		t.Fatalf("published %d, want 2", len(f.published))
 	}
 }
 
