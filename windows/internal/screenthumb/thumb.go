@@ -69,10 +69,15 @@ func Encode(img image.Image) ([]byte, error) {
 
 type Runner struct {
 	Enabled func() bool
+	// Ready reports whether anything wants a frame right now: a connected
+	// MQTT broker or an open web UI page.
 	Ready   func() bool
 	Locked  func() bool
 	Capture func(maxSide int) (image.Image, error)
 	Publish func(jpeg []byte) error
+	// Store, when set, keeps the latest frame for the web UI. It is cleared
+	// while the sensor is disabled.
+	Store *Store
 
 	running atomic.Bool
 }
@@ -87,6 +92,9 @@ const (
 
 func (r *Runner) Tick() (Result, error) {
 	if r.Enabled == nil || !r.Enabled() {
+		if r.Store != nil {
+			r.Store.Clear()
+		}
 		return Skipped, nil
 	}
 	if r.Ready != nil && !r.Ready() {
@@ -102,6 +110,9 @@ func (r *Runner) Tick() (Result, error) {
 	data, err := Encode(img)
 	if err != nil {
 		return Failed, err
+	}
+	if r.Store != nil {
+		r.Store.Set(data)
 	}
 	if err := r.Publish(data); err != nil {
 		return Failed, err

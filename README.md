@@ -13,9 +13,9 @@ This is a monorepo containing the Satellite apps:
 
 The Windows & Linux agent's local web UI:
 
-| Processes | Performance | Settings |
+| Sensors | Performance | Settings |
 | --- | --- | --- |
-| ![Processes view](windows/docs/screenshots/processes.jpg) | ![Performance view](windows/docs/screenshots/performance.jpg) | ![Settings view](windows/docs/screenshots/settings.jpg) |
+| ![Sensors view](windows/docs/screenshots/sensors.jpg) | ![Performance view](windows/docs/screenshots/performance.jpg) | ![Settings view](windows/docs/screenshots/settings.jpg) |
 
 Each app has its own README with build and setup instructions:
 

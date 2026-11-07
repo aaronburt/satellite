@@ -65,7 +65,8 @@ Use the following HTTP methods. JSON request bodies should use
 
 | Method | Path | Request body | Result |
 | --- | --- | --- | --- |
-| GET | `/api/status` | None | MQTT status, last telemetry snapshot, update status |
+| GET | `/api/status` | None | MQTT status, last telemetry snapshot, the list of enabled sensors, update status |
+| GET | `/api/screen-thumbnail` | None | Latest screen thumbnail as a JPEG (only while the screen thumbnail sensor is on) |
 | GET | `/api/capabilities` | None | OS name and supported-feature booleans |
 | GET | `/api/config` | None | Current configuration, with selected secrets blanked |
 | POST | `/api/config` | Partial configuration object | Save and apply configuration |
@@ -81,8 +82,8 @@ Use the following HTTP methods. JSON request bodies should use
 | GET | `/json` | None | Last telemetry snapshot; uses `X-API-Key` |
 
 Every `/api/*` endpoint accepts only the methods listed for it; anything
-else returns HTTP 405. `/api/status`, `/api/capabilities` and
-`/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
+else returns HTTP 405. `/api/status`, `/api/capabilities`,
+`/api/screen-thumbnail` and `/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
 returns 405. The WebUI-enabled check (404) and token check (401) run
 before the method check.
 
@@ -94,12 +95,29 @@ before the method check.
 | --- | --- |
 | `mqtt_status` | `Disconnected`, `Connecting`, or `Connected` |
 | `telemetry` | Last collected snapshot; fields depend on enabled sensors and platform support |
+| `sensors` | Every sensor that is switched on and supported here, each with a ready-to-show reading (see below). Empty list when none are on |
 | `update_status` | Update-check status, or `null` if no checker is configured |
 
 Snapshot fields, including `cpu_percent`, `memory_percent`, `has_battery`, and
 the Unix-seconds `timestamp`, are defined in
 [`types.go`](../windows/internal/telemetry/types.go). This endpoint reads the
 last snapshot rather than triggering a fresh collection.
+
+Each entry of `sensors` has `id`, `group`, `label`, `value`, `state` and
+optionally `detail`, `percent` (draws a gauge), `level` (`mid` or `high`, for
+colouring the gauge), and, for the screen preview, `image` and `frame_ts`
+(Unix seconds of the latest frame, absent until one is captured). `state` is
+`ok`, `active`, `warn`, `idle` or `waiting`; `waiting` means the sensor is on but
+has no reading yet. A GPU or drive gets one entry per adapter or volume (ids
+`gpu0`, `disk:C:`). The list is built in
+[`sensors.go`](../windows/internal/webui/sensors.go), so what the web UI shows
+and what you read here always agree.
+
+`GET /api/screen-thumbnail` returns the latest frame as `image/jpeg`, or 404
+when the sensor is off, unsupported, or nothing has been captured yet. Add
+`thumb=1` to `/api/status` while you are showing the preview: the agent only
+captures the screen for the preview for about 15 seconds after the last such
+request (it keeps capturing for MQTT regardless).
 
 `GET /api/capabilities` returns `os` and feature flags such as `cpu`, `battery`,
 `media_control`, and `notifications`. These describe platform support, not

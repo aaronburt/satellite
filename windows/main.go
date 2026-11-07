@@ -148,9 +148,14 @@ func main() {
 	thumbSource.OnFallback = func(err error) {
 		logger.Warn("screen_thumbnail", fmt.Sprintf("%v; using the standard capture", err))
 	}
+	thumbStore := screenthumb.NewStore()
+	server.SetThumbnailStore(thumbStore)
 	thumbs := &screenthumb.Runner{
 		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
-		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected },
+		// Capture only when something will use the frame: the MQTT broker,
+		// or a web UI page that is showing the preview.
+		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected || server.ThumbnailWanted() },
+		Store:   thumbStore,
 		Locked:  telemetry.IsSessionLocked,
 		Capture: thumbSource.Capture,
 		Publish: mqttClient.PublishScreenThumbnail,

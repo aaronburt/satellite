@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Task Manager - satellite v{{VERSION}}</title>
+<title>Satellite v{{VERSION}}</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -188,6 +188,7 @@ body{
   align-items:center;
   gap:12px;
   min-width:0;
+  flex:1 1 auto;
 }
 .menu-btn{
   display:none;
@@ -212,6 +213,8 @@ body{
   position:relative;
   display:flex;
   align-items:center;
+  flex:0 1 200px;
+  min-width:110px;
 }
 .table-filter-input{
   background:#141414;
@@ -220,13 +223,12 @@ body{
   color:var(--text);
   font-size:12.5px;
   padding:5px 8px 5px 26px;
-  width:160px;
+  width:100%;
   outline:none;
-  transition:border-color 0.15s,width 0.15s;
+  transition:border-color 0.15s;
 }
 .table-filter-input:focus{
   border-color:var(--border-focus);
-  width:200px;
 }
 .table-filter-icon{
   position:absolute;
@@ -256,7 +258,8 @@ body{
   color:var(--muted);
 }
 .rate-select{
-  background:transparent;
+  width:auto;
+  background-color:transparent !important;
   border:none;
   color:var(--text);
   font-size:12px;
@@ -401,61 +404,6 @@ body{
 .content-panel.hidden{
   display:none;
 }
-.tm-table-wrap{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-  text-align:left;
-}
-.tm-table{
-  width:100%;
-  border-collapse:collapse;
-}
-.tm-table thead{
-  background:var(--surface);
-  position:sticky;
-  top:0;
-  z-index:10;
-  border-bottom:1px solid var(--border);
-  user-select:none;
-}
-.tm-table th{
-  padding:8px 16px;
-  font-size:12.5px;
-  font-weight:600;
-  color:var(--text-dim);
-  border-right:1px solid var(--border-subtle);
-  white-space:nowrap;
-}
-.tm-table th:last-child{
-  border-right:none;
-}
-.tm-table tbody tr.data-row{
-  border-bottom:1px solid rgba(255,255,255,0.03);
-  transition:background 0.08s;
-  cursor:default;
-}
-.tm-table tbody tr.data-row:hover{
-  background:var(--row-hover);
-}
-.tm-table tbody tr.data-row.hidden{
-  display:none;
-}
-.tm-table td{
-  padding:8px 16px;
-  color:var(--text);
-  vertical-align:middle;
-  border-right:1px solid rgba(255,255,255,0.02);
-  white-space:nowrap;
-}
-.tm-table td:last-child{
-  border-right:none;
-}
-.item-title-cell{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
 .cell-icon{
   width:16px;
   height:16px;
@@ -480,16 +428,6 @@ body{
   background:rgba(245,158,11,0.1);
   border-color:rgba(245,158,11,0.25);
 }
-.val-cell{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:10px;
-}
-.val-text{
-  min-width:70px;
-  text-align:right;
-}
 .heat-track{
   width:90px;
   height:7px;
@@ -510,18 +448,6 @@ body{
 }
 .heat-fill.high{
   background:var(--danger);
-}
-.inline-media-box{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-.inline-media-track{
-  max-width:260px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  color:var(--text-dim);
 }
 .media-ctrl-btn{
   background:transparent;
@@ -552,6 +478,180 @@ body{
 .copy-btn:hover{
   color:var(--text);
   background:rgba(255,255,255,0.08);
+}
+[hidden]{display:none !important}
+.sensors-container{
+  padding:18px 20px 28px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.sensors-summary{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px 18px;
+  font-size:12.5px;
+  color:var(--muted);
+}
+.sensors-summary strong{
+  color:var(--text);
+  font-size:14px;
+}
+.sum-warn{
+  color:var(--warning);
+  background:rgba(245,158,11,0.1);
+  border:1px solid rgba(245,158,11,0.25);
+  border-radius:12px;
+  padding:2px 10px;
+}
+.sum-updated{
+  margin-left:auto;
+  font-size:12px;
+}
+.sensor-group-title{
+  font-size:12px;
+  font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:0.04em;
+  margin:0 0 10px;
+}
+.sensor-group + .sensor-group{
+  margin-top:10px;
+}
+.sensor-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:12px;
+}
+.sensor-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:12px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-width:0;
+  transition:border-color 0.15s,background 0.15s;
+}
+.sensor-card:hover{
+  border-color:#3d3d3d;
+  background:var(--surface-alt);
+}
+.sensor-head{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+}
+.sensor-label{
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.state-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--faint);
+  flex-shrink:0;
+}
+.sensor-card[data-state="active"] .state-dot{background:var(--success);box-shadow:0 0 6px rgba(34,197,94,0.5)}
+.sensor-card[data-state="warn"] .state-dot{background:var(--warning);box-shadow:0 0 6px rgba(245,158,11,0.5)}
+.sensor-card[data-state="warn"]{border-color:rgba(245,158,11,0.35)}
+.sensor-card[data-state="waiting"] .state-dot{background:transparent;border:1.5px dashed var(--muted)}
+.sensor-card[data-state="waiting"] .sensor-value{color:var(--muted);font-size:13px;font-weight:400}
+.sensor-value{
+  font-size:20px;
+  font-weight:600;
+  line-height:1.25;
+  color:var(--text);
+  overflow-wrap:anywhere;
+}
+.sensor-value.long{font-size:14px;font-weight:500;line-height:1.4}
+.sensor-card[data-state="idle"] .sensor-value{color:var(--text-dim);font-weight:500}
+.sensor-detail{
+  font-size:12px;
+  color:var(--muted);
+  overflow-wrap:anywhere;
+}
+.heat-track.wide{
+  width:100%;
+}
+.media-ctrls{
+  display:flex;
+  gap:6px;
+}
+.copy-btn{
+  margin-left:auto;
+}
+.thumb-frame{
+  background:#101010;
+  border:1px solid var(--border-subtle);
+  border-radius:6px;
+  min-height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+.thumb-img{
+  display:block;
+  width:100%;
+  height:auto;
+  image-rendering:auto;
+}
+.empty-state{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  padding:56px 16px;
+  text-align:center;
+}
+.empty-icon{
+  width:44px;
+  height:44px;
+  color:var(--faint);
+}
+.empty-title{
+  font-size:15px;
+  font-weight:600;
+  color:var(--text);
+}
+.empty-text{
+  font-size:13px;
+  color:var(--muted);
+  max-width:380px;
+  margin-bottom:6px;
+}
+.save-bar{
+  position:sticky;
+  bottom:0;
+  z-index:5;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:12px 14px;
+  margin:0 -4px;
+  background:var(--topbar-bg);
+  border:1px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 -8px 20px rgba(0,0,0,0.35);
+}
+.save-bar .dirty-note{
+  font-size:12px;
+  color:var(--warning);
 }
 .perf-container{
   padding:20px;
@@ -1011,6 +1111,14 @@ input:focus,select:focus{
 .toast-card.toast-ok{
   border-left:4px solid var(--success);
 }
+@media (max-width:980px){
+  .rate-label{
+    display:none;
+  }
+  #btn-quick-actions > span{
+    display:none;
+  }
+}
 @media (max-width:768px){
   .menu-btn{
     display:inline-flex;
@@ -1030,16 +1138,51 @@ input:focus,select:focus{
   }
   .command-bar{
     padding:8px 12px;
+    flex-wrap:wrap;
+    row-gap:8px;
   }
-  .table-filter-input{
-    width:110px;
+  .command-left{
+    flex:1 1 100%;
   }
-  .table-filter-input:focus{
-    width:140px;
+  .table-filter-box{
+    flex:1;
+  }
+  .table-filter-input,.table-filter-input:focus{
+    width:100%;
+  }
+  .command-actions{
+    flex:1 1 100%;
+    justify-content:space-between;
+  }
+  #btn-quick-actions > span{
+    display:none;
+  }
+  .actions-popover{
+    right:auto;
+    left:0;
   }
   .rate-label{
     display:none;
   }
+  .sensors-container{
+    padding:14px 12px 24px;
+  }
+  .sensor-grid{
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;
+  }
+  .sum-updated{
+    margin-left:0;
+  }
+  .config-container,.perf-container{
+    padding:12px;
+  }
+  .field-row{
+    grid-template-columns:1fr;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none !important}
 }
 .session-banner{
   border-bottom-color:#ef4444;
@@ -1079,19 +1222,19 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
           <circle cx="12" cy="12" r="3"/>
         </svg>
         <div class="brand-text">
-          <span class="sidebar-title">Task Manager</span>
-          <span class="sidebar-ver mono">satellite v{{VERSION}}</span>
+          <span class="sidebar-title">Satellite</span>
+          <span class="sidebar-ver mono">v{{VERSION}}</span>
         </div>
       </div>
       <nav class="nav-list" aria-label="Sections">
-        <button type="button" class="nav-item active" id="nav-proc" aria-current="page" data-click="switchNav" data-arg="processes">
+        <button type="button" class="nav-item active" id="nav-sensors" aria-current="page" data-click="switchNav" data-arg="sensors">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="3" width="7" height="7" rx="1"/>
             <rect x="14" y="14" width="7" height="7" rx="1"/>
             <rect x="3" y="14" width="7" height="7" rx="1"/>
           </svg>
-          <span>Processes</span>
+          <span>Sensors</span>
         </button>
         <button type="button" class="nav-item" id="nav-perf" data-click="switchNav" data-arg="performance">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1129,7 +1272,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <span class="page-title" id="page-title" role="heading" aria-level="1">Processes</span>
+        <span class="page-title" id="page-title" role="heading" aria-level="1">Sensors</span>
         <div class="table-filter-box" id="filter-wrapper">
           <svg class="table-filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/>
@@ -1156,7 +1299,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
         </div>
 
         <div class="popover-anchor">
-          <button type="button" class="cmd-btn" id="btn-quick-actions" data-click="toggleActionsPopover" aria-haspopup="true" aria-expanded="false" aria-controls="actions-popover">
+          <button type="button" class="cmd-btn" id="btn-quick-actions" aria-label="Quick actions" data-click="toggleActionsPopover" aria-haspopup="true" aria-expanded="false" aria-controls="actions-popover">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
@@ -1224,127 +1367,30 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
       </div>
     </div>
 
-    <section id="panel-processes" class="content-panel" tabindex="-1">
-      <div class="tm-table-wrap">
-        <table class="tm-table">
-          <thead>
-            <tr>
-              <th style="width:38%;">Sensor / Component</th>
-              <th style="width:18%;">Status</th>
-              <th style="width:44%;text-align:right;padding-right:20px;">Current Value</th>
-            </tr>
-          </thead>
-          <tbody id="proc-tbody">
-            <tr class="data-row" id="row-cpu" data-filter="processor cpu load hardware">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg><span>Processor (CPU)</span></div></td>
-              <td><span class="item-badge active">Hardware</span></td>
-              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-cpu"></div></div><span class="mono val-text" id="val-cpu">0.0%</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-memory" data-filter="memory ram committed memory">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="12" x2="6" y2="12.01"/><line x1="10" y1="12" x2="10" y2="12.01"/><line x1="14" y1="12" x2="14" y2="12.01"/><line x1="18" y1="12" x2="18" y2="12.01"/></svg><span>Memory (RAM)</span></div></td>
-              <td><span class="item-badge active">Committed</span></td>
-              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-mem"></div></div><span class="mono val-text" id="val-mem">0 / 0 GB (0%)</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-gpu" data-filter="gpu graphics display adapter vram">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/></svg><span id="lbl-gpu">Graphics Processor</span></div></td>
-              <td><span class="item-badge active" id="badge-gpu">Hardware</span></td>
-              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-gpu"></div></div><span class="mono val-text" id="val-gpu">--</span></div></td>
-            </tr>
-            <tbody id="drives-tbody"></tbody>
-            <tr class="data-row" id="row-network" data-filter="network adapter ethernet traffic bandwidth">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg><span>Network Adapter</span></div></td>
-              <td><span class="item-badge" id="badge-ip">Connected</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-net">0 kB/s</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-local-ip" data-filter="ipv4 local ip address connection">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span>IPv4 Address</span></div></td>
-              <td><span class="item-badge">Configured</span></td>
-              <td><div class="val-cell"><button type="button" class="copy-btn" data-click="copyFrom" data-arg="val-ip" title="Copy IP" aria-label="Copy IP"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><span class="mono val-text" id="val-ip">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-wifi" data-filter="wifi ssid wireless wlan">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg><span>Wi-Fi Connection</span></div></td>
-              <td><span class="item-badge" id="badge-wifi">WLAN</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-wifi">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-uptime" data-filter="system uptime boot time runtime">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span>System Uptime</span></div></td>
-              <td><span class="item-badge">Online</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-uptime">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-window" data-filter="foreground app active application process window">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span>Foreground App</span></div></td>
-              <td><span class="item-badge" id="badge-fullscreen">Normal</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-window">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-title" data-filter="focus window title caption">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg><span>Focus Window Title</span></div></td>
-              <td><span class="item-badge">Focus</span></td>
-              <td><div class="val-cell"><span class="mono val-text" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;" id="val-title">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-presence" data-filter="user session presence idle active lock">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>User Session</span></div></td>
-              <td><span class="item-badge" id="badge-lock">Active</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-presence">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-theme" data-filter="system theme dark light mode color">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>System Theme</span></div></td>
-              <td><span class="item-badge" id="badge-theme">OS</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-theme">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-mic" data-filter="microphone audio input capture privacy">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg><span>Microphone Capture</span></div></td>
-              <td><span class="item-badge" id="badge-mic">Idle</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-mic">Inactive</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-webcam" data-filter="webcam camera video capture app">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span>Webcam Video</span></div></td>
-              <td><span class="item-badge" id="badge-webcam">Idle</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-webcam">Inactive</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-audio-output" data-filter="audio endpoint speaker sound output device">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><span>Audio Endpoint</span></div></td>
-              <td><span class="item-badge">Playback</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-audio-output">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-media" data-filter="media player song music transport playing">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg><span>Media Player</span></div></td>
-              <td><span class="item-badge" id="badge-media">Idle</span></td>
-              <td>
-                <div class="val-cell">
-                  <div class="inline-media-box">
-                    <span class="mono inline-media-track" id="val-media">None</span>
-                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_prev" title="Previous" aria-label="Previous"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_play_pause" title="Play / Pause" aria-label="Play / Pause"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="media_next" title="Next" aria-label="Next"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
-                    <button type="button" class="media-ctrl-btn" data-click="triggerAction" data-arg="volume_mute" title="Mute" aria-label="Mute"><svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></button>
-                  </div>
-                </div>
-              </td>
-            </tr>
-            <tr class="data-row" id="row-display" data-filter="display state power screen monitor sleep">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Display Power</span></div></td>
-              <td><span class="item-badge" id="badge-display">Active</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-display">Powered On</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-battery" data-filter="battery power level charging ac capacity">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="6" width="18" height="12" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/></svg><span>Power & Battery</span></div></td>
-              <td><span class="item-badge" id="badge-pwr">AC</span></td>
-              <td><div class="val-cell"><div class="heat-track"><div class="heat-fill" id="fill-battery"></div></div><span class="mono val-text" id="val-battery">--</span></div></td>
-            </tr>
-            <tr class="data-row" id="row-reboot" data-filter="windows update reboot restart pending patch">
-              <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Windows Update</span></div></td>
-              <td><span class="item-badge active" id="badge-reboot">OK</span></td>
-              <td><div class="val-cell"><span class="mono val-text" id="val-reboot">Up to Date</span></div></td>
-            </tr>
-          </tbody>
-        </table>
+    <section id="panel-sensors" class="content-panel" tabindex="-1">
+      <div class="sensors-container">
+        <div class="sensors-summary" id="sensors-summary" aria-live="polite">
+          <span class="sum-item"><strong id="sum-count" class="mono">0</strong> sensors live</span>
+          <span class="sum-item sum-warn" id="sum-warn" style="display:none;"></span>
+          <span class="sum-item sum-updated mono" id="sum-updated">Waiting for data...</span>
+        </div>
+        <div id="sensors-empty" class="empty-state" style="display:none;">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 9 9M3 12a9 9 0 0 1 9-9M12 21a9 9 0 0 1-9-9M21 12a9 9 0 0 1-9 9"/><circle cx="12" cy="12" r="3"/></svg>
+          <p class="empty-title">No sensors are turned on</p>
+          <p class="empty-text">Choose what Satellite reports in Settings, and it will show up here live.</p>
+          <button type="button" class="btn-primary" data-click="switchNav" data-arg="settings">Open Settings</button>
+        </div>
+        <div id="sensors-nomatch" class="empty-state" style="display:none;">
+          <p class="empty-title">No sensors match your filter</p>
+        </div>
+        <div id="sensors-groups"></div>
       </div>
     </section>
 
     <section id="panel-performance" class="content-panel hidden" tabindex="-1">
       <div class="perf-container">
         <div class="gauges-grid" id="perf-gauges">
-          <div class="perf-card">
+          <div class="perf-card" id="perf-cpu-card">
             <div class="perf-card-header">
               <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>CPU</span>
               <span class="perf-val mono" id="top-cpu">0.0%</span>
@@ -1359,7 +1405,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             <span class="perf-sub mono" id="top-cpu-sub">Processor 60s history</span>
           </div>
 
-          <div class="perf-card">
+          <div class="perf-card" id="perf-mem-card">
             <div class="perf-card-header">
               <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>Memory</span>
               <span class="perf-val mono" id="top-mem">0.0%</span>
@@ -1374,7 +1420,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             <span class="perf-sub mono" id="top-mem-sub">0 / 0 GB committed</span>
           </div>
 
-          <div class="perf-card">
+          <div class="perf-card" id="perf-net-card">
             <div class="perf-card-header">
               <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/></svg>Network</span>
               <span class="perf-val mono" id="top-net">0 KB/s</span>
@@ -1406,6 +1452,11 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
         </div>
 
         <div class="gauges-grid" id="perf-drives-grid"></div>
+        <div id="perf-empty" class="empty-state" style="display:none;">
+          <p class="empty-title">Nothing to chart yet</p>
+          <p class="empty-text">Turn on Processor, Memory, Network, Graphics or Storage in Settings to see history here.</p>
+          <button type="button" class="btn-primary" data-click="switchNav" data-arg="settings">Open Settings</button>
+        </div>
       </div>
     </section>
 
@@ -1699,7 +1750,7 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             </div>
           </div>
 
-          <div class="config-card">
+          <div class="config-card" id="portability-card">
             <div class="card-head">
               <span class="card-title">Configuration Portability & Backup</span>
             </div>
@@ -1757,9 +1808,10 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
-            <div style="display:flex;gap:6px;">
+          <div class="save-bar">
+            <div style="display:flex;align-items:center;gap:10px;">
               <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
+              <span class="dirty-note" id="dirty-note" style="display:none;">Unsaved changes</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <span class="msg-area mono" id="msg-area" role="status" aria-live="polite"></span>
@@ -1875,14 +1927,19 @@ document.addEventListener('click', e => {
 });
 
 const NAV_TABS = {
-  processes: { panel: 'panel-processes', nav: 'nav-proc', title: 'Processes' },
+  sensors: { panel: 'panel-sensors', nav: 'nav-sensors', title: 'Sensors' },
   performance: { panel: 'panel-performance', nav: 'nav-perf', title: 'Performance' },
   logs: { panel: 'panel-logs', nav: 'nav-logs', title: 'Event Logs' },
   settings: { panel: 'panel-settings', nav: 'nav-settings', title: 'Settings' },
 };
 
+let activeTab = 'sensors';
+let pollStarted = false;
+
 function switchNav(tab) {
   if (!NAV_TABS[tab]) return;
+  const previous = activeTab;
+  activeTab = tab;
   toggleSidebar(false);
   Object.entries(NAV_TABS).forEach(([key, t]) => {
     const active = key === tab;
@@ -1898,28 +1955,16 @@ function switchNav(tab) {
 
   const filterWrap = $('filter-wrapper');
   if (filterWrap) {
-    filterWrap.style.display = tab === 'processes' ? 'flex' : 'none';
+    filterWrap.style.display = tab === 'sensors' ? 'flex' : 'none';
   }
 
   $('page-title').innerText = NAV_TABS[tab].title;
   $(NAV_TABS[tab].panel).focus({ preventScroll: true });
-}
-
-function filterSensors(query) {
-  const q = query.trim().toLowerCase();
-  document.querySelectorAll('#proc-tbody tr.data-row').forEach(row => {
-    if (row.classList.contains('configured-hidden')) return;
-    if (!q) {
-      row.classList.remove('hidden');
-      return;
-    }
-    const filterKey = (row.getAttribute('data-filter') || '') + ' ' + row.innerText;
-    if (filterKey.toLowerCase().includes(q)) {
-      row.classList.remove('hidden');
-    } else {
-      row.classList.add('hidden');
-    }
-  });
+  document.title = NAV_TABS[tab].title + ' - Satellite v{{VERSION}}';
+  // Remember the tab across reloads. replaceState keeps the token in the query.
+  try { history.replaceState(null, '', '#' + tab); } catch (e) {}
+  // Ask for fresh data (and the screen preview) right away.
+  if (pollStarted && tab === 'sensors' && previous !== 'sensors') poll();
 }
 
 function bulkToggleEntities(checked) {
@@ -1927,6 +1972,7 @@ function bulkToggleEntities(checked) {
     if (checked && el.dataset.noBulk !== undefined) return;
     el.checked = checked;
   });
+  setFormDirty(true);
 }
 
 async function triggerAction(actionName) {
@@ -2011,14 +2057,6 @@ function renderSparkline(polyId, lineId, data, maxVal) {
   }
 }
 
-function setHeatBar(elId, pct) {
-  const el = $(elId);
-  if (!el) return;
-  const clamped = Math.min(100, Math.max(0, pct || 0));
-  el.style.width = clamped + '%';
-  el.className = 'heat-fill' + (clamped >= 90 ? ' high' : (clamped >= 70 ? ' mid' : ''));
-}
-
 function setStatusBadge(status) {
   const dot = $('dot');
   const txt = $('status-text');
@@ -2042,85 +2080,318 @@ function setStaleUI() {
   txt.innerText = 'unreachable';
 }
 
-function updateRowConfigState(id, visible) {
-  const row = $(id);
-  if (!row) return;
-  if (visible) {
-    row.classList.remove('configured-hidden');
-    row.classList.remove('hidden');
+// Live sensor view. The agent decides which sensors are on and how each
+// reading reads (see sensors.go); this only draws them. Cards are updated in
+// place so the screen preview and the layout do not flicker on every poll.
+const SENSOR_GROUPS = ['System', 'Network', 'Session', 'Media & devices', 'Screen'];
+const SENSOR_ICONS = {
+  cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 14h3M1 9h3M1 14h3"/>',
+  memory: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/>',
+  gpu: '<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>',
+  disk: '<path d="M22 12H2"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><path d="M6 16h.01M10 16h.01"/>',
+  uptime: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  battery: '<rect x="1" y="6" width="18" height="12" rx="2"/><path d="M23 10v4"/>',
+  update_pending: '<path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+  network: '<rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/>',
+  local_ip: '<circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  wifi: '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/>',
+  user_presence: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  session_lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  display_state: '<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  fullscreen: '<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  system_theme: '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>',
+  active_window: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+  window_title: '<path d="M4 6h16M4 12h16M4 18h7"/>',
+  media_control: '<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/>',
+  audio_output: '<path d="M11 5L6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>',
+  microphone: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>',
+  webcam: '<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+  screen_thumbnail: '<rect x="3" y="3" width="18" height="14" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 14l-5-5-8 8"/>',
+};
+const MEDIA_CONTROLS = [
+  { action: 'media_prev', label: 'Previous', icon: '<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>' },
+  { action: 'media_play_pause', label: 'Play / Pause', icon: '<polygon points="5 3 19 12 5 21 5 3"/>' },
+  { action: 'media_next', label: 'Next', icon: '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>' },
+  { action: 'volume_mute', label: 'Mute', icon: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>' },
+];
+
+function svgIcon(paths, cls) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('class', cls);
+  // The path strings above are constants in this file, never sensor data.
+  svg.innerHTML = paths;
+  return svg;
+}
+
+function sensorIconKey(id) {
+  if (id.startsWith('gpu')) return 'gpu';
+  if (id.startsWith('disk') || id === 'storage') return 'disk';
+  return id;
+}
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+const sensorGroupEls = new Map(); // group name -> { section, grid }
+const sensorCardEls = new Map();  // sensor id -> card parts
+let lastSensors = [];
+
+function buildSensorCard(s) {
+  const card = el('article', 'sensor-card');
+  card.dataset.id = s.id;
+
+  const head = el('div', 'sensor-head');
+  head.appendChild(svgIcon(SENSOR_ICONS[sensorIconKey(s.id)] || SENSOR_ICONS.cpu, 'cell-icon'));
+  const label = el('span', 'sensor-label');
+  head.appendChild(label);
+  head.appendChild(el('span', 'state-dot'));
+  card.appendChild(head);
+
+  const value = el('div', 'sensor-value mono');
+  card.appendChild(value);
+
+  const parts = { card, label, value, bar: null, fill: null, detail: null, img: null, imgNote: null };
+
+  if (s.image) {
+    const frame = el('div', 'thumb-frame');
+    const img = document.createElement('img');
+    img.alt = 'Live preview of this computer\'s screen';
+    img.className = 'thumb-img';
+    img.hidden = true;
+    frame.appendChild(img);
+    card.appendChild(frame);
+    parts.img = img;
   } else {
-    row.classList.add('configured-hidden');
-    row.classList.add('hidden');
+    // Built for every card: a gauge sensor has no percent until its first reading.
+    const track = el('div', 'heat-track wide');
+    const fill = el('div', 'heat-fill');
+    track.appendChild(fill);
+    card.appendChild(track);
+    parts.bar = track;
+    parts.fill = fill;
+  }
+
+  const detail = el('div', 'sensor-detail');
+  card.appendChild(detail);
+  parts.detail = detail;
+
+  if (s.id === 'media_control') {
+    const ctrls = el('div', 'media-ctrls');
+    MEDIA_CONTROLS.forEach(c => {
+      const b = el('button', 'media-ctrl-btn');
+      b.type = 'button';
+      b.dataset.click = 'triggerAction';
+      b.dataset.arg = c.action;
+      b.title = c.label;
+      b.setAttribute('aria-label', c.label);
+      b.appendChild(svgIcon(c.icon, 'btn-icon'));
+      ctrls.appendChild(b);
+    });
+    card.appendChild(ctrls);
+  }
+
+  if (s.id === 'local_ip') {
+    const b = el('button', 'copy-btn');
+    b.type = 'button';
+    b.dataset.click = 'copySensorValue';
+    b.dataset.arg = s.id;
+    b.title = 'Copy IP address';
+    b.setAttribute('aria-label', 'Copy IP address');
+    b.appendChild(svgIcon('<rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>', 'btn-icon'));
+    head.insertBefore(b, head.lastChild);
+  }
+
+  return parts;
+}
+
+function setText(node, text) {
+  if (node.textContent !== text) node.textContent = text;
+}
+
+function updateSensorCard(parts, s) {
+  setText(parts.label, s.label);
+  setText(parts.value, s.value);
+  parts.value.classList.toggle('long', s.value.length > 22);
+  parts.card.dataset.state = s.state;
+  parts.detail.hidden = !s.detail;
+  setText(parts.detail, s.detail || '');
+  if (parts.bar) {
+    parts.bar.hidden = s.percent === undefined;
+    const p = Math.min(100, Math.max(0, s.percent || 0));
+    parts.fill.style.width = p + '%';
+    parts.fill.className = 'heat-fill' + (s.level ? ' ' + s.level : '');
+  }
+  if (parts.img) {
+    parts.img.hidden = !s.frame_ts;
+    // Reload the picture only when the agent has a newer frame.
+    if (s.frame_ts && parts.img.dataset.ts !== String(s.frame_ts)) {
+      parts.img.dataset.ts = String(s.frame_ts);
+      parts.img.src = '/api/screen-thumbnail?token=' + encodeURIComponent(apiToken) + '&ts=' + s.frame_ts;
+    }
   }
 }
 
-function updateRowVisibility(expose, hasBattery) {
-  updateRowConfigState('row-cpu', expose.cpu !== false);
-  updateRowConfigState('row-memory', expose.memory !== false);
-  updateRowConfigState('row-gpu', expose.gpu !== false);
-  const perfGPU = $('perf-gpu-card');
-  if (perfGPU) perfGPU.className = 'perf-card' + (expose.gpu !== false ? '' : ' hidden');
-  updateRowConfigState('row-network', expose.network !== false);
-  updateRowConfigState('row-local-ip', expose.local_ip !== false);
-  updateRowConfigState('row-uptime', expose.uptime !== false);
-  updateRowConfigState('row-presence', expose.user_presence !== false);
-  updateRowConfigState('row-theme', (expose.system_theme || expose.windows_theme) !== false);
-  updateRowConfigState('row-mic', expose.microphone !== false);
-  updateRowConfigState('row-webcam', expose.webcam !== false);
-  updateRowConfigState('row-audio-output', expose.audio_output !== false);
-  updateRowConfigState('row-wifi', expose.wifi !== false);
-  updateRowConfigState('row-display', expose.display_state !== false);
-  updateRowConfigState('row-window', expose.active_window !== false);
-  updateRowConfigState('row-title', expose.window_title !== false);
-  updateRowConfigState('row-reboot', expose.update_pending !== false);
-  updateRowConfigState('row-media', expose.media_control !== false);
-  updateRowConfigState('row-battery', (expose.battery !== false && hasBattery));
+function sensorGroupEl(name) {
+  let g = sensorGroupEls.get(name);
+  if (!g) {
+    const section = el('section', 'sensor-group');
+    section.appendChild(el('h2', 'sensor-group-title', name));
+    const grid = el('div', 'sensor-grid');
+    section.appendChild(grid);
+    g = { section, grid };
+    sensorGroupEls.set(name, g);
+  }
+  return g;
 }
 
-function renderDrives(drives, exposeStorage) {
-  const tbody = $('drives-tbody');
-  const perfGrid = $('perf-drives-grid');
-  if (!tbody || !perfGrid) return;
+function renderSensors(list) {
+  lastSensors = list;
+  const root = $('sensors-groups');
+  const seen = new Set();
 
-  if (exposeStorage === false || !drives || drives.length === 0) {
-    tbody.innerHTML = '';
-    perfGrid.innerHTML = '';
-    return;
-  }
-
-  let tableHtml = '';
-  let perfHtml = '';
-
-  drives.forEach(d => {
-    const mount = escapeHtml(d.mount || 'Disk');
-    const used = d.used_gb ? d.used_gb.toFixed(1) : '0';
-    const total = d.total_gb ? d.total_gb.toFixed(1) : '0';
-    const pct = d.used_percent ? Math.round(d.used_percent) : 0;
-    const heatClass = pct >= 90 ? ' high' : (pct >= 70 ? ' mid' : '');
-
-    tableHtml += `
-      <tr class="data-row" data-filter="disk storage drive mount ${mount}">
-        <td><div class="item-title-cell"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" y1="16" x2="6.01" y2="16"/><line x1="10" y1="16" x2="10.01" y2="16"/></svg><span>Disk (${mount})</span></div></td>
-        <td><span class="item-badge">Fixed Disk</span></td>
-        <td><div class="val-cell"><div class="heat-track"><div class="heat-fill${heatClass}" style="width:${pct}%"></div></div><span class="mono val-text">${used} / ${total} GB (${pct}%)</span></div></td>
-      </tr>`;
-
-    perfHtml += `
-      <div class="perf-card">
-        <div class="perf-card-header">
-          <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="12" x2="2" y2="12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Disk (${mount})</span>
-          <span class="perf-val mono">${pct}%</span>
-        </div>
-        <div class="perf-disk-bar"><div class="heat-fill${heatClass}" style="width:${pct}%"></div></div>
-        <span class="perf-sub mono">${used} / ${total} GB capacity</span>
-      </div>`;
+  list.forEach(s => {
+    seen.add(s.id);
+    let parts = sensorCardEls.get(s.id);
+    if (!parts) {
+      parts = buildSensorCard(s);
+      sensorCardEls.set(s.id, parts);
+    }
+    updateSensorCard(parts, s);
+    const g = sensorGroupEl(s.group);
+    if (parts.card.parentNode !== g.grid) g.grid.appendChild(parts.card);
   });
 
-  tbody.innerHTML = tableHtml;
-  perfGrid.innerHTML = perfHtml;
+  // Cards for sensors that were switched off or are gone.
+  for (const [id, parts] of sensorCardEls) {
+    if (!seen.has(id)) {
+      parts.card.remove();
+      sensorCardEls.delete(id);
+    }
+  }
 
+  // Keep the cards in the order the agent sent them within each group.
+  const orderIds = new Map();
+  list.forEach(s => {
+    const arr = orderIds.get(s.group) || [];
+    arr.push(s.id);
+    orderIds.set(s.group, arr);
+  });
+  for (const [name, ids] of orderIds) {
+    const g = sensorGroupEl(name);
+    ids.forEach(id => g.grid.appendChild(sensorCardEls.get(id).card));
+  }
+
+  // Groups in a fixed order; unknown groups go last. Empty groups are removed.
+  const known = SENSOR_GROUPS.filter(n => orderIds.has(n));
+  const extra = [...orderIds.keys()].filter(n => !SENSOR_GROUPS.includes(n));
+  const wanted = [...known, ...extra];
+  for (const [name, g] of sensorGroupEls) {
+    if (!orderIds.has(name)) {
+      g.section.remove();
+      sensorGroupEls.delete(name);
+    }
+  }
+  wanted.forEach(n => root.appendChild(sensorGroupEl(n).section));
+
+  renderSensorSummary(list);
+  $('sensors-empty').style.display = list.length === 0 ? 'flex' : 'none';
   const filterInput = $('filter-input');
-  if (filterInput && filterInput.value) filterSensors(filterInput.value);
+  filterSensors(filterInput ? filterInput.value : '');
+}
+
+function renderSensorSummary(list) {
+  setText($('sum-count'), String(list.length));
+  const warns = list.filter(s => s.state === 'warn');
+  const warnEl = $('sum-warn');
+  if (warns.length > 0) {
+    warnEl.style.display = '';
+    setText(warnEl, warns.map(s => s.label + ': ' + s.value).join(' · '));
+  } else {
+    warnEl.style.display = 'none';
+  }
+}
+
+function setSensorsUpdated(ts) {
+  const node = $('sum-updated');
+  if (!node) return;
+  if (!ts) {
+    setText(node, 'Waiting for data...');
+    return;
+  }
+  setText(node, 'Last reading ' + new Date(ts * 1000).toLocaleTimeString());
+}
+
+function filterSensors(query) {
+  const q = (query || '').trim().toLowerCase();
+  let visible = 0;
+  lastSensors.forEach(s => {
+    const parts = sensorCardEls.get(s.id);
+    if (!parts) return;
+    const hay = (s.group + ' ' + s.label + ' ' + s.value + ' ' + (s.detail || '')).toLowerCase();
+    const show = !q || hay.includes(q);
+    parts.card.hidden = !show;
+    if (show) visible++;
+  });
+  for (const g of sensorGroupEls.values()) {
+    g.section.hidden = !g.grid.querySelector('.sensor-card:not([hidden])');
+  }
+  $('sensors-nomatch').style.display = (lastSensors.length > 0 && visible === 0) ? 'flex' : 'none';
+}
+
+function copySensorValue(id) {
+  const s = lastSensors.find(x => x.id === id);
+  if (s) copyText(s.value);
+}
+
+// The Performance tab shows a card only for sensors that are switched on.
+function updatePerfVisibility(list) {
+  const has = prefix => list.some(s => s.id === prefix || s.id.startsWith(prefix));
+  const show = (id, on) => { const n = $(id); if (n) n.hidden = !on; };
+  show('perf-cpu-card', has('cpu'));
+  show('perf-mem-card', has('memory'));
+  show('perf-net-card', has('network'));
+  show('perf-gpu-card', has('gpu'));
+  const any = ['cpu', 'memory', 'network', 'gpu', 'disk', 'storage'].some(has);
+  const empty = $('perf-empty');
+  if (empty) empty.style.display = any ? 'none' : 'flex';
+}
+
+function renderDrives(drives, show) {
+  const perfGrid = $('perf-drives-grid');
+  if (!perfGrid) return;
+  if (!show || !drives || drives.length === 0) {
+    perfGrid.replaceChildren();
+    return;
+  }
+  const cards = drives.map(d => {
+    const pct = d.used_percent ? Math.round(d.used_percent) : 0;
+    const used = d.used_gb ? d.used_gb.toFixed(1) : '0';
+    const total = d.total_gb ? d.total_gb.toFixed(1) : '0';
+    const card = el('div', 'perf-card');
+    const head = el('div', 'perf-card-header');
+    const title = el('span', 'perf-title');
+    title.appendChild(svgIcon(SENSOR_ICONS.disk, 'cell-icon'));
+    title.appendChild(document.createTextNode('Disk (' + (d.mount || 'Disk') + ')'));
+    head.appendChild(title);
+    head.appendChild(el('span', 'perf-val mono', pct + '%'));
+    card.appendChild(head);
+    const bar = el('div', 'perf-disk-bar');
+    const fill = el('div', 'heat-fill' + (pct >= 90 ? ' high' : (pct >= 70 ? ' mid' : '')));
+    fill.style.width = pct + '%';
+    bar.appendChild(fill);
+    card.appendChild(bar);
+    card.appendChild(el('span', 'perf-sub mono', used + ' / ' + total + ' GB capacity'));
+    return card;
+  });
+  perfGrid.replaceChildren(...cards);
 }
 
 let updateDismissed = false;
@@ -2179,7 +2450,10 @@ async function poll() {
   const seq = ++pollSeq;
   clearTimeout(activePollTimeout);
   try {
-    const res = await authFetch('/api/status');
+    // thumb=1 tells the agent this page is showing the screen preview, so it
+    // captures frames for it. It stops a few seconds after the page stops asking.
+    const wantThumb = activeTab === 'sensors' && !document.hidden;
+    const res = await authFetch('/api/status' + (wantThumb ? '?thumb=1' : ''));
     if (seq !== pollSeq) return;
     if (!res.ok) {
       setStaleUI();
@@ -2193,26 +2467,24 @@ async function poll() {
       handleUpdateStatus(data.update_status);
     }
 
+    const sensors = data.sensors || [];
+    renderSensors(sensors);
+    updatePerfVisibility(sensors);
+
     const t = data.telemetry;
     if (t) {
-      updateRowVisibility(currentExpose, t.has_battery);
-      renderDrives(t.drives, currentExpose.storage);
+      setSensorsUpdated(t.timestamp);
+      renderDrives(t.drives, sensors.some(s => s.id.startsWith('disk')));
 
       if (t.cpu_percent !== undefined) {
-        const cpuStr = t.cpu_percent.toFixed(1) + '%';
-        if ($('val-cpu')) $('val-cpu').innerText = cpuStr;
-        if ($('top-cpu')) $('top-cpu').innerText = cpuStr;
-        setHeatBar('fill-cpu', t.cpu_percent);
+        $('top-cpu').innerText = t.cpu_percent.toFixed(1) + '%';
         pushHistory(historyCPU, t.cpu_percent);
         renderSparkline('poly-cpu', 'line-cpu', historyCPU, 100);
       }
 
       if (t.memory_used_gb !== undefined) {
-        const memStr = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB (${t.memory_percent.toFixed(0)}%)`;
-        if ($('val-mem')) $('val-mem').innerText = memStr;
-        if ($('top-mem')) $('top-mem').innerText = t.memory_percent.toFixed(1) + '%';
-        if ($('top-mem-sub')) $('top-mem-sub').innerText = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB`;
-        setHeatBar('fill-mem', t.memory_percent);
+        $('top-mem').innerText = t.memory_percent.toFixed(1) + '%';
+        $('top-mem-sub').innerText = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB`;
         pushHistory(historyMem, t.memory_percent);
         renderSparkline('poly-mem', 'line-mem', historyMem, 100);
       }
@@ -2220,125 +2492,27 @@ async function poll() {
       if (t.gpus && t.gpus.length > 0) {
         const g = t.gpus[0];
         const gpuName = g.name || 'Dedicated GPU';
-        if ($('lbl-gpu')) $('lbl-gpu').innerText = gpuName;
-        if ($('badge-gpu')) $('badge-gpu').innerText = g.vendor || 'Hardware';
-        if ($('perf-gpu-title')) $('perf-gpu-title').innerText = gpuName.length > 20 ? gpuName.substring(0, 18) + '...' : gpuName;
-
-        const valParts = [];
-        let loadVal = 0;
-        if (g.core_usage_percent !== undefined && g.core_usage_percent !== null) {
-          loadVal = g.core_usage_percent;
-          valParts.push(`${g.core_usage_percent.toFixed(1)}%`);
+        $('perf-gpu-title').innerText = gpuName.length > 20 ? gpuName.substring(0, 18) + '...' : gpuName;
+        const loadVal = typeof g.core_usage_percent === 'number' ? g.core_usage_percent : 0;
+        $('top-gpu').innerText = `${loadVal.toFixed(1)}%`;
+        const subParts = [];
+        if (typeof g.memory_used_mb === 'number' && typeof g.memory_total_mb === 'number') {
+          subParts.push(`VRAM ${(g.memory_used_mb / 1024).toFixed(1)} / ${(g.memory_total_mb / 1024).toFixed(1)} GB`);
         }
-        if (g.memory_used_mb !== undefined && g.memory_used_mb !== null && g.memory_total_mb !== undefined && g.memory_total_mb !== null) {
-          const usedGB = (g.memory_used_mb / 1024).toFixed(1);
-          const totGB = (g.memory_total_mb / 1024).toFixed(1);
-          const pct = g.memory_percent !== undefined && g.memory_percent !== null ? ` (${g.memory_percent.toFixed(0)}%)` : '';
-          valParts.push(`VRAM ${usedGB} / ${totGB} GB${pct}`);
-        }
-        if (g.temperature_c !== undefined && g.temperature_c !== null) {
-          valParts.push(`${Math.round(g.temperature_c)}°C`);
-        }
-        if (g.power_watts !== undefined && g.power_watts !== null) {
-          valParts.push(`${g.power_watts.toFixed(0)} W`);
-        }
-        if (g.fan_speed_percent !== undefined && g.fan_speed_percent !== null) {
-          valParts.push(`Fan ${Math.round(g.fan_speed_percent)}%`);
-        }
-
-        if ($('val-gpu')) $('val-gpu').innerText = valParts.join(' | ') || 'Active';
-        setHeatBar('fill-gpu', loadVal);
-        if ($('top-gpu')) $('top-gpu').innerText = `${loadVal.toFixed(1)}%`;
-        if ($('top-gpu-sub')) $('top-gpu-sub').innerText = valParts.slice(1).join(' | ') || 'Graphics Load';
-
+        if (typeof g.temperature_c === 'number') subParts.push(`${Math.round(g.temperature_c)}°C`);
+        if (typeof g.power_watts === 'number') subParts.push(`${g.power_watts.toFixed(0)} W`);
+        if (typeof g.fan_speed_percent === 'number') subParts.push(`Fan ${Math.round(g.fan_speed_percent)}%`);
+        $('top-gpu-sub').innerText = subParts.join(' | ') || 'Graphics Load';
         pushHistory(historyGPU, loadVal);
         renderSparkline('poly-gpu', 'line-gpu', historyGPU, 100);
       }
 
       if (t.network_rx_kbs !== undefined) {
-        const netStr = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
-        if ($('val-net')) $('val-net').innerText = netStr;
         const totalNet = Math.round(t.network_rx_kbs + t.network_tx_kbs);
-        const netText = totalNet > 1024 ? (totalNet/1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
-        if ($('top-net')) $('top-net').innerText = netText;
+        $('top-net').innerText = totalNet > 1024 ? (totalNet / 1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
+        $('top-net-sub').innerText = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
         pushHistory(historyNet, totalNet);
-        const peakNet = Math.max(...historyNet, 100);
-        renderSparkline('poly-net', 'line-net', historyNet, peakNet);
-      }
-
-      if (t.local_ip) {
-        $('val-ip').innerText = t.local_ip;
-      }
-      if (t.uptime_seconds !== undefined) {
-        const hrs = (t.uptime_seconds / 3600).toFixed(1);
-        $('val-uptime').innerText = hrs + ' hrs';
-      }
-      if (t.user_idle_seconds !== undefined) {
-        const status = t.user_active ? 'Active' : 'Idle';
-        $('val-presence').innerText = status + ' (' + t.user_idle_seconds + 's)';
-        $('badge-lock').innerText = t.session_locked ? 'Locked' : (t.user_active ? 'Active' : 'Idle');
-        $('badge-lock').className = 'item-badge ' + (t.session_locked ? 'warn' : (t.user_active ? 'active' : ''));
-      }
-      if (t.system_theme) {
-        $('val-theme').innerText = t.system_theme.toUpperCase();
-        $('badge-theme').innerText = t.system_theme === 'dark' ? 'Dark' : 'Light';
-        $('badge-theme').className = 'item-badge active';
-      }
-      if (t.microphone_in_use !== undefined) {
-        $('val-mic').innerText = t.microphone_in_use ? 'Capture Active' : 'Idle';
-        $('badge-mic').innerText = t.microphone_in_use ? 'In Use' : 'Idle';
-        $('badge-mic').className = 'item-badge ' + (t.microphone_in_use ? 'warn' : '');
-      }
-      if (t.fullscreen_active !== undefined) {
-        $('badge-fullscreen').innerText = t.fullscreen_active ? 'Fullscreen' : 'Windowed';
-        $('badge-fullscreen').className = 'item-badge ' + (t.fullscreen_active ? 'active' : '');
-      }
-      if (t.has_battery && t.battery_percent !== undefined) {
-        const pwr = t.power_plugged ? 'AC' : 'Batt';
-        $('val-battery').innerText = t.battery_percent + '% (' + pwr + ')';
-        $('badge-pwr').innerText = pwr;
-        setHeatBar('fill-battery', t.battery_percent);
-      }
-      if (t.active_process) {
-        $('val-window').innerText = t.active_process;
-      }
-      if (t.active_window_title) {
-        $('val-title').innerText = t.active_window_title;
-        $('val-title').title = t.active_window_title;
-      }
-      if (t.update_pending !== undefined) {
-        $('val-reboot').innerText = t.update_pending ? 'Restart Pending' : 'Normal';
-        $('badge-reboot').innerText = t.update_pending ? 'Reboot' : 'OK';
-        $('badge-reboot').className = 'item-badge ' + (t.update_pending ? 'warn' : 'active');
-      }
-      if (t.media) {
-        if (t.media.status === 'playing' || t.media.status === 'paused') {
-          const track = t.media.title ? (t.media.artist ? `${t.media.title} - ${t.media.artist}` : t.media.title) : 'Active';
-          $('val-media').innerText = track;
-          $('badge-media').innerText = t.media.status.toUpperCase();
-          $('badge-media').className = 'item-badge ' + (t.media.status === 'playing' ? 'active' : '');
-        } else {
-          $('val-media').innerText = 'None';
-          $('badge-media').innerText = 'Idle';
-          $('badge-media').className = 'item-badge';
-        }
-      }
-      if (t.webcam_in_use !== undefined) {
-        $('val-webcam').innerText = t.webcam_in_use ? (t.webcam_active_app || 'Active') : 'Idle';
-        $('badge-webcam').innerText = t.webcam_in_use ? 'Live' : 'Off';
-        $('badge-webcam').className = 'item-badge ' + (t.webcam_in_use ? 'warn' : '');
-      }
-      if (t.audio_output_name) {
-        $('val-audio-output').innerText = t.audio_output_name;
-      }
-      if (t.wifi_ssid) {
-        const sig = t.wifi_signal_percent !== undefined && t.wifi_signal_percent !== null ? ` (${t.wifi_signal_percent}%)` : '';
-        $('val-wifi').innerText = `${t.wifi_ssid}${sig}`;
-      }
-      if (t.display_powered !== undefined) {
-        $('val-display').innerText = t.display_powered ? 'Powered On' : 'Standby';
-        $('badge-display').innerText = t.display_powered ? 'On' : 'Sleep';
-        $('badge-display').className = 'item-badge ' + (t.display_powered ? 'active' : '');
+        renderSparkline('poly-net', 'line-net', historyNet, Math.max(...historyNet, 100));
       }
     }
   } catch (err) {
@@ -2377,6 +2551,7 @@ async function loadConfig() {
     $('lw_secret').value = '';
 
     currentExpose = cfg.expose || {};
+    setFormDirty(false);
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
     $('exp-net').checked = currentExpose.network !== false;
@@ -2600,6 +2775,7 @@ $('cfg-form').onsubmit = async (e) => {
     const result = await res.json();
     if (result.success) {
       currentExpose = newExpose;
+      setFormDirty(false);
       if (result.listen && result.listen.moved) {
         moveToNewAddress(result.listen);
         return;
@@ -2841,6 +3017,7 @@ const clickHandlers = {
   checkUpdatesManual: () => checkUpdatesManual(),
   dismissUpdateBanner: () => dismissUpdateBanner(),
   copyFrom: arg => copyFrom(arg),
+  copySensorValue: arg => copySensorValue(arg),
   copyLogs: () => copyLogs(),
   clearLogs: () => clearLogs(),
   exportConfig: () => exportConfig(),
@@ -2859,6 +3036,11 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('keydown', e => {
+  if (e.key === '/' && activeTab === 'sensors' && !/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) {
+    e.preventDefault();
+    $('filter-input').focus();
+    return;
+  }
   if (e.key !== 'Escape') return;
   const popover = $('actions-popover');
   if (popover && popover.classList.contains('open')) {
@@ -2870,14 +3052,45 @@ document.addEventListener('keydown', e => {
   if (sidebar && sidebar.classList.contains('open')) toggleSidebar(false);
 });
 
+// Tell the user when the form has edits that are not applied yet.
+let formDirty = false;
+function setFormDirty(dirty) {
+  formDirty = dirty;
+  $('dirty-note').style.display = dirty ? '' : 'none';
+}
+// Export and import passphrases and the file picker are not settings.
+const markDirty = e => { if (!e.target.closest('#portability-card')) setFormDirty(true); };
+$('cfg-form').addEventListener('input', markDirty);
+$('cfg-form').addEventListener('change', markDirty);
+window.addEventListener('beforeunload', e => {
+  if (formDirty) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
 $('filter-input').addEventListener('input', e => filterSensors(e.target.value));
 $('rate-select').addEventListener('change', e => onRateChange(e.target.value));
 $('logs-level-filter').addEventListener('change', renderLogs);
 $('logs-search').addEventListener('input', renderLogs);
 $('bind_address').addEventListener('input', updateBindWarning);
 
+// Stop polling while the tab is hidden, and catch up as soon as it is shown.
+document.addEventListener('visibilitychange', () => {
+  if (sessionExpired || !pollStarted) return;
+  if (document.hidden) {
+    pollSeq++;
+    clearTimeout(activePollTimeout);
+  } else if (currentIntervalMs > 0) {
+    poll();
+  }
+});
+
 loadConfig().then(() => {
   if (sessionExpired) return;
+  pollStarted = true;
+  const fromHash = location.hash.slice(1);
+  if (NAV_TABS[fromHash] && fromHash !== activeTab) switchNav(fromHash);
   poll();
   initLogStream();
 });
