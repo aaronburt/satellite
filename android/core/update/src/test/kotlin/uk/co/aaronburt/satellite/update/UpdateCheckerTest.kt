@@ -42,7 +42,7 @@ class UpdateCheckerTest {
 
         val release = checker().latestRelease()
 
-        assertEquals(10203, release.versionCode)
+        assertEquals(1_000_203, release.versionCode)
         assertEquals("Satellite 1.2.3", release.title)
         assertEquals("satellite.apk", release.apk?.name)
     }

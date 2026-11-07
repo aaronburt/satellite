@@ -64,18 +64,29 @@ object GitHubReleaseParser {
 }
 
 /**
- * `v1.2.3` -> `10203`. Mirrors the scheme the release workflow uses, so the
- * installed `versionCode` can be compared directly with a release tag.
+ * Turns a release tag into a `versionCode`, using the same encoding as the
+ * release workflow so the installed code can be compared with a tag.
+ *
+ * Releases are `vMAJOR.MINOR` (`v0.28` -> `2800`, `v1.0` -> `1000000`). Older
+ * releases were `vMAJOR.MINOR.PATCH` (`v0.27.3` -> `2703`); they still parse,
+ * and every 0.x code is unchanged, so the codes keep increasing across the
+ * switch. Minor numbers can go up to 9999.
  */
 object VersionCodes {
 
-    fun fromTag(tag: String): Int? {
-        val parts = tag.trim().removePrefix("v").split(".")
-        if (parts.size < 3) return null
+    private const val MAJOR_STEP = 1_000_000
+    private const val MINOR_STEP = 100
+    private const val MAX_MAJOR = 2_099
 
-        val major = parts[0].toIntOrNull() ?: return null
-        val minor = parts[1].toIntOrNull() ?: return null
-        val patch = parts[2].toIntOrNull() ?: return null
-        return major * 10_000 + minor * 100 + patch
+    /** Major, minor up to 9999, then an optional patch up to 99 and any extra parts. */
+    private val TAG = Regex("""v?(\d{1,4})\.(\d{1,4})(?:\.(\d{1,2})(?:\.\d+)*)?""")
+
+    fun fromTag(tag: String): Int? {
+        val match = TAG.matchEntire(tag.trim()) ?: return null
+        val (majorText, minorText, patchText) = match.destructured
+        val major = majorText.toInt()
+        if (major > MAX_MAJOR) return null
+        val patch = patchText.ifEmpty { "0" }.toInt()
+        return major * MAJOR_STEP + minorText.toInt() * MINOR_STEP + patch
     }
 }

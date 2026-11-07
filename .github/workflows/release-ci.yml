@@ -1,0 +1,23 @@
+name: Release CI
+
+# Tests the release version script on pull requests that change it or the
+# release workflow, so a broken bump is caught before it merges.
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/release.yml'
+      - '.github/workflows/release-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  next-version:
+    name: Next version script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Test next-version.sh
+        run: .github/scripts/next-version-test.sh
