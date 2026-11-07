@@ -3,6 +3,21 @@
 Start by identifying the app, version, transport, and affected device ID. Verify
 traffic at the broker or webhook receiver as well as the app's displayed status.
 
+On desktop, open **Diagnostics** in the web UI first. It shows connection and
+delivery attempts, the last successful telemetry write, reconnects, scheduled
+retries, and the latest five failures with suggested fixes. **Test broker
+connection** checks saved MQTT settings without disconnecting the running agent.
+**Send test snapshot** sends the latest readings to the enabled, saved telemetry
+webhook. Tests have separate results and do not increase live reporting counters.
+Save settings before testing from Diagnostics; the test buttons in Settings can
+still test edits before saving.
+
+**Copy diagnostic report** copies connection statistics and fixed error messages
+without server addresses, credentials or sensor readings. Counters and failures
+are kept in memory and reset on restart or changes to the relevant connection
+settings. A connected broker or successful write does not prove Home Assistant
+processed the data; check the broker topics and Home Assistant too.
+
 ## Cannot connect to the broker
 
 1. Confirm the broker is running and reachable from the device. `localhost` on a

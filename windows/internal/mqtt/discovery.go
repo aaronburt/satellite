@@ -77,10 +77,14 @@ func driveKey(mount string) string {
 }
 
 func ScreenThumbnailTopic(topicPrefix, nodeID string) string {
+	return DisplayThumbnailTopic(topicPrefix, nodeID, 0)
+}
+
+func DisplayThumbnailTopic(topicPrefix, nodeID string, display int) string {
 	if topicPrefix == "" {
 		topicPrefix = "satellite"
 	}
-	return fmt.Sprintf("%s/%s/screen_thumbnail", topicPrefix, nodeID)
+	return fmt.Sprintf("%s/%s/%s", topicPrefix, nodeID, screenthumb.DisplayKey(display))
 }
 
 type DiscoveryItem struct {
@@ -631,7 +635,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "screen_thumbnail",
-			ShouldRun: cfg.Expose.ScreenThumbnail && isCap("screen_thumbnail"),
+			ShouldRun: cfg.Expose.ScreenThumbnail && isCap("screen_thumbnail") && screenthumb.DisplaySelected(cfg.ScreenThumbnailDisplays, 0),
 			Payload: EntityDiscoveryPayload{
 				Component:         "image",
 				Name:              "Screen Thumbnail",
@@ -646,6 +650,21 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 	}
 
 	var items []DiscoveryItem
+	for id := 1; id <= screenthumb.MaxDisplays; id++ {
+		key := screenthumb.DisplayKey(id)
+		topic := fmt.Sprintf("homeassistant/image/%s/%s/config", discoveryID(nodeID), discoveryID(nodeID+"_"+key))
+		enabled := cfg.Expose.ScreenThumbnail && isCap("screen_thumbnail") && screenthumb.DisplaySelected(cfg.ScreenThumbnailDisplays, id)
+		var payload []byte
+		if enabled {
+			payload, _ = json.Marshal(EntityDiscoveryPayload{
+				Component: "image", Name: fmt.Sprintf("Screen Thumbnail Display %d", id),
+				ImageTopic: DisplayThumbnailTopic(topicPrefix, nodeID, id), ContentType: screenthumb.ContentType,
+				UniqueID: nodeID + "_" + key, Device: device, AvailabilityTopic: availTopic,
+				Icon: "mdi:monitor-screenshot",
+			})
+		}
+		items = append(items, DiscoveryItem{Key: key, Topic: topic, Payload: payload, ShouldRun: enabled})
+	}
 	for _, def := range definitions {
 		topic := fmt.Sprintf("homeassistant/%s/%s/%s/config", def.Payload.Component, discoveryID(nodeID), discoveryID(def.Payload.UniqueID))
 		var b []byte

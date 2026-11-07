@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -17,6 +18,55 @@ func findItem(t *testing.T, items []DiscoveryItem, key string) DiscoveryItem {
 	}
 	t.Fatalf("no discovery item %q", key)
 	return DiscoveryItem{}
+}
+
+func TestNumberedDisplayDiscoveryAndPublishing(t *testing.T) {
+	stubHardware(t, nil, nil)
+	b := startBroker(t, "", "")
+	cfg := brokerConfig(b)
+	cfg.Expose.ScreenThumbnail = true
+	cfg.ScreenThumbnailDisplays = []int{1, 3}
+	c := startClient(t, cfg)
+	items := GetAllDiscoveryItems(cfg, false, allCaps())
+	for _, id := range []int{1, 3} {
+		key := fmt.Sprintf("screen_thumbnail_display_%d", id)
+		item := findItem(t, items, key)
+		var payload EntityDiscoveryPayload
+		if err := json.Unmarshal(item.Payload, &payload); err != nil {
+			t.Fatal(err)
+		}
+		if !item.ShouldRun || payload.UniqueID != "node1_"+key || payload.ImageTopic != "sat/node1/"+key || payload.Name != fmt.Sprintf("Screen Thumbnail Display %d", id) {
+			t.Fatalf("invalid display discovery: %+v", payload)
+		}
+		b.waitForMessage(t, item.Topic, string(item.Payload))
+		if err := c.PublishDisplayThumbnail(id, []byte(key)); err != nil {
+			t.Fatal(err)
+		}
+		if message := b.waitForMessage(t, payload.ImageTopic, key); message.retain {
+			t.Fatal("numbered thumbnail was retained")
+		}
+	}
+	for _, key := range []string{"screen_thumbnail", "screen_thumbnail_display_2"} {
+		item := findItem(t, items, key)
+		if item.ShouldRun || len(item.Payload) != 0 {
+			t.Fatalf("unselected entity %s was enabled", key)
+		}
+	}
+	if err := c.PublishDisplayThumbnail(2, []byte("not selected")); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.PublishScreenThumbnail([]byte("legacy disabled")); err != nil {
+		t.Fatal(err)
+	}
+	cfg.ScreenThumbnailDisplays = []int{2}
+	c.UpdateConfigAndRestart(cfg)
+	for _, id := range []int{1, 3} {
+		key := fmt.Sprintf("screen_thumbnail_display_%d", id)
+		b.waitForMessage(t, "homeassistant/image/node1/node1_"+key+"/config", "")
+	}
+	if len(b.messages("sat/node1/screen_thumbnail_display_2")) != 0 || len(b.messages("sat/node1/screen_thumbnail")) != 0 {
+		t.Fatal("published an unselected display")
+	}
 }
 
 func TestScreenThumbnailIsOffByDefault(t *testing.T) {

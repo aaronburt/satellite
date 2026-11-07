@@ -32,6 +32,10 @@ func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 		case reflect.Int, reflect.Int64, reflect.Int32:
 			f.SetInt(int64(1000 + *counter))
 		case reflect.Slice:
+			if f.Type().Elem().Kind() == reflect.Int {
+				f.Set(reflect.ValueOf([]int{1, 3}))
+				continue
+			}
 			if f.Type().Elem().Kind() != reflect.String {
 				t.Fatalf("fillAllFields: unsupported slice of %s for %s; extend the helper", f.Type().Elem().Kind(), name)
 			}

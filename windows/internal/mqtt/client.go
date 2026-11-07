@@ -15,7 +15,9 @@ import (
 	"satellite/internal/actions"
 	"satellite/internal/capabilities"
 	"satellite/internal/config"
+	"satellite/internal/diagnostics"
 	"satellite/internal/logger"
+	"satellite/internal/screenthumb"
 	"satellite/internal/telemetry"
 	"satellite/internal/toast"
 
@@ -45,6 +47,8 @@ type Client struct {
 	netConn          net.Conn
 	status           Status
 	cancelLoop       context.CancelFunc
+	loopDone         chan struct{}
+	diagnostics      *diagnostics.Tracker
 	lastSnapshot     telemetry.Snapshot
 	lastSentTime     time.Time
 	forcePublishNext bool
@@ -62,6 +66,7 @@ func NewClient() *Client {
 	reg := actions.NewRegistry()
 	c := &Client{
 		status:           StatusDisconnected,
+		diagnostics:      diagnostics.New(),
 		registry:         reg,
 		caps:             capabilities.Detect(),
 		notifyChan:       make(chan toast.Notification, 5),
@@ -111,6 +116,9 @@ func (c *Client) UpdateConfigAndRestart(cfg config.Config) {
 
 func (c *Client) Start(cfg config.Config) {
 	c.mu.Lock()
+	if cfg.MQTT != c.cfg.MQTT || cfg.NodeID != c.cfg.NodeID {
+		c.diagnostics = diagnostics.New()
+	}
 	c.cfg = cfg
 	if cfg.MQTT.Broker == "" {
 		c.status = StatusDisconnected
@@ -120,15 +128,22 @@ func (c *Client) Start(cfg config.Config) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	c.cancelLoop = cancel
+	done := make(chan struct{})
+	c.loopDone = done
 	c.status = StatusConnecting
 	c.mu.Unlock()
 
 	go c.notifyWorker(ctx)
-	go c.runLoop(ctx)
+	go func() {
+		defer close(done)
+		c.runLoop(ctx)
+	}()
 }
 
 func (c *Client) Stop() {
 	c.mu.Lock()
+	done := c.loopDone
+	c.loopDone = nil
 	if c.cancelLoop != nil {
 		c.cancelLoop()
 		c.cancelLoop = nil
@@ -153,11 +168,22 @@ func (c *Client) Stop() {
 		c.pahoClient = nil
 		c.netConn = nil
 	}
+	if c.status == StatusConnected {
+		c.diagnostics.Disconnected()
+	}
+	c.diagnostics.RetryAt(time.Time{})
 	c.status = StatusDisconnected
 	c.mu.Unlock()
+	if done != nil {
+		<-done
+	}
 }
 
 func (c *Client) runLoop(ctx context.Context) {
+	c.mu.RLock()
+	stats := c.diagnostics
+	c.mu.RUnlock()
+	defer stats.RetryAt(time.Time{})
 	backoff := c.initialBackoff
 	for {
 		select {
@@ -165,17 +191,30 @@ func (c *Client) runLoop(ctx context.Context) {
 			return
 		default:
 			startTime := time.Now()
+			c.mu.Lock()
+			if ctx.Err() != nil {
+				c.mu.Unlock()
+				return
+			}
+			c.status = StatusConnecting
+			c.mu.Unlock()
+			stats.Attempt()
 			err := c.connectAndServe(ctx)
+			if ctx.Err() != nil {
+				return
+			}
 			if err != nil {
 				c.mu.Lock()
 				c.status = StatusDisconnected
 				c.mu.Unlock()
+				stats.Failed("connect", ConnectionProblem(err))
 				logger.Warn("mqtt", fmt.Sprintf("MQTT connection error: %v", err))
 			}
 
 			if time.Since(startTime) >= c.stableAfter {
 				backoff = c.initialBackoff
 			}
+			stats.RetryAt(time.Now().Add(backoff))
 
 			select {
 			case <-ctx.Done():
@@ -183,6 +222,9 @@ func (c *Client) runLoop(ctx context.Context) {
 			case <-time.After(backoff):
 				if backoff < c.maxBackoff {
 					backoff *= 2
+					if backoff > c.maxBackoff {
+						backoff = c.maxBackoff
+					}
 				}
 			}
 		}
@@ -226,6 +268,14 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 
 	connCtx, connCancel := context.WithCancel(ctx)
 	defer connCancel()
+	connectionErrors := make(chan error, 1)
+	reportConnectionError := func(err error) {
+		select {
+		case connectionErrors <- err:
+		default:
+		}
+		connCancel()
+	}
 
 	connAssigned := false
 	defer func() {
@@ -280,10 +330,10 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 		Conn:   conn,
 		Router: router,
 		OnServerDisconnect: func(d *paho.Disconnect) {
-			connCancel()
+			reportConnectionError(&connectionError{code: d.ReasonCode, err: fmt.Errorf("broker disconnected the client")})
 		},
 		OnClientError: func(err error) {
-			connCancel()
+			reportConnectionError(err)
 		},
 	})
 
@@ -313,18 +363,27 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	}
 
 	connectCtx, connectCancel := context.WithTimeout(ctx, 5*time.Second)
-	_, err = pClient.Connect(connectCtx, cp)
+	ack, err := pClient.Connect(connectCtx, cp)
 	connectCancel()
 	if err != nil {
+		if ack != nil {
+			return &connectionError{code: ack.ReasonCode, err: err}
+		}
 		return err
 	}
 
 	c.mu.Lock()
+	if ctx.Err() != nil {
+		c.mu.Unlock()
+		_ = pClient.Disconnect(&paho.Disconnect{ReasonCode: 0})
+		return ctx.Err()
+	}
 	c.netConn = conn
 	c.pahoClient = pClient
 	c.status = StatusConnected
 	c.forcePublishNext = true
 	c.lastSentTime = time.Time{}
+	c.diagnostics.Connected()
 	connAssigned = true
 	c.mu.Unlock()
 	logger.Info("mqtt", fmt.Sprintf("Connected to MQTT broker: %s", brokerURL))
@@ -399,8 +458,14 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 			connAssigned = false
 		}
 		c.status = StatusDisconnected
+		c.diagnostics.Disconnected()
 		c.mu.Unlock()
-		return fmt.Errorf("mqtt connection closed")
+		select {
+		case err := <-connectionErrors:
+			return err
+		default:
+			return fmt.Errorf("mqtt connection closed")
+		}
 	}
 }
 
@@ -452,10 +517,12 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	}
 	stateTopic := fmt.Sprintf("%s/%s/state", prefix, c.cfg.NodeID)
 	pClient := c.pahoClient
+	stats := c.diagnostics
 	c.mu.Unlock()
 
 	bytes, err := json.Marshal(snap)
 	if err != nil {
+		stats.Failed("publish", diagnostics.Problem{Code: "payload", Message: "The telemetry snapshot could not be encoded.", Hint: "Check for invalid sensor readings and review the agent logs."})
 		return err
 	}
 
@@ -470,11 +537,16 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	})
 	if err == nil {
 		c.mu.Lock()
-		c.lastSnapshot = snap
-		c.lastSentTime = now
-		c.forcePublishNext = false
+		if c.pahoClient == pClient {
+			c.lastSnapshot = snap
+			c.lastSentTime = now
+			c.forcePublishNext = false
+		}
 		c.mu.Unlock()
+		stats.Published()
 		logger.Log("MQTT", "telemetry", fmt.Sprintf("Published state to %s (%d bytes)", stateTopic, len(bytes)))
+	} else {
+		stats.Failed("publish", ConnectionProblem(err))
 	}
 	return err
 }
@@ -486,12 +558,16 @@ func (c *Client) ScreenThumbnailEnabled() bool {
 }
 
 func (c *Client) PublishScreenThumbnail(jpeg []byte) error {
+	return c.PublishDisplayThumbnail(0, jpeg)
+}
+
+func (c *Client) PublishDisplayThumbnail(display int, jpeg []byte) error {
 	c.mu.RLock()
-	if c.status != StatusConnected || c.pahoClient == nil || !c.cfg.Expose.ScreenThumbnail {
+	if c.status != StatusConnected || c.pahoClient == nil || !c.cfg.Expose.ScreenThumbnail || !screenthumb.DisplaySelected(c.cfg.ScreenThumbnailDisplays, display) {
 		c.mu.RUnlock()
 		return nil
 	}
-	topic := ScreenThumbnailTopic(c.cfg.MQTT.TopicPrefix, c.cfg.NodeID)
+	topic := DisplayThumbnailTopic(c.cfg.MQTT.TopicPrefix, c.cfg.NodeID, display)
 	pClient := c.pahoClient
 	c.mu.RUnlock()
 
@@ -548,10 +624,7 @@ func TestConnection(cfg config.MQTTConfig) error {
 		Conn: conn,
 	})
 
-	clientID := cfg.ClientID
-	if clientID == "" {
-		clientID = "satellite-test-conn"
-	}
+	clientID := fmt.Sprintf("sat-test-%d", time.Now().UnixNano())
 
 	cp := &paho.Connect{
 		KeepAlive:  10,
@@ -570,8 +643,11 @@ func TestConnection(cfg config.MQTTConfig) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
 	defer cancel()
 
-	_, err = pClient.Connect(ctx, cp)
+	ack, err := pClient.Connect(ctx, cp)
 	if err != nil {
+		if ack != nil {
+			return &connectionError{code: ack.ReasonCode, err: err}
+		}
 		return err
 	}
 

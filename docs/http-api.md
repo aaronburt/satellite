@@ -66,7 +66,10 @@ Use the following HTTP methods. JSON request bodies should use
 | Method | Path | Request body | Result |
 | --- | --- | --- | --- |
 | GET | `/api/status` | None | MQTT status, last telemetry snapshot, the list of enabled sensors, update status |
+| GET | `/api/diagnostics` | None | MQTT and telemetry webhook connection diagnostics |
+| POST | `/api/diagnostics/test` | `{"transport":"mqtt"}` or `{"transport":"telemetry_webhook"}` | Test the saved connection and return a credential-free result |
 | GET | `/api/screen-thumbnail` | None | Latest screen thumbnail as a JPEG (only while the screen thumbnail sensor is on) |
+| GET | `/api/displays` | None | Connected displays, with number, device name, primary flag, position, and resolution |
 | GET | `/api/capabilities` | None | OS name and supported-feature booleans |
 | GET | `/api/config` | None | Current configuration, with selected secrets blanked |
 | POST | `/api/config` | Partial configuration object | Save and apply configuration |
@@ -83,7 +86,7 @@ Use the following HTTP methods. JSON request bodies should use
 
 Every `/api/*` endpoint accepts only the methods listed for it; anything
 else returns HTTP 405. `/api/status`, `/api/capabilities`,
-`/api/screen-thumbnail` and `/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
+`/api/displays`, `/api/screen-thumbnail` and `/api/logs/stream` also send `Allow: GET`. `HEAD` is not supported and
 returns 405. The WebUI-enabled check (404) and token check (401) run
 before the method check.
 
@@ -94,6 +97,7 @@ before the method check.
 | Field | Meaning |
 | --- | --- |
 | `mqtt_status` | `Disconnected`, `Connecting`, or `Connected` |
+| `connections` | The same MQTT and telemetry webhook diagnostics returned by `/api/diagnostics` |
 | `telemetry` | Last collected snapshot; fields depend on enabled sensors and platform support |
 | `sensors` | Every sensor that is switched on and supported here, each with a ready-to-show reading (see below). Empty list when none are on |
 | `update_status` | Update-check status, or `null` if no checker is configured |
@@ -106,7 +110,10 @@ last snapshot rather than triggering a fresh collection.
 Each entry of `sensors` has `id`, `group`, `label`, `value`, `state` and
 optionally `detail`, `percent` (draws a gauge), `level` (`mid` or `high`, for
 colouring the gauge), and, for the screen preview, `image` and `frame_ts`
-(Unix seconds of the latest frame, absent until one is captured). `state` is
+(Unix seconds of the latest frame, absent until one is captured). Numbered
+display previews also include `display` and have IDs such as
+`screen_thumbnail_display_2`. A disconnected display stays listed as waiting,
+with the value `Display unavailable` and no `frame_ts`. `state` is
 `ok`, `active`, `warn`, `idle` or `waiting`; `waiting` means the sensor is on but
 has no reading yet. A GPU or drive gets one entry per adapter or volume (ids
 `gpu0`, `disk:C:`). The list is built in
@@ -119,10 +126,60 @@ when the sensor is off, unsupported, or nothing has been captured yet. Add
 captures the screen for the preview for about 15 seconds after the last such
 request (it keeps capturing for MQTT regardless).
 
+With numbered displays selected, use `/api/screen-thumbnail?display=2` for
+Display 2. The default (omitted `display`, or `display=0`) is available only in
+primary-display compatibility mode. A valid but unselected or disconnected
+display returns 404; a malformed number or a number outside 0–64 returns 400.
+`GET /api/displays` lists connected Windows displays as objects with `id`,
+`name`, `device`, `primary`, `x`, `y`, `width`, and `height`. Positions can be
+negative. Unsupported platforms return an empty list; enumeration failures
+return 503. Like all management routes, this endpoint requires the WebUI token.
+Save `screen_thumbnail_displays: [1, 2, 3]` through `/api/config` to choose
+displays, or `[]` to keep the existing primary-screen image. Duplicate numbers
+are removed and selections are sorted; invalid numbers are rejected.
+
 `GET /api/capabilities` returns `os` and feature flags such as `cpu`, `battery`,
 `media_control`, and `notifications`. These describe platform support, not
 whether each feature is enabled in configuration. The complete fields are in
 [`capabilities.go`](../windows/internal/capabilities/capabilities.go).
+
+### Connection diagnostics
+
+`GET /api/diagnostics` returns `mqtt` and `telemetry_webhook` objects. Each has
+`status`, `since`, `attempts`, `reconnects`, `publishes`, `failures`, and
+`recent_errors` (the latest five failures, oldest first). Optional timestamps are
+`last_attempt`, `last_connected`, `last_disconnected`, `last_published`, and
+`next_retry`. Timestamps use RFC 3339. `current_error`, when present, has `at`,
+`operation`, `code`, `message`, and `hint`; history entries have the same shape.
+Messages and hints use fixed descriptions and omit raw network errors, server
+addresses, credentials, and telemetry values.
+
+MQTT status is `disabled`, `connecting`, `connected`, or `disconnected`.
+Webhook status is `disabled`, `unconfigured`, `waiting`, `sending`, `retrying`,
+`healthy`, or `failed`. `unavailable` means the server has no webhook tracker.
+Attempts count MQTT connection attempts or webhook HTTP delivery attempts.
+Publishes count successful **telemetry state** writes, excluding discovery,
+availability, thumbnails, and manual tests. MQTT uses QoS 0, so these writes have
+no broker acknowledgement and do not prove Home Assistant received them. A
+successful webhook delivery requires HTTP 2xx and does not prove downstream
+processing. Suppressed, unchanged snapshots do not increment counters.
+
+Counters and history stay in memory. MQTT resets its diagnostics when MQTT
+settings or the node ID change; webhook diagnostics reset when its URL, bearer
+token, or enabled state changes. Restarting Satellite resets both. Recovery
+clears the active error for that operation and retains the bounded history.
+`next_retry` only describes an already scheduled retry. A failed webhook without
+one can still be attempted again by the normal reporting loop.
+
+`POST /api/diagnostics/test` uses saved settings. MQTT tests connect and
+authenticate with an independent temporary client ID, without publishing or
+testing topic access. Webhook tests send the last collected telemetry snapshot
+to the enabled, saved URL. They do not change live reporting counters. Results
+have `success`, `message`, and `duration_ms`; failures also have `code` and
+`hint`. Network failures return HTTP 200 with `success: false`; invalid or
+unconfigured test requests return HTTP 400. These endpoints use the same web UI
+authentication and availability checks as the other management routes. The GET
+endpoint sends `Allow: GET` on HTTP 405; the test endpoint sends `Allow: POST`.
 
 ## Read and save configuration
 

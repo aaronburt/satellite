@@ -77,7 +77,8 @@ type Config struct {
 	Expose      ExposeConfig `json:"expose"`
 	IntervalSec int          `json:"interval_sec"`
 	// ScreenThumbnailSize is the longest edge in pixels of the screen thumbnail.
-	ScreenThumbnailSize int `json:"screen_thumbnail_size,omitempty"`
+	ScreenThumbnailSize     int   `json:"screen_thumbnail_size,omitempty"`
+	ScreenThumbnailDisplays []int `json:"screen_thumbnail_displays,omitempty"`
 	// ScreenThumbnailHiddenApps lists program names (such as chrome.exe) whose
 	// windows are blacked out of the screen thumbnail.
 	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps,omitempty"`
@@ -215,6 +216,9 @@ func Load() (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
 	}
+	if err := screenthumb.ValidateDisplays(cfg.ScreenThumbnailDisplays); err != nil {
+		return Config{}, err
+	}
 	if cfg.BindAddress == "" {
 		cfg.BindAddress = "127.0.0.1"
 	}
@@ -227,6 +231,7 @@ func Load() (Config, error) {
 		cfg.Webhook.MinLevel = "info"
 	}
 	cfg.ScreenThumbnailSize = screenthumb.ClampSide(cfg.ScreenThumbnailSize)
+	cfg.ScreenThumbnailDisplays = screenthumb.NormalizeDisplays(cfg.ScreenThumbnailDisplays)
 	cfg.ScreenThumbnailHiddenApps = screenthumb.NormalizeApps(cfg.ScreenThumbnailHiddenApps)
 
 	current = cfg

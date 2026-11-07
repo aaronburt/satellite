@@ -56,23 +56,25 @@ const (
 )
 
 type Server struct {
-	mu           sync.Mutex
-	server       *http.Server
-	cancelBase   context.CancelFunc
-	listener     net.Listener
-	host         string
-	port         int
-	token        string
-	collector    *telemetry.Collector
-	mqttClient   *mqtt.Client
-	updater      *updater.Checker
-	caps         capabilities.PlatformCapabilities
-	running      bool
-	webUIEnabled bool
-	jsonEnabled  bool
-	apiKey       string
-	devMode      bool
-	thumbs       *screenthumb.Store
+	mu               sync.Mutex
+	server           *http.Server
+	cancelBase       context.CancelFunc
+	listener         net.Listener
+	host             string
+	port             int
+	token            string
+	collector        *telemetry.Collector
+	mqttClient       *mqtt.Client
+	telemetryWebhook *output.Webhook
+	updater          *updater.Checker
+	caps             capabilities.PlatformCapabilities
+	running          bool
+	webUIEnabled     bool
+	jsonEnabled      bool
+	apiKey           string
+	devMode          bool
+	thumbs           *screenthumb.Store
+	listDisplays     func() ([]screenthumb.Display, error)
 	// thumbSeen is when a page last asked for the screen preview
 	// (unix nanoseconds, 0 = never).
 	thumbSeen atomic.Int64
@@ -97,6 +99,12 @@ func (s *Server) SetUpdater(u *updater.Checker) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.updater = u
+}
+
+func (s *Server) SetTelemetryWebhook(w *output.Webhook) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.telemetryWebhook = w
 }
 
 // SetDevMode makes the page load from disk on every request (used by --debug).
@@ -391,8 +399,11 @@ func (s *Server) routes() http.Handler {
 
 	mux.HandleFunc("/", s.webUIMiddleware(s.handleIndex))
 	mux.HandleFunc("/api/status", api(s.handleStatus))
+	mux.HandleFunc("/api/diagnostics", api(s.handleDiagnostics))
+	mux.HandleFunc("/api/diagnostics/test", api(s.handleDiagnosticTest))
 	mux.HandleFunc("/api/capabilities", api(s.handleCapabilities))
 	mux.HandleFunc("/api/screen-thumbnail", api(s.handleScreenThumbnail))
+	mux.HandleFunc("/api/displays", api(s.handleDisplays))
 	mux.HandleFunc("/api/config", api(s.handleConfig))
 	mux.HandleFunc("/api/config/export", api(s.handleConfigExport))
 	mux.HandleFunc("/api/config/import", api(s.handleConfigImport))
@@ -563,7 +574,8 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		updateStatus = u.Status()
 	}
 
-	expose := config.Get().Expose
+	cfg := config.Get()
+	expose := cfg.Expose
 	// The page adds thumb=1 while it is showing the screen preview.
 	if r.URL.Query().Get("thumb") == "1" && expose.ScreenThumbnail && caps.ScreenThumbnail {
 		s.noteThumbnailViewer()
@@ -572,10 +584,14 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	if store != nil {
 		_, frame.At, frame.Have = store.Latest()
 	}
+	if caps.ScreenThumbnail && expose.ScreenThumbnail && len(cfg.ScreenThumbnailDisplays) > 0 {
+		frame.Displays = s.displayFrames(cfg.ScreenThumbnailDisplays, store)
+	}
 	snap := s.collector.Last()
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"mqtt_status":   string(s.mqttClient.Status()),
+		"connections":   s.connectionDiagnostics(),
 		"telemetry":     snap,
 		"sensors":       BuildSensors(expose, caps, snap, frame, time.Now()),
 		"update_status": updateStatus,
@@ -597,12 +613,32 @@ func (s *Server) handleScreenThumbnail(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	display := 0
+	if raw := r.URL.Query().Get("display"); raw != "" {
+		var err error
+		display, err = strconv.Atoi(raw)
+		if err != nil || display < 0 || display > screenthumb.MaxDisplays {
+			writeError(w, http.StatusBadRequest, "Invalid display number")
+			return
+		}
+	}
+	if !screenthumb.DisplaySelected(config.Get().ScreenThumbnailDisplays, display) {
+		http.NotFound(w, r)
+		return
+	}
+	if display > 0 {
+		displays, err := s.getDisplays()
+		if _, ok := screenthumb.ResolveDisplay(displays, display); err != nil || !ok {
+			http.NotFound(w, r)
+			return
+		}
+	}
 	s.noteThumbnailViewer()
 	if store == nil {
 		http.NotFound(w, r)
 		return
 	}
-	jpeg, _, ok := store.Latest()
+	jpeg, _, ok := store.LatestDisplay(display)
 	if !ok {
 		http.NotFound(w, r)
 		return
@@ -754,6 +790,7 @@ func mergeIncomingConfig(prev, next config.Config) config.Config {
 		next.IntervalSec = 5
 	}
 	next.ScreenThumbnailSize = screenthumb.ClampSide(next.ScreenThumbnailSize)
+	next.ScreenThumbnailDisplays = screenthumb.NormalizeDisplays(next.ScreenThumbnailDisplays)
 	next.ScreenThumbnailHiddenApps = screenthumb.NormalizeApps(next.ScreenThumbnailHiddenApps)
 	next.NodeID = strings.TrimSpace(next.NodeID)
 	if next.NodeID == "" {
@@ -820,7 +857,15 @@ func (s *Server) prepareListen(prev, next config.Config) (*listenResult, error) 
 func (s *Server) applyConfig(next config.Config) {
 	s.mu.Lock()
 	u := s.updater
+	store := s.thumbs
 	s.mu.Unlock()
+	if store != nil {
+		if next.Expose.ScreenThumbnail {
+			store.KeepDisplays(screenthumb.SelectedDisplays(next.ScreenThumbnailDisplays))
+		} else {
+			store.KeepDisplays(nil)
+		}
+	}
 	if u != nil {
 		u.SetEnabled(next.CheckUpdates)
 	}
@@ -847,12 +892,17 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		prev := config.Get()
 		next := prev
+		next.ScreenThumbnailDisplays = append([]int(nil), prev.ScreenThumbnailDisplays...)
 		raw, err := io.ReadAll(r.Body)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		if err := json.Unmarshal(raw, &next); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := screenthumb.ValidateDisplays(next.ScreenThumbnailDisplays); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}

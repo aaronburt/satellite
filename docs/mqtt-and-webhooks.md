@@ -17,6 +17,7 @@ default node ID comes from the lowercased hostname with spaces replaced by `-`.
 | Device notifications | `<base>/notify` | 1 subscription | Publish notifications without retain |
 | Broadcast notifications | `<topic_prefix>/all/notify` | 1 subscription | Publish notifications without retain |
 | Screen thumbnail (opt-in, Windows) | `<base>/screen_thumbnail` | 0 | No |
+| Selected display thumbnail (opt-in, Windows) | `<base>/screen_thumbnail_display_<number>` | 0 | No |
 | Per-entity discovery | `homeassistant/<component>/<node_id>/<unique_id>/config` | 1 | Yes |
 
 Discovery topic node/unique-ID segments are sanitized for Home Assistant.
@@ -28,6 +29,16 @@ changes or a heartbeat (default 60 seconds), checked on each collection tick
 The screen thumbnail payload is raw JPEG bytes (200px by default, at most 400px, on the longest
 side, once per telemetry collection tick) for the Home Assistant `image` entity. It is only sent
 when `expose.screen_thumbnail` is on, and is off by default.
+
+An empty or omitted `screen_thumbnail_displays` keeps the existing primary
+monitor topic and image entity. A selection such as `[1, 2, 3]` instead creates
+one `image` entity per display, with unique IDs
+`<node_id>_screen_thumbnail_display_1`, etc. Each display publishes its own raw
+JPEG to the corresponding numbered topic. Size and hidden-program settings
+apply to every selected display. Unselected image discovery entries are cleared
+on connection, including after a saved selection changes. A disconnected
+selected display keeps its discovery entry but sends no new images until it
+reconnects. The agent's device availability remains shared across these images.
 
 Commands accept plain text (`lock`) or JSON (`{"action":"lock"}` or
 `{"command":"lock"}`). Canonical actions and their required settings:

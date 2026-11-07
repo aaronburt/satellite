@@ -133,35 +133,43 @@ func main() {
 	// Every snapshot goes to each output: MQTT for Home Assistant, plus the
 	// optional generic telemetry webhook.
 	webhookSink := output.NewWebhook(config.Get)
+	server.SetTelemetryWebhook(webhookSink)
 	sinks := []output.Sink{
 		output.SinkFunc{SinkName: "mqtt", Fn: mqttClient.PublishTelemetry},
 		webhookSink,
 	}
 
-	thumbSource := screenthumb.NewSource(func() bool {
-		e := config.Get().Expose
-		return e.GPU && e.NvidiaNVML
-	})
-	thumbSource.OnBackend = func(b screenthumb.Backend) {
-		logger.Info("screen_thumbnail", fmt.Sprintf("Screen thumbnail capture is using %s", strings.ToUpper(string(b))))
-	}
-	thumbSource.OnFallback = func(err error) {
-		logger.Warn("screen_thumbnail", fmt.Sprintf("%v; using the standard capture", err))
-	}
 	thumbStore := screenthumb.NewStore()
 	server.SetThumbnailStore(thumbStore)
-	thumbs := &screenthumb.Runner{
-		Enabled: func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
-		// Capture only when something will use the frame: the MQTT broker,
-		// or a web UI page that is showing the preview.
-		Ready:   func() bool { return mqttClient.Status() == mqtt.StatusConnected || server.ThumbnailWanted() },
-		Store:   thumbStore,
-		Locked:  telemetry.IsSessionLocked,
-		Capture: thumbSource.Capture,
-		Side:    func() int { return config.Get().ScreenThumbnailSize },
-		Hide: screenthumb.NewHider(func() []string { return config.Get().ScreenThumbnailHiddenApps },
-			screenthumb.PlatformHiddenRects),
-		Publish: mqttClient.PublishScreenThumbnail,
+	thumbs := &screenthumb.Manager{
+		Enabled:  func() bool { return caps.ScreenThumbnail && config.Get().Expose.ScreenThumbnail },
+		Selected: func() []int { return config.Get().ScreenThumbnailDisplays },
+		Displays: screenthumb.Displays,
+		Store:    thumbStore,
+		NewRunner: func(display screenthumb.Display) (*screenthumb.Runner, func()) {
+			source := screenthumb.NewDisplaySource(display, func() bool {
+				e := config.Get().Expose
+				return e.GPU && e.NvidiaNVML
+			})
+			source.OnBackend = func(b screenthumb.Backend) {
+				logger.Info("screen_thumbnail", fmt.Sprintf("%s thumbnail capture is using %s", display.Name, strings.ToUpper(string(b))))
+			}
+			source.OnFallback = func(err error) {
+				logger.Warn("screen_thumbnail", fmt.Sprintf("%s: %v; using the standard capture", display.Name, err))
+			}
+			return &screenthumb.Runner{
+				Display: display.ID,
+				Enabled: func() bool {
+					cfg := config.Get()
+					return caps.ScreenThumbnail && cfg.Expose.ScreenThumbnail && screenthumb.DisplaySelected(cfg.ScreenThumbnailDisplays, display.ID)
+				},
+				Ready: func() bool { return mqttClient.Status() == mqtt.StatusConnected || server.ThumbnailWanted() },
+				Store: thumbStore, Locked: telemetry.IsSessionLocked, Capture: source.Capture,
+				Side:    func() int { return config.Get().ScreenThumbnailSize },
+				Hide:    screenthumb.NewDisplayHider(display, func() []string { return config.Get().ScreenThumbnailHiddenApps }, screenthumb.PlatformHiddenRects),
+				Publish: func(jpeg []byte) error { return mqttClient.PublishDisplayThumbnail(display.ID, jpeg) },
+			}, source.Close
+		},
 	}
 	reportThumbErr := screenthumb.LogOnChange(func(err error) {
 		logger.Warn("screen_thumbnail", fmt.Sprintf("Screen thumbnail failed: %v", err))
@@ -187,7 +195,7 @@ func main() {
 		cancelUpdater()
 		stopIntervalWatch()
 		cancelTicker()
-		thumbSource.Close()
+		thumbs.Close()
 		webhookSink.Close()
 		mqttClient.Stop()
 		server.Stop()

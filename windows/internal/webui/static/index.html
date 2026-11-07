@@ -777,6 +777,7 @@ body{
   flex-direction:column;
   gap:4px;
 }
+.field-hint{font-size:11px;color:var(--muted);line-height:1.5;margin:6px 0 0}
 .field-row{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -1203,6 +1204,26 @@ input:focus,select:focus,textarea:focus{
 .content-panel:focus{
   outline:none;
 }
+.diagnostics-container{padding:24px;max-width:1200px;margin:0 auto;}
+.diagnostics-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;}
+.diagnostics-note{color:var(--text-dim);font-size:13px;line-height:1.6;margin:0;}
+.diagnostics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+.diagnostic-card{border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:20px;min-width:0;}
+.diagnostic-card h2{font-size:16px;margin:0 0 8px;}
+.diagnostic-status{display:inline-block;font-size:12px;border:1px solid var(--border);border-radius:20px;padding:4px 10px;margin-bottom:12px;}
+.diagnostic-status.good{color:var(--success);}
+.diagnostic-status.warn{color:var(--warning);}
+.diagnostic-stats{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px;margin:20px 0;}
+.diagnostic-stats dt{color:var(--text-dim);font-size:12px;margin-bottom:5px;}
+.diagnostic-stats dd{font-size:13px;margin:0;overflow-wrap:anywhere;}
+.diagnostic-card details{margin-top:18px;font-size:13px;}
+.diagnostic-card summary{cursor:pointer;color:var(--text-dim);}
+.diagnostic-errors{padding-left:18px;line-height:1.6;overflow-wrap:anywhere;}
+.diagnostic-errors li{padding:6px 0;}
+.diagnostic-test-result{font-size:13px;line-height:1.6;overflow-wrap:anywhere;}
+.diagnostic-test-result:empty{display:none;}
+.diagnostic-card .cmd-btn:disabled{opacity:0.45;cursor:not-allowed;}
+@media(max-width:900px){.diagnostics-grid{grid-template-columns:1fr;}.diagnostics-toolbar{align-items:flex-start;flex-direction:column;}.diagnostics-container{padding:16px;}}
 button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]:focus-visible{
   outline:2px solid var(--border-focus);
   outline-offset:2px;
@@ -1241,6 +1262,10 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
           </svg>
           <span>Performance</span>
+        </button>
+        <button type="button" class="nav-item" id="nav-diagnostics" data-click="switchNav" data-arg="diagnostics">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16M4 16h16M8 4v16M16 4v16"/><circle cx="12" cy="12" r="9"/></svg>
+          <span>Diagnostics</span>
         </button>
         <button type="button" class="nav-item" id="nav-logs" data-click="switchNav" data-arg="logs">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1496,6 +1521,20 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
       </div>
     </section>
 
+    <section id="panel-diagnostics" class="content-panel hidden" tabindex="-1">
+      <div class="diagnostics-container">
+        <div class="diagnostics-toolbar">
+          <div>
+            <p class="diagnostics-note">Connection health for this device. Counters are kept in memory and restart when Satellite or the connection settings change.</p>
+            <p class="diagnostics-note" id="diagnostics-updated" role="status">Waiting for connection data...</p>
+          </div>
+          <button type="button" class="cmd-btn" data-click="copyDiagnostics">Copy diagnostic report</button>
+        </div>
+        <div id="diagnostics-cards" class="diagnostics-grid"></div>
+        <p class="diagnostics-note" style="margin-top:20px;">Tests use saved settings. The webhook test sends your latest telemetry snapshot. Test results are separate from live reporting counters. Reports contain no server addresses, credentials or telemetry readings.</p>
+      </div>
+    </section>
+
     <section id="panel-settings" class="content-panel hidden" tabindex="-1">
       <div class="config-container">
         <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
@@ -1625,9 +1664,22 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
                 <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
                 <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-                <label class="toggle-item" data-cap="screen_thumbnail" title="Each time Satellite sends an update, it also sends a picture of your main screen, no larger than 200px, to MQTT as a Home Assistant image. Only the small picture is made; it is never saved to disk. If NVIDIA sensors (NVML) are also on, the shrinking is done on the graphics card, with the standard method as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnail (every update)</span></label>
+                <label class="toggle-item" data-cap="screen_thumbnail" title="Each update includes a small picture of each selected display as a separate Home Assistant image. Thumbnails are never saved to disk. GPU capture is used when NVIDIA sensors (NVML) are on, with standard capture as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnails (every update)</span></label>
+                <div class="field" data-cap="screen_thumbnail" style="grid-column:1/-1;">
+                  <label for="screen-thumb-mode">Displays to capture</label>
+                  <select id="screen-thumb-mode"><option value="primary">Primary display (existing image entity)</option><option value="selected">Choose displays</option></select>
+                  <div id="screen-thumb-displays-panel" hidden>
+                    <div id="screen-thumb-displays" class="toggle-grid" style="margin-top:10px;"></div>
+                    <div class="field-row" style="margin-top:10px;">
+                      <button type="button" class="btn btn-secondary" id="screen-thumb-all">Select all connected</button>
+                      <button type="button" class="btn btn-secondary" id="screen-thumb-refresh">Refresh displays</button>
+                    </div>
+                    <p id="screen-thumb-display-status" class="field-hint" aria-live="polite"></p>
+                    <p class="field-hint">Each selected display gets its own preview and Home Assistant image. Newly connected displays need to be selected before they are captured.</p>
+                  </div>
+                </div>
                 <div class="field" id="screen-thumb-size-field"><label for="screen-thumb-size">Thumbnail size (longest edge, px)</label><input type="number" class="mono" id="screen-thumb-size" min="64" max="400" step="1" value="200" title="Longest edge of the screen thumbnail, 64 to 400 pixels. Larger sizes show more detail, and above about 200 pixels large on-screen text can become readable."></div>
-                <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="3" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black in the screen thumbnail, wherever they are on the main screen. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea></div>
+                <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="3" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea></div>
               </div>
             </div>
           </div>
@@ -1931,6 +1983,7 @@ document.addEventListener('click', e => {
 const NAV_TABS = {
   sensors: { panel: 'panel-sensors', nav: 'nav-sensors', title: 'Sensors' },
   performance: { panel: 'panel-performance', nav: 'nav-perf', title: 'Performance' },
+  diagnostics: { panel: 'panel-diagnostics', nav: 'nav-diagnostics', title: 'Connection Diagnostics' },
   logs: { panel: 'panel-logs', nav: 'nav-logs', title: 'Event Logs' },
   settings: { panel: 'panel-settings', nav: 'nav-settings', title: 'Settings' },
 };
@@ -1966,7 +2019,7 @@ function switchNav(tab) {
   // Remember the tab across reloads. replaceState keeps the token in the query.
   try { history.replaceState(null, '', '#' + tab); } catch (e) {}
   // Ask for fresh data (and the screen preview) right away.
-  if (pollStarted && tab === 'sensors' && previous !== 'sensors') poll();
+  if (pollStarted && (tab === 'sensors' || tab === 'diagnostics') && previous !== tab) poll();
 }
 
 function bulkToggleEntities(checked) {
@@ -2080,6 +2133,157 @@ function setStaleUI() {
   const txt = $('status-text');
   dot.className = 'status-dot offline';
   txt.innerText = 'unreachable';
+  $('diagnostics-updated').textContent = 'Connection data is stale: this page cannot reach Satellite. Reopen the web UI if the agent restarted.';
+}
+
+let latestConnections = null;
+let diagnosticsCapturedAt = null;
+const diagnosticCards = {};
+const diagnosticTests = new Set();
+const DIAGNOSTIC_LABELS = {
+  disabled: 'Off', unavailable: 'Unavailable', unconfigured: 'Needs setup',
+  waiting: 'Waiting for first report', connecting: 'Connecting', connected: 'Connected',
+  disconnected: 'Disconnected', retrying: 'Waiting to retry', sending: 'Sending',
+  failed: 'Delivery failed', healthy: 'Delivering',
+};
+
+function diagnosticTime(value) {
+  if (!value) return 'Never';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
+}
+
+function buildDiagnosticCard(kind) {
+  const card = document.createElement('article');
+  card.className = 'diagnostic-card';
+  const heading = document.createElement('h2');
+  heading.textContent = kind === 'mqtt' ? 'MQTT broker' : 'Telemetry webhook';
+  card.appendChild(heading);
+  const status = document.createElement('span');
+  card.appendChild(status);
+  const note = document.createElement('p');
+  note.className = 'diagnostics-note';
+  note.textContent = kind === 'mqtt'
+    ? 'Sent updates have left Satellite, but the broker does not acknowledge them. Check Home Assistant to confirm they arrived.'
+    : 'A successful HTTP response means the receiver accepted the snapshot. Reporting can wait until a change or heartbeat is due.';
+  card.appendChild(note);
+  const stats = document.createElement('dl');
+  stats.className = 'diagnostic-stats';
+  const fields = {};
+  const labels = {
+    attempts: kind === 'mqtt' ? 'Connection attempts' : 'Delivery attempts',
+    publishes: kind === 'mqtt' ? 'Telemetry updates sent' : 'Snapshots accepted', failures: 'Failures',
+    ...(kind === 'mqtt' ? { reconnects: 'Reconnects', last_connected: 'Last connected', last_disconnected: 'Last disconnected' } : {}),
+    last_attempt: 'Last attempt', last_published: kind === 'mqtt' ? 'Last update sent' : 'Last snapshot accepted', next_retry: 'Next retry', since: 'Tracking since',
+  };
+  Object.entries(labels).forEach(([key, label]) => {
+    const group = document.createElement('div');
+    const dt = document.createElement('dt');
+    dt.textContent = label;
+    const dd = document.createElement('dd');
+    group.append(dt, dd);
+    stats.appendChild(group);
+    fields[key] = dd;
+  });
+  card.appendChild(stats);
+  const problem = document.createElement('p');
+  problem.className = 'field-warning';
+  problem.hidden = true;
+  card.appendChild(problem);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'cmd-btn';
+  button.dataset.click = 'testDiagnostic';
+  button.dataset.arg = kind;
+  button.textContent = kind === 'mqtt' ? 'Test broker connection' : 'Send test snapshot';
+  card.appendChild(button);
+  const result = document.createElement('p');
+  result.className = 'diagnostic-test-result';
+  result.setAttribute('role', 'status');
+  card.appendChild(result);
+  const details = document.createElement('details');
+  const summary = document.createElement('summary');
+  summary.textContent = 'Recent failures (up to 5)';
+  const errors = document.createElement('ol');
+  errors.className = 'diagnostic-errors';
+  details.append(summary, errors);
+  card.appendChild(details);
+  $('diagnostics-cards').appendChild(card);
+  return { status, fields, problem, button, result, errors };
+}
+
+function renderDiagnostics(connections) {
+  if (!connections) return;
+  latestConnections = connections;
+  diagnosticsCapturedAt = new Date().toISOString();
+  $('diagnostics-updated').textContent = 'Updated ' + diagnosticTime(diagnosticsCapturedAt);
+  ['mqtt', 'telemetry_webhook'].forEach(kind => {
+    const data = connections[kind];
+    if (!data) return;
+    const card = diagnosticCards[kind] || (diagnosticCards[kind] = buildDiagnosticCard(kind));
+    if (card.trackingSince && card.trackingSince !== data.since) card.result.textContent = '';
+    card.trackingSince = data.since;
+    card.status.textContent = DIAGNOSTIC_LABELS[data.status] || 'Unknown';
+    const active = !['disabled', 'unavailable', 'unconfigured'].includes(data.status);
+    const good = ['connected', 'healthy'].includes(data.status) && !data.current_error;
+    card.status.className = 'diagnostic-status' + (good ? ' good' : active ? ' warn' : '');
+    if (data.status === 'connected' && data.current_error) card.status.textContent = 'Connected — delivery needs attention';
+    Object.entries(card.fields).forEach(([key, el]) => {
+      el.textContent = typeof data[key] === 'number' ? String(data[key])
+        : key === 'next_retry' && !data[key] ? 'Not scheduled' : diagnosticTime(data[key]);
+    });
+    card.problem.hidden = !data.current_error || !active;
+    card.problem.textContent = data.current_error ? data.current_error.message + ' ' + data.current_error.hint : '';
+    card.button.disabled = !active || diagnosticTests.has(kind) || sessionExpired;
+    const events = (data.recent_errors || []).slice().reverse();
+    const rows = events.map(event => {
+      const li = document.createElement('li');
+      li.textContent = diagnosticTime(event.at) + ' · ' + event.operation + ': ' + event.message + ' ' + event.hint;
+      return li;
+    });
+    if (!rows.length) {
+      const li = document.createElement('li');
+      li.textContent = 'No failures recorded.';
+      rows.push(li);
+    }
+    card.errors.replaceChildren(...rows);
+  });
+}
+
+async function testDiagnostic(kind) {
+  const card = diagnosticCards[kind];
+  if (!card || diagnosticTests.has(kind) || sessionExpired) return;
+  diagnosticTests.add(kind);
+  const testedSince = card.trackingSince;
+  card.button.disabled = true;
+  card.result.textContent = kind === 'mqtt' ? 'Testing saved broker settings...' : 'Sending the latest telemetry snapshot...';
+  try {
+    const res = await authFetch('/api/diagnostics/test', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transport: kind }),
+    });
+    const data = await res.json();
+    if (testedSince !== card.trackingSince) {
+      card.result.textContent = 'Connection settings changed during the test. Run it again to check the new settings.';
+    } else {
+      card.result.textContent = (data.success ? 'Test passed: ' : 'Test failed: ')
+        + (data.message || data.error || 'The request failed.') + (data.hint ? ' ' + data.hint : '')
+        + (typeof data.duration_ms === 'number' ? ' (' + data.duration_ms + ' ms)' : '');
+    }
+  } catch (err) {
+    card.result.textContent = 'The test could not finish. Check that Satellite is running and reopen the web UI if needed.';
+  } finally {
+    diagnosticTests.delete(kind);
+    card.button.disabled = sessionExpired || !latestConnections || ['disabled', 'unavailable', 'unconfigured'].includes(latestConnections[kind].status);
+    if (!sessionExpired) poll();
+  }
+}
+
+function copyDiagnostics() {
+  if (!latestConnections) {
+    showToast('Wait for connection data before copying a report.', true);
+    return;
+  }
+  copyText(JSON.stringify({ version: '{{VERSION}}', captured_at: diagnosticsCapturedAt, connections: latestConnections }, null, 2));
 }
 
 // Live sensor view. The agent decides which sensors are on and how each
@@ -2130,6 +2334,7 @@ function svgIcon(paths, cls) {
 }
 
 function sensorIconKey(id) {
+  if (id.startsWith('screen_thumbnail')) return 'screen_thumbnail';
   if (id.startsWith('gpu')) return 'gpu';
   if (id.startsWith('disk') || id === 'storage') return 'disk';
   return id;
@@ -2236,7 +2441,7 @@ function updateSensorCard(parts, s) {
     // Reload the picture only when the agent has a newer frame.
     if (s.frame_ts && parts.img.dataset.ts !== String(s.frame_ts)) {
       parts.img.dataset.ts = String(s.frame_ts);
-      parts.img.src = '/api/screen-thumbnail?token=' + encodeURIComponent(apiToken) + '&ts=' + s.frame_ts;
+      parts.img.src = '/api/screen-thumbnail?token=' + encodeURIComponent(apiToken) + '&display=' + (s.display || 0) + '&ts=' + s.frame_ts;
     }
   }
 }
@@ -2465,6 +2670,7 @@ async function poll() {
     const data = await res.json();
     if (seq !== pollSeq) return;
     setStatusBadge(data.mqtt_status);
+    renderDiagnostics(data.connections);
     if (data.update_status) {
       handleUpdateStatus(data.update_status);
     }
@@ -2537,6 +2743,10 @@ async function loadConfig() {
     $('interval').value = cfg.interval_sec || 5;
     $('screen-thumb-size').value = cfg.screen_thumbnail_size || 200;
     $('screen-thumb-hide').value = (cfg.screen_thumbnail_hidden_apps || []).join('\n');
+    $('screen-thumb-mode').value = (cfg.screen_thumbnail_displays || []).length ? 'selected' : 'primary';
+    renderThumbnailDisplays([], cfg.screen_thumbnail_displays || []);
+    updateThumbnailDisplayMode();
+    await refreshThumbnailDisplays();
     $('bind_address').value = cfg.bind_address || '127.0.0.1';
     updateBindWarning();
     $('port').value = cfg.port || cfg.webui_port || '';
@@ -2602,6 +2812,61 @@ async function loadConfig() {
     if (!sessionExpired) showToast('Could not load settings: ' + err.message, true);
   }
 }
+
+let connectedThumbnailDisplays = [];
+
+function selectedThumbnailDisplays() {
+  return [...$('screen-thumb-displays').querySelectorAll('input:checked')].map(input => Number(input.value));
+}
+
+function renderThumbnailDisplays(displays, selected) {
+  connectedThumbnailDisplays = displays;
+  const byId = new Map(displays.map(display => [display.id, display]));
+  const ids = [...new Set([...byId.keys(), ...selected])].sort((a, b) => a - b);
+  const root = $('screen-thumb-displays');
+  root.replaceChildren();
+  ids.forEach(id => {
+    const display = byId.get(id);
+    const label = document.createElement('label');
+    label.className = 'toggle-item';
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = String(id);
+    input.checked = selected.includes(id);
+    const text = document.createElement('span');
+    text.textContent = 'Display ' + id + (display ? (display.primary ? ' · Primary' : '') + ' · ' + display.width + ' × ' + display.height : ' · Disconnected');
+    label.append(input, text);
+    root.appendChild(label);
+  });
+}
+
+function updateThumbnailDisplayMode() {
+  $('screen-thumb-displays-panel').hidden = $('screen-thumb-mode').value !== 'selected';
+}
+
+async function refreshThumbnailDisplays() {
+  const button = $('screen-thumb-refresh');
+  button.disabled = true;
+  try {
+    const response = await authFetch('/api/displays');
+    if (!response.ok) throw new Error('Could not detect connected displays. Try refreshing.');
+    const selected = selectedThumbnailDisplays();
+    const displays = await response.json();
+    renderThumbnailDisplays(displays, selected);
+    $('screen-thumb-display-status').textContent = displays.length ? displays.length + ' connected display' + (displays.length === 1 ? '' : 's') + ' detected.' : 'No connected displays detected. Saved selections are kept.';
+  } catch (error) {
+    $('screen-thumb-display-status').textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+$('screen-thumb-mode').addEventListener('change', updateThumbnailDisplayMode);
+$('screen-thumb-refresh').addEventListener('click', refreshThumbnailDisplays);
+$('screen-thumb-all').addEventListener('click', () => {
+  renderThumbnailDisplays(connectedThumbnailDisplays, connectedThumbnailDisplays.map(display => display.id));
+  setFormDirty(true);
+});
 
 function normalizeLogLevel(level) {
   const l = (level || 'info').toLowerCase();
@@ -2710,6 +2975,11 @@ $('btn-test-lw').onclick = async () => {
 
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
+  const thumbnailDisplays = $('screen-thumb-mode').value === 'selected' ? selectedThumbnailDisplays() : [];
+  if ($('exp-screen-thumb').checked && $('screen-thumb-mode').value === 'selected' && !thumbnailDisplays.length) {
+    showToast('Select at least one display for screen thumbnails.', true);
+    return;
+  }
   const intervalSec = parseInt($('interval').value, 10) || 5;
   const newExpose = {
     cpu: $('exp-cpu').checked,
@@ -2752,6 +3022,7 @@ $('cfg-form').onsubmit = async (e) => {
     interval_sec: intervalSec,
     screen_thumbnail_hidden_apps: $('screen-thumb-hide').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean),
     screen_thumbnail_size: Math.min(400, Math.max(64, parseInt($('screen-thumb-size').value, 10) || 200)),
+    screen_thumbnail_displays: thumbnailDisplays,
     bind_address: $('bind_address').value.trim() || '127.0.0.1',
     port: parseInt($('port').value, 10) || 0,
     webui_port: parseInt($('port').value, 10) || 0,
@@ -3025,6 +3296,8 @@ const clickHandlers = {
   copyFrom: arg => copyFrom(arg),
   copySensorValue: arg => copySensorValue(arg),
   copyLogs: () => copyLogs(),
+  copyDiagnostics: () => copyDiagnostics(),
+  testDiagnostic: arg => testDiagnostic(arg),
   clearLogs: () => clearLogs(),
   exportConfig: () => exportConfig(),
   importConfig: () => importConfig(),

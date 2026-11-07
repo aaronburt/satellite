@@ -45,6 +45,7 @@ type ExportData struct {
 	Expose                    ExposeConfig  `json:"expose"`
 	IntervalSec               int           `json:"interval_sec"`
 	ScreenThumbnailSize       int           `json:"screen_thumbnail_size,omitempty"`
+	ScreenThumbnailDisplays   []int         `json:"screen_thumbnail_displays,omitempty"`
 	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps,omitempty"`
 	HeartbeatSec              int           `json:"heartbeat_sec,omitempty"`
 	Port                      int           `json:"port,omitempty"`
@@ -118,6 +119,7 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		Expose:                    cfg.Expose,
 		IntervalSec:               cfg.IntervalSec,
 		ScreenThumbnailSize:       cfg.ScreenThumbnailSize,
+		ScreenThumbnailDisplays:   cfg.ScreenThumbnailDisplays,
 		ScreenThumbnailHiddenApps: cfg.ScreenThumbnailHiddenApps,
 		HeartbeatSec:              cfg.HeartbeatSec,
 		Port:                      cfg.Port,
@@ -265,6 +267,9 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		data = *env.Data
 	}
 
+	if err := screenthumb.ValidateDisplays(data.ScreenThumbnailDisplays); err != nil {
+		return ImportResult{}, err
+	}
 	def := DefaultConfig()
 	cfg := Config{
 		NodeID:                    data.NodeID,
@@ -272,6 +277,7 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		Expose:                    data.Expose,
 		IntervalSec:               data.IntervalSec,
 		ScreenThumbnailSize:       screenthumb.ClampSide(data.ScreenThumbnailSize),
+		ScreenThumbnailDisplays:   screenthumb.NormalizeDisplays(data.ScreenThumbnailDisplays),
 		ScreenThumbnailHiddenApps: screenthumb.NormalizeApps(data.ScreenThumbnailHiddenApps),
 		HeartbeatSec:              data.HeartbeatSec,
 		Port:                      data.Port,

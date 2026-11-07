@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/diagnostics"
 	"satellite/internal/logger"
 	"satellite/internal/telemetry"
 )
@@ -51,25 +53,29 @@ type Webhook struct {
 
 	inFlight atomic.Bool
 
-	mu        sync.Mutex
-	pending   *WebhookPayload // newest snapshot queued behind the running delivery
-	pendSnap  telemetry.Snapshot
-	lastSnap  telemetry.Snapshot
-	lastSent  time.Time
-	lastURL   string
-	lastError string
+	mu                sync.Mutex
+	pending           *WebhookPayload // newest snapshot queued behind the running delivery
+	pendSnap          telemetry.Snapshot
+	lastSnap          telemetry.Snapshot
+	lastSent          time.Time
+	lastURL           string
+	lastError         string
+	diagnostics       *diagnostics.Tracker
+	diagnosticConfig  config.TelemetryWebhookConfig
+	activeDiagnostics *diagnostics.Tracker
 }
 
 func NewWebhook(getConfig func() config.Config) *Webhook {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Webhook{
-		getConfig: getConfig,
-		client:    &http.Client{Timeout: 10 * time.Second},
-		now:       time.Now,
-		after:     time.After,
-		jitter:    rand.Float64,
-		ctx:       ctx,
-		cancel:    cancel,
+		getConfig:   getConfig,
+		client:      &http.Client{Timeout: 10 * time.Second},
+		now:         time.Now,
+		after:       time.After,
+		jitter:      rand.Float64,
+		ctx:         ctx,
+		cancel:      cancel,
+		diagnostics: diagnostics.New(),
 	}
 }
 
@@ -87,6 +93,7 @@ func (w *Webhook) Publish(snap telemetry.Snapshot) error {
 		return nil
 	}
 	cfg := w.getConfig()
+	w.diagnosticsFor(cfg.TelemetryWebhook)
 	wh := cfg.TelemetryWebhook
 	url := strings.TrimSpace(wh.URL)
 	if !wh.Enabled || url == "" {
@@ -117,6 +124,10 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 		w.mu.Lock()
 		w.pending = nil
 		w.inFlight.Store(false)
+		if w.activeDiagnostics != nil {
+			w.activeDiagnostics.RetryAt(time.Time{})
+		}
+		w.activeDiagnostics = nil
 		w.mu.Unlock()
 	}()
 
@@ -125,8 +136,19 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 		if w.ctx.Err() != nil {
 			return
 		}
+		wh := w.getConfig().TelemetryWebhook
+		if !wh.Enabled || strings.TrimSpace(wh.URL) != url {
+			return
+		}
+		token = wh.BearerToken
+		stats := w.diagnosticsFor(wh)
+		w.mu.Lock()
+		w.activeDiagnostics = stats
+		w.mu.Unlock()
+		stats.Attempt()
 		err := send(w.ctx, w.client, url, token, payload)
 		if err == nil {
+			stats.Published()
 			w.recordSuccess(url, snap)
 			failures = 0
 			next, nextSnap, ok := w.takePending()
@@ -143,6 +165,7 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 			return
 		}
 		w.recordFailure(err)
+		stats.Failed("publish", WebhookProblem(err))
 		failures++
 
 		if next, nextSnap, ok := w.takePending(); ok {
@@ -152,10 +175,12 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 			return
 		}
 
+		delay := RetryDelay(failures+1, err, w.jitter())
+		stats.RetryAt(time.Now().Add(delay))
 		select {
 		case <-w.ctx.Done():
 			return
-		case <-w.after(RetryDelay(failures+1, err, w.jitter())):
+		case <-w.after(delay):
 		}
 
 		if next, nextSnap, ok := w.takePending(); ok {
@@ -170,6 +195,54 @@ func (w *Webhook) deliver(url, token string, payload WebhookPayload, snap teleme
 		}
 		attempt++
 	}
+}
+
+func WebhookProblem(err error) diagnostics.Problem {
+	var status *StatusError
+	if errors.As(err, &status) {
+		problem := diagnostics.HTTPProblem(status.Code)
+		problem.Message = fmt.Sprintf("%s (HTTP %d)", problem.Message, status.Code)
+		return problem
+	}
+	var permanent *permanentError
+	if errors.As(err, &permanent) {
+		return diagnostics.Problem{Code: "address", Message: "The webhook address or payload is invalid.", Hint: "Check that Settings contains a complete HTTP or HTTPS webhook URL."}
+	}
+	return diagnostics.Explain(err)
+}
+
+func (w *Webhook) diagnosticsFor(wh config.TelemetryWebhookConfig) *diagnostics.Tracker {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	old := w.diagnosticConfig
+	if old.URL != wh.URL || old.BearerToken != wh.BearerToken || old.Enabled != wh.Enabled {
+		w.diagnostics = diagnostics.New()
+		w.diagnosticConfig = wh
+	}
+	return w.diagnostics
+}
+
+func (w *Webhook) Diagnostics() diagnostics.Snapshot {
+	wh := w.getConfig().TelemetryWebhook
+	stats := w.diagnosticsFor(wh)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	s := stats.Snapshot("waiting")
+	switch {
+	case !wh.Enabled:
+		s.Status = "disabled"
+	case strings.TrimSpace(wh.URL) == "":
+		s.Status = "unconfigured"
+	case s.NextRetry != nil:
+		s.Status = "retrying"
+	case w.inFlight.Load() && w.activeDiagnostics == stats:
+		s.Status = "sending"
+	case s.CurrentError != nil:
+		s.Status = "failed"
+	case s.LastPublished != nil:
+		s.Status = "healthy"
+	}
+	return s
 }
 
 // stillTarget re-reads the config. Delivery stops if the webhook was
