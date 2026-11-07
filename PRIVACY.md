@@ -63,7 +63,10 @@ as it is copied, so no full-size screenshot is held in memory, and thumbnails ar
 never written to disk or retained by the broker. Ordinary text is unreadable at
 that size, but large headings may be guessable and the picture shows the general
 kind of thing on your screen.
-Nothing is captured while the PC is locked.
+Nothing is captured while the PC is locked. If NVIDIA sensors are on, Windows'
+Desktop Duplication and the graphics card shrink the screen instead; the
+full-size frame stays in video memory only while it is shrunk and is never
+copied to normal memory or disk.
 Android's location permission is used to read the Wi-Fi network name on older
 Android versions; Satellite does not read GPS coordinates.
 

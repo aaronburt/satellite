@@ -226,6 +226,16 @@ image entity.
   not keep a copy. Home Assistant shows the latest image; it can keep its own
   copy like any other entity state.
 - Nothing is captured while the PC is locked or while MQTT is disconnected.
+- If **NVIDIA NVML** under the GPU sensors is also on, the screen is shrunk on
+  the graphics card instead (Windows Desktop Duplication, which works with any
+  GPU that drives your main monitor). The full frame stays in video memory
+  only while it is being shrunk and is never copied to normal memory; only the
+  200px result is read back. If the GPU path is unavailable or fails for any
+  reason (remote desktop, rotated screen, driver errors) Satellite uses the
+  standard method instead and retries the GPU later (after 30 seconds, backing
+  off to 10 minutes). Opening the GPU path loads graphics driver libraries, so
+  expect Satellite's memory use to rise by tens of MB while it is on. Turn off
+  NVML to release it.
 - The thumbnail goes to MQTT only. It is not added to the telemetry webhook or
   the `/json` endpoint.
 
