@@ -40,24 +40,25 @@ type ImportOptions struct {
 }
 
 type ExportData struct {
-	LockCooldownSec           *int          `json:"lock_cooldown_sec,omitempty"`
-	NodeID                    string        `json:"node_id,omitempty"`
-	MQTT                      MQTTConfig    `json:"mqtt"`
-	Expose                    ExposeConfig  `json:"expose"`
-	IntervalSec               int           `json:"interval_sec"`
-	ScreenThumbnailSize       int           `json:"screen_thumbnail_size,omitempty"`
-	ScreenThumbnailDisplays   []int         `json:"screen_thumbnail_displays,omitempty"`
-	ScreenThumbnailHiddenApps []string      `json:"screen_thumbnail_hidden_apps"`
-	HeartbeatSec              int           `json:"heartbeat_sec,omitempty"`
-	Port                      int           `json:"port,omitempty"`
-	WebUIPort                 int           `json:"webui_port,omitempty"`
-	BindAddress               string        `json:"bind_address,omitempty"`
-	JSONEnabled               bool          `json:"json_enabled,omitempty"`
-	APIKey                    string        `json:"api_key,omitempty"`
-	Webhook                   WebhookConfig `json:"webhook"`
-	CheckUpdates              bool          `json:"check_updates"`
-	AutoUpdate                bool          `json:"auto_update"`
-	UpdateRepo                string        `json:"update_repo,omitempty"`
+	SensorThresholds          SensorThresholds `json:"sensor_thresholds"`
+	LockCooldownSec           *int             `json:"lock_cooldown_sec,omitempty"`
+	NodeID                    string           `json:"node_id,omitempty"`
+	MQTT                      MQTTConfig       `json:"mqtt"`
+	Expose                    ExposeConfig     `json:"expose"`
+	IntervalSec               int              `json:"interval_sec"`
+	ScreenThumbnailSize       int              `json:"screen_thumbnail_size,omitempty"`
+	ScreenThumbnailDisplays   []int            `json:"screen_thumbnail_displays,omitempty"`
+	ScreenThumbnailHiddenApps []string         `json:"screen_thumbnail_hidden_apps"`
+	HeartbeatSec              int              `json:"heartbeat_sec,omitempty"`
+	Port                      int              `json:"port,omitempty"`
+	WebUIPort                 int              `json:"webui_port,omitempty"`
+	BindAddress               string           `json:"bind_address,omitempty"`
+	JSONEnabled               bool             `json:"json_enabled,omitempty"`
+	APIKey                    string           `json:"api_key,omitempty"`
+	Webhook                   WebhookConfig    `json:"webhook"`
+	CheckUpdates              bool             `json:"check_updates"`
+	AutoUpdate                bool             `json:"auto_update"`
+	UpdateRepo                string           `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
 }
@@ -116,6 +117,7 @@ func isVersionNewer(v1, v2 string) bool {
 
 func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 	exportData := ExportData{
+		SensorThresholds:          cfg.SensorThresholds,
 		LockCooldownSec:           cfg.LockCooldownSec,
 		NodeID:                    cfg.NodeID,
 		MQTT:                      cfg.MQTT,
@@ -276,6 +278,7 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 	}
 	def := DefaultConfig()
 	cfg := Config{
+		SensorThresholds:          data.SensorThresholds,
 		LockCooldownSec:           data.LockCooldownSec,
 		NodeID:                    data.NodeID,
 		MQTT:                      data.MQTT,
@@ -298,6 +301,9 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		TelemetryWebhook: data.TelemetryWebhook,
 	}
 
+	if err := cfg.SensorThresholds.Validate(); err != nil {
+		return ImportResult{}, err
+	}
 	if err := cfg.ValidateLockCooldown(); err != nil {
 		return ImportResult{}, err
 	}

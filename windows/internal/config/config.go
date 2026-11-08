@@ -87,11 +87,12 @@ type TelemetryWebhookConfig struct {
 }
 
 type Config struct {
-	LockCooldownSec *int         `json:"lock_cooldown_sec,omitempty"`
-	NodeID          string       `json:"node_id"`
-	MQTT            MQTTConfig   `json:"mqtt"`
-	Expose          ExposeConfig `json:"expose"`
-	IntervalSec     int          `json:"interval_sec"`
+	SensorThresholds SensorThresholds `json:"sensor_thresholds"`
+	LockCooldownSec  *int             `json:"lock_cooldown_sec,omitempty"`
+	NodeID           string           `json:"node_id"`
+	MQTT             MQTTConfig       `json:"mqtt"`
+	Expose           ExposeConfig     `json:"expose"`
+	IntervalSec      int              `json:"interval_sec"`
 	// ScreenThumbnailSize is the longest edge in pixels of the screen thumbnail.
 	ScreenThumbnailSize     int   `json:"screen_thumbnail_size,omitempty"`
 	ScreenThumbnailDisplays []int `json:"screen_thumbnail_displays,omitempty"`
@@ -251,6 +252,9 @@ func Load() (Config, error) {
 	if err := cfg.ValidateLockCooldown(); err != nil {
 		return Config{}, err
 	}
+	if err := cfg.SensorThresholds.Validate(); err != nil {
+		return Config{}, err
+	}
 	if err := screenthumb.ValidateDisplays(cfg.ScreenThumbnailDisplays); err != nil {
 		return Config{}, err
 	}
@@ -301,6 +305,9 @@ type listener struct {
 }
 
 func Save(cfg Config) error {
+	if err := cfg.SensorThresholds.Validate(); err != nil {
+		return err
+	}
 	if err := cfg.ValidateLockCooldown(); err != nil {
 		return err
 	}

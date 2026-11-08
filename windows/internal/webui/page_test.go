@@ -173,3 +173,16 @@ func TestPreviewRequestIsOnlyMadeWhileTheSensorsTabIsVisible(t *testing.T) {
 		t.Error("polling should pause while the tab is hidden")
 	}
 }
+
+func TestPrivacyExplainsEveryPermission(t *testing.T) {
+	explained := map[string]bool{}
+	for _, key := range jsObjectKeys(t, "PRIVACY_FEATURES") {
+		explained[key] = true
+	}
+	report := privacyOverview(configWith(allExpose()), allCaps(), false, false)
+	for _, permission := range report["permissions"].([]privacyPermission) {
+		if !explained[permission.Key] {
+			t.Errorf("privacy tab has no explanation for %s", permission.Key)
+		}
+	}
+}

@@ -37,9 +37,11 @@ const (
 
 // Sensor is one enabled sensor and its latest reading, ready to show.
 type Sensor struct {
-	ID    string `json:"id"`
-	Group string `json:"group"`
-	Label string `json:"label"`
+	Threshold        string `json:"threshold,omitempty"`
+	ThresholdMessage string `json:"threshold_message,omitempty"`
+	ID               string `json:"id"`
+	Group            string `json:"group"`
+	Label            string `json:"label"`
 	// Value is the main reading. Detail is a smaller second line.
 	Value  string `json:"value"`
 	Detail string `json:"detail,omitempty"`

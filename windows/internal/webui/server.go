@@ -603,9 +603,10 @@ func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 		"mqtt_status":   string(s.mqttClient.Status()),
 		"connections":   s.connectionDiagnostics(),
 		"telemetry":     snap,
-		"sensors":       BuildSensors(expose, caps, snap, frame, time.Now()),
+		"sensors":       applySensorThresholds(BuildSensors(expose, caps, snap, frame, time.Now()), cfg.SensorThresholds),
 		"update_status": updateStatus,
 		"privacy_pause": pause,
+		"privacy":       privacyOverview(cfg, caps, pause.Paused, s.IsJSONEnabled()),
 	})
 }
 
@@ -919,6 +920,10 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := next.ValidateLockCooldown(); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := next.SensorThresholds.Validate(); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
