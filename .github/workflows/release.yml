@@ -126,6 +126,7 @@ jobs:
       - name: Build Binaries
         shell: pwsh
         run: |
+          ./scripts/generate-resources.ps1 -Version "${{ needs.version.outputs.version }}"
           $setVersion = "-X satellite/internal/config.Version=${{ needs.version.outputs.version }}"
           go build -ldflags="-H windowsgui -s -w $setVersion" -o satellite.exe .
           $env:GOOS = "linux"
@@ -137,6 +138,14 @@ jobs:
       - name: Smoke Test Binaries
         shell: pwsh
         run: |
+          $info = (Get-Item satellite.exe).VersionInfo
+          if ($info.CompanyName -ne "aaronburt" -or
+              $info.ProductName -ne "Satellite" -or
+              $info.OriginalFilename -ne "satellite.exe" -or
+              $info.FileVersion -ne "${{ needs.version.outputs.version }}" -or
+              $info.ProductVersion -ne "${{ needs.version.outputs.version }}") {
+            throw "Windows executable metadata does not match the release."
+          }
           foreach ($f in @("satellite.exe", "satellite-linux-amd64")) {
             if (-not (Test-Path $f)) { Write-Error "$f missing"; exit 1 }
             $size = (Get-Item $f).Length

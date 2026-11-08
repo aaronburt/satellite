@@ -46,7 +46,7 @@ func Run(input io.Reader, output io.Writer) error {
 		DataPath:  filepath.Join(cache, "Satellite", "WebView2"),
 		AutoFocus: true,
 		WindowOptions: webview.WindowOptions{
-			Title: "Satellite", Width: 1200, Height: 820, Center: true,
+			Title: "Satellite", Width: 1200, Height: 820, Center: true, IconId: 1,
 		},
 	})
 	if view == nil {
