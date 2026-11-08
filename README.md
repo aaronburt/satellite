@@ -9,13 +9,19 @@ This is a monorepo containing the Satellite apps:
 | Windows & Linux | [`windows/`](windows/) | Lightweight telemetry agent and remote controller. Written in Go. |
 | Android | [`android/`](android/) | Companion app with MQTT Discovery and a foreground service. Written in Kotlin. |
 
-## Screenshots
+## Desktop web UI
 
-The Windows & Linux agent's local web UI:
+The Windows & Linux agent provides a local web UI with five tabs:
 
-| Sensors | Performance | Settings |
-| --- | --- | --- |
-| ![Sensors view](windows/docs/screenshots/sensors.jpg) | ![Performance view](windows/docs/screenshots/performance.jpg) | ![Settings view](windows/docs/screenshots/settings.jpg) |
+| Tab | Purpose |
+| --- | --- |
+| Sensors | Live readings, processor/memory/network/GPU history graphs, threshold highlights and optional screen previews. |
+| Privacy | Saved permissions, privacy-pause status, reporting destinations, allowed media commands and the current JSON dataset. |
+| Diagnostics | MQTT and telemetry webhook health, connection tests and recent failures. |
+| Logs | Live log events with search and severity filtering. |
+| Settings | Reporting, sensors, warning/critical thresholds, remote controls, local access and maintenance. |
+
+Performance graphs are part of Sensors. Thresholds highlight the web UI only and are disabled by default. See [desktop monitoring and privacy](windows/README.md#web-ui-monitoring-and-privacy) for details.
 
 Each app has its own README with build and setup instructions:
 
