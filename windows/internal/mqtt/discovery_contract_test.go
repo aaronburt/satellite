@@ -126,7 +126,7 @@ func TestDiscoveryPayloadsAreValidForHomeAssistant(t *testing.T) {
 		if p["availability_topic"] != "sat/desk.local/status" {
 			t.Errorf("%s: availability_topic = %v", item.Key, p["availability_topic"])
 		}
-		if name, _ := p["name"].(string); name == "" {
+		if name, _ := p["name"].(string); name == "" && item.Key != "device_summary" {
 			t.Errorf("%s: missing name", item.Key)
 		}
 		dev, _ := p["device"].(map[string]any)
@@ -211,7 +211,7 @@ func TestUnsupportedCapabilitiesDisableEntities(t *testing.T) {
 	cfg.Expose = everythingExposed()
 
 	for _, item := range GetAllDiscoveryItems(cfg, true, capabilities.PlatformCapabilities{}) {
-		if item.ShouldRun {
+		if item.ShouldRun && item.Key != "device_summary" {
 			t.Errorf("%s: enabled although the platform does not support it", item.Key)
 		}
 	}

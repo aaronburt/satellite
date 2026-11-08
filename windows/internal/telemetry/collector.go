@@ -223,6 +223,12 @@ func (c *Collector) Last() Snapshot {
 }
 
 func HasSignificantDelta(prev, curr Snapshot) bool {
+	if (prev.SummaryThumbnailAvailable == nil) != (curr.SummaryThumbnailAvailable == nil) {
+		return true
+	}
+	if prev.SummaryThumbnailAvailable != nil && curr.SummaryThumbnailAvailable != nil && *prev.SummaryThumbnailAvailable != *curr.SummaryThumbnailAvailable {
+		return true
+	}
 	if !reflect.DeepEqual(prev.RGB, curr.RGB) {
 		return true
 	}

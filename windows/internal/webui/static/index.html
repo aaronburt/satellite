@@ -1611,6 +1611,11 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
               </div>
             </div>
 
+            <div class="toggle-grid">
+              <label class="toggle-item"><input type="checkbox" id="exp-device-summary"><span>Device summary entity (Home Assistant)</span></label>
+            </div>
+            <p class="field-hint">Adds one device entity with enabled readings as attributes. Individual entities remain available.</p>
+
             <div class="sensor-tier">
               <div class="sensor-tier-head">
                 <div class="tier-title-wrap">
@@ -2866,6 +2871,7 @@ async function loadConfig() {
     $('lw_secret').value = '';
 
     currentExpose = cfg.expose || {};
+    $('exp-device-summary').checked = !!currentExpose.device_summary;
     setFormDirty(false);
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
@@ -3111,6 +3117,7 @@ $('cfg-form').onsubmit = async (e) => {
     active_window: $('exp-window').checked,
     window_title: $('exp-title').checked,
     update_pending: $('exp-reboot').checked,
+    device_summary: $('exp-device-summary').checked,
     media_control: $('exp-media').checked,
     media_commands: $('exp-media-commands').checked,
     media_permissions: {play_pause: $('media-allow-play_pause').checked, stop: $('media-allow-stop').checked, next: $('media-allow-next').checked, previous: $('media-allow-previous').checked, mute: $('media-allow-mute').checked, volume_up: $('media-allow-volume_up').checked, volume_down: $('media-allow-volume_down').checked},

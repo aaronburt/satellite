@@ -128,7 +128,7 @@ func TestEveryReportingToggleHasASensor(t *testing.T) {
 		"media_control": "media_control", "webcam": "webcam", "audio_output": "audio_output", "wifi": "wifi",
 		"display_state": "display_state", "gpu": "gpu0", "screen_thumbnail": "screen_thumbnail", "icue_rgb": "icue_rgb",
 	}
-	notSensors := map[string]bool{"remote_lock": true, "notifications": true, "nvidia_nvml": true}
+	notSensors := map[string]bool{"device_summary": true, "remote_lock": true, "notifications": true, "nvidia_nvml": true}
 
 	raw, _ := json.Marshal(config.ExposeConfig{})
 	var all map[string]bool
