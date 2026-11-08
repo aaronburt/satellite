@@ -81,9 +81,12 @@ the next collection follows one full new interval after the save.
 See the [HTTP API reference](http-api.md) for endpoint paths, credentials, and
 request examples.
 
-- On Windows, enable the web UI from the tray menu, then use **Open WebUI**.
+- On Windows, use **Open Satellite** from the tray menu, or **Open in Browser**.
   On Linux, launch `./satellite --debug` for setup. `--headless` does not enable
   the management UI.
+- If the dedicated Windows window cannot start, use **Open in Browser** and
+  check that the [Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+  is installed. Satellite does not install it automatically.
 - Use the URL Satellite provides. The default port is dynamic. A requested port
   that cannot be bound may fall back to an available port.
 - An HTTP 401 on the web UI usually means the token is missing or expired.

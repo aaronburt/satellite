@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"satellite/internal/config"
+	"satellite/internal/desktopui"
 	"satellite/internal/logger"
 	"satellite/internal/mqtt"
 	"satellite/internal/privacy"
@@ -25,6 +26,7 @@ var iconData []byte
 
 var (
 	openBrowser = toast.OpenBrowser
+	openClient  = func(client *desktopui.Client, target string) error { return client.Open(target) }
 	showToast   = toast.Show
 )
 
@@ -36,6 +38,8 @@ type Tray struct {
 	updateItem      *systray.MenuItem
 	checkUpdateItem *systray.MenuItem
 	openItem        *systray.MenuItem
+	browserItem     *systray.MenuItem
+	uiClient        *desktopui.Client
 	toggleItem      *systray.MenuItem
 	quitItem        *systray.MenuItem
 	privacyItem     *systray.MenuItem
@@ -52,6 +56,7 @@ func NewTray(server *webui.Server, mqttClient *mqtt.Client, updaterInstance *upd
 		mqttClient:      mqttClient,
 		updaterInstance: updaterInstance,
 		onExit:          onExit,
+		uiClient:        desktopui.New(),
 	}
 }
 
@@ -81,7 +86,8 @@ func (t *Tray) onReady() {
 
 	systray.AddSeparator()
 
-	t.openItem = systray.AddMenuItem("Open WebUI", "Open WebUI configuration in browser")
+	t.openItem = systray.AddMenuItem("Open Satellite", "Open Satellite configuration window")
+	t.browserItem = systray.AddMenuItem("Open in Browser", "Open the same interface in your default browser")
 	t.toggleItem = systray.AddMenuItem("WebUI: Disabled (Click to Enable)", "Enable or disable embedded WebUI HTTP server")
 	t.checkUpdateItem = systray.AddMenuItem("Check for Updates", "Check GitHub for newer versions")
 
@@ -96,6 +102,9 @@ func (t *Tray) onReady() {
 }
 
 func (t *Tray) onSystrayExit() {
+	if t.uiClient != nil {
+		t.uiClient.Close()
+	}
 	if t.cancel != nil {
 		t.cancel()
 	}
@@ -170,24 +179,23 @@ func (t *Tray) eventLoop() {
 		case <-t.checkUpdateItem.ClickedCh:
 			go t.manualCheckUpdate()
 		case <-t.openItem.ClickedCh:
-			if !t.server.IsWebUIEnabled() {
-				t.server.SetWebUIEnabled(true)
-			}
-			if !t.server.IsRunning() {
-				if _, err := t.server.Start(config.Get().GetPort()); err != nil {
-					logger.Warn("tray", fmt.Sprintf("Failed to start WebUI server: %v", err))
+			if t.enableWebUI() {
+				if err := openClient(t.uiClient, t.server.URL()); err != nil {
+					logger.Warn("tray", err.Error())
+					_ = showToast(toast.Notification{Title: "Satellite window unavailable", Message: err.Error()})
 				}
 			}
-			if t.server.IsRunning() {
-				if t.toggleItem != nil {
-					t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
-				}
+		case <-clicked(t.browserItem):
+			if t.enableWebUI() {
 				if err := openBrowser(t.server.URL()); err != nil {
 					logger.Warn("tray", fmt.Sprintf("Failed to open WebUI in browser: %v", err))
 				}
 			}
 		case <-t.toggleItem.ClickedCh:
 			if t.server.IsWebUIEnabled() {
+				if t.uiClient != nil {
+					t.uiClient.Close()
+				}
 				t.server.SetWebUIEnabled(false)
 				if !t.server.IsJSONEnabled() {
 					t.server.Stop()
@@ -207,6 +215,20 @@ func (t *Tray) eventLoop() {
 			return
 		}
 	}
+}
+
+func (t *Tray) enableWebUI() bool {
+	t.server.SetWebUIEnabled(true)
+	if !t.server.IsRunning() {
+		if _, err := t.server.Start(config.Get().GetPort()); err != nil {
+			logger.Warn("tray", fmt.Sprintf("Failed to start WebUI server: %v", err))
+			return false
+		}
+	}
+	if t.toggleItem != nil {
+		t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
+	}
+	return true
 }
 
 var privacyMinutes = [...]int{5, 15, 30, 60}

@@ -19,6 +19,7 @@ files use Go build constraints to select operating-system APIs.
 | `internal/actions` | Parse and dispatch a fixed set of device actions |
 | `internal/output` | Deliver snapshots to MQTT and the optional telemetry webhook |
 | `internal/webui` | Embedded web UI, authenticated management API, optional `/json` endpoint |
+| `internal/desktopui` | Thin Windows WebView2 client, child-process lifecycle and window focus |
 | `internal/logger` | Application events, UI log streaming, optional log webhook |
 | `internal/toast`, `internal/tray` | Native notifications and the Windows system tray |
 | `internal/updater` | Check GitHub releases and surface update information |
@@ -45,7 +46,7 @@ changing its interval currently requires restarting the process.
 
 | Mode | Behavior |
 | --- | --- |
-| Default on Windows | System tray; enable the web UI from the tray menu |
+| Default on Windows | System tray; Open Satellite enables the web UI and opens its dedicated window; Open in Browser provides browser access |
 | Default on Linux, or `--headless` | Background agent without a tray; exits on a termination signal |
 | `--debug` | Agent plus web UI; prints the token-bearing URL and reads UI HTML from disk when available |
 | `--cli` | Local terminal telemetry dashboard; returns before MQTT/webhook startup |
@@ -54,6 +55,14 @@ changing its interval currently requires restarting the process.
 `--debug` is the setup/development mode for Linux. `--headless` alone does not
 enable the management UI. The HTML development override is relative to the
 `windows/` working directory.
+
+On Windows, the dedicated window runs in a `--ui-client` child process of the same
+executable. The parent passes the authenticated URL over standard input rather
+than the command line. Repeated opens reuse the child; closing its window does
+not stop collection or MQTT. Closing the input pipe on agent shutdown terminates
+the child. WebView2 uses a separate profile under the user's local cache directory.
+The existing HTTP server, API and HTML are shared with browser access. Linux and
+headless modes do not start a webview.
 
 ### Configuration and access
 

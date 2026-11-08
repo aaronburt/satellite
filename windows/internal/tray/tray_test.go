@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/getlantern/systray"
+	"satellite/internal/desktopui"
 	"satellite/internal/mqtt"
 	"satellite/internal/telemetry"
 	"satellite/internal/updater"
@@ -124,6 +125,10 @@ func TestStatusUpdater(t *testing.T) {
 }
 
 func TestEventLoop(t *testing.T) {
+	originalClient, originalBrowser := openClient, openBrowser
+	openClient = func(*desktopui.Client, string) error { return nil }
+	openBrowser = func(string) error { return nil }
+	t.Cleanup(func() { openClient, openBrowser = originalClient, originalBrowser })
 	client := mqtt.NewClient()
 	collector := telemetry.NewCollector()
 	server := webui.NewServer(collector, client)
@@ -178,14 +183,14 @@ func TestEventLoop(t *testing.T) {
 	}
 }
 
-func TestOpenWebUIBrowserInvocation(t *testing.T) {
+func TestOpenWebUIClientInvocation(t *testing.T) {
 	opened := make(chan string, 4)
-	origOpen := openBrowser
-	openBrowser = func(u string) error {
+	origOpen := openClient
+	openClient = func(_ *desktopui.Client, u string) error {
 		opened <- u
 		return nil
 	}
-	t.Cleanup(func() { openBrowser = origOpen })
+	t.Cleanup(func() { openClient = origOpen })
 
 	client := mqtt.NewClient()
 	collector := telemetry.NewCollector()
@@ -198,6 +203,7 @@ func TestOpenWebUIBrowserInvocation(t *testing.T) {
 		mqttClient:      client,
 		statusItem:      newMockMenuItem(),
 		openItem:        newMockMenuItem(),
+		browserItem:     newMockMenuItem(),
 		toggleItem:      newMockMenuItem(),
 		updateItem:      newMockMenuItem(),
 		checkUpdateItem: newMockMenuItem(),
@@ -224,7 +230,7 @@ func TestOpenWebUIBrowserInvocation(t *testing.T) {
 			t.Fatalf("opened %q, want %q", got, server.URL())
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for browser invocation from stopped state")
+		t.Fatal("timed out waiting for client invocation from stopped state")
 	}
 
 	tray.openItem.ClickedCh <- struct{}{}
@@ -234,6 +240,18 @@ func TestOpenWebUIBrowserInvocation(t *testing.T) {
 			t.Fatalf("opened %q, want %q", got, server.URL())
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for browser invocation from running state")
+		t.Fatal("timed out waiting for client invocation from running state")
+	}
+	originalBrowser := openBrowser
+	openBrowser = func(u string) error { opened <- u; return nil }
+	t.Cleanup(func() { openBrowser = originalBrowser })
+	tray.browserItem.ClickedCh <- struct{}{}
+	select {
+	case got := <-opened:
+		if got != server.URL() {
+			t.Fatalf("browser opened %q, want %q", got, server.URL())
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for browser fallback")
 	}
 }

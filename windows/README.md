@@ -73,7 +73,7 @@ these commands from `windows/`:
 
 ### 2. Run
 
-- **Tray Mode (Windows):** Run `satellite.exe`. Enable the WebUI from its tray menu, then choose **Open WebUI**.
+- **Tray Mode (Windows):** Run `satellite.exe`, then choose **Open Satellite** from its tray menu. Use **Open in Browser** for browser access.
 - **Headless Mode (Linux Server / Background Service):** Run `./satellite --headless`.
 - **Setup on Linux:** Run `./satellite --debug` and open the URL printed in the terminal. Stop it after saving, then launch normally or as a service.
 - **CLI Mode:** Run `./satellite --cli` for a local terminal dashboard. CLI mode does not start MQTT or webhook reporting.
@@ -88,7 +88,9 @@ these commands from `windows/`:
 
 ### 3. Configure
 
-Enable the WebUI from the Windows tray menu and select **Open WebUI** (or launch `--debug` for browser setup on Linux) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
+Select **Open Satellite** from the Windows tray menu to open the dedicated configuration window. It enables the local web UI automatically and loads the existing interface using Microsoft Edge WebView2. Closing the window leaves the agent running; selecting **Open Satellite** again focuses or reopens it. **Open in Browser** opens the same interface in your default browser. On Linux, launch `--debug` and open the printed URL to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
+
+The Windows window requires the Microsoft Edge WebView2 Runtime. If it is unavailable, use **Open in Browser** or install the runtime from [Microsoft](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). Satellite does not download or install it automatically. The client runs as a child of the same executable, uses a separate profile under the user's local cache directory, and exits when the agent exits or the web UI is disabled. External web links open in your default browser. The management HTTP server and token authentication remain in use.
 
 Settings has jump-to sections for **Reporting**, **Sensors**, **Remote controls**, **Local access**, and **Maintenance**. MQTT and both webhooks are grouped under Reporting. Connection tests use the values entered in the form without saving them, and keep their results beside the test button.
 

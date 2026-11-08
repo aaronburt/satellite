@@ -59,6 +59,7 @@ func main() {
 	debug.SetMemoryLimit(16 * 1024 * 1024)
 
 	cliMode := flag.Bool("cli", false, "Run in terminal CLI/TUI mode")
+	uiClient := flag.Bool("ui-client", false, "Run the Windows UI child process (managed by the tray)")
 	debugMode := flag.Bool("debug", false, "Run in debug mode (enables WebUI automatically with hot reload from disk)")
 	headlessMode := flag.Bool("headless", false, "Run in headless background mode without system tray")
 	exportPath := flag.String("export", "", "Export configuration to specified file path and exit")
@@ -66,6 +67,10 @@ func main() {
 	passwordFlag := flag.String("password", "", "Passphrase for configuration export encryption or import decryption")
 	resetNodeID := flag.Bool("reset-node-id", true, "Adapt Node ID and Client ID to current machine hostname on import")
 	flag.Parse()
+	if *uiClient {
+		runUIClient()
+		return
+	}
 
 	cfg, err := config.Load()
 	if err != nil {
