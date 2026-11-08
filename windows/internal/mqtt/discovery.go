@@ -458,7 +458,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "media_play_pause",
-			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Play / Pause",
@@ -472,7 +472,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "media_next",
-			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Next Track",
@@ -486,7 +486,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "media_prev",
-			ShouldRun: cfg.Expose.MediaControl && isCap("media_control"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("media_control"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Previous Track",
@@ -500,7 +500,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "volume_mute",
-			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Media Mute / Unmute",
@@ -514,7 +514,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "volume_up",
-			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Volume Up",
@@ -528,7 +528,7 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		},
 		{
 			Key:       "volume_down",
-			ShouldRun: cfg.Expose.MediaControl && isCap("audio_output"),
+			ShouldRun: cfg.Expose.MediaCommandsEnabled() && isCap("audio_output"),
 			Payload: EntityDiscoveryPayload{
 				Component:         "button",
 				Name:              "Volume Down",
@@ -682,6 +682,24 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		items = append(items, DiscoveryItem{Key: key, Topic: topic, Payload: payload, ShouldRun: enabled})
 	}
 	for _, def := range definitions {
+		if def.Payload.PayloadPress != "" && (strings.HasPrefix(def.Payload.PayloadPress, "media_") || strings.HasPrefix(def.Payload.PayloadPress, "volume_")) {
+			def.ShouldRun = def.ShouldRun && cfg.Expose.MediaActionAllowed(def.Payload.PayloadPress)
+		}
+		if def.Key == "media_player" {
+			if !cfg.Expose.MediaActionAllowed("media_play") {
+				def.Payload.PayloadPlay = ""
+				def.Payload.PayloadPause = ""
+			}
+			if !cfg.Expose.MediaActionAllowed("media_stop") {
+				def.Payload.PayloadStop = ""
+			}
+			if !cfg.Expose.MediaActionAllowed("media_next") {
+				def.Payload.PayloadNext = ""
+			}
+			if !cfg.Expose.MediaActionAllowed("media_prev") {
+				def.Payload.PayloadPrevious = ""
+			}
+		}
 		topic := fmt.Sprintf("homeassistant/%s/%s/%s/config", def.Payload.Component, discoveryID(nodeID), discoveryID(def.Payload.UniqueID))
 		var b []byte
 		if def.ShouldRun {

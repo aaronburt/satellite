@@ -27,33 +27,45 @@ type MQTTConfig struct {
 	InsecureTLS bool   `json:"insecure_tls"`
 }
 
+type MediaPermissions struct {
+	PlayPause  bool `json:"play_pause"`
+	Stop       bool `json:"stop"`
+	Next       bool `json:"next"`
+	Previous   bool `json:"previous"`
+	Mute       bool `json:"mute"`
+	VolumeUp   bool `json:"volume_up"`
+	VolumeDown bool `json:"volume_down"`
+}
+
 type ExposeConfig struct {
-	CPU             bool `json:"cpu"`
-	Memory          bool `json:"memory"`
-	Storage         bool `json:"storage"`
-	Network         bool `json:"network"`
-	Uptime          bool `json:"uptime"`
-	UserPresence    bool `json:"user_presence"`
-	SessionLock     bool `json:"session_lock"`
-	Microphone      bool `json:"microphone"`
-	Fullscreen      bool `json:"fullscreen"`
-	SystemTheme     bool `json:"system_theme"`
-	LocalIP         bool `json:"local_ip"`
-	Battery         bool `json:"battery"`
-	ActiveWindow    bool `json:"active_window"`
-	WindowTitle     bool `json:"window_title"`
-	UpdatePending   bool `json:"update_pending"`
-	MediaControl    bool `json:"media_control"`
-	RemoteLock      bool `json:"remote_lock"`
-	Webcam          bool `json:"webcam"`
-	AudioOutput     bool `json:"audio_output"`
-	ICUERGB         bool `json:"icue_rgb"`
-	Wifi            bool `json:"wifi"`
-	DisplayState    bool `json:"display_state"`
-	Notifications   bool `json:"notifications"`
-	GPU             bool `json:"gpu"`
-	NvidiaNVML      bool `json:"nvidia_nvml"`
-	ScreenThumbnail bool `json:"screen_thumbnail"`
+	MediaCommands    *bool             `json:"media_commands,omitempty"`
+	MediaPermissions *MediaPermissions `json:"media_permissions,omitempty"`
+	CPU              bool              `json:"cpu"`
+	Memory           bool              `json:"memory"`
+	Storage          bool              `json:"storage"`
+	Network          bool              `json:"network"`
+	Uptime           bool              `json:"uptime"`
+	UserPresence     bool              `json:"user_presence"`
+	SessionLock      bool              `json:"session_lock"`
+	Microphone       bool              `json:"microphone"`
+	Fullscreen       bool              `json:"fullscreen"`
+	SystemTheme      bool              `json:"system_theme"`
+	LocalIP          bool              `json:"local_ip"`
+	Battery          bool              `json:"battery"`
+	ActiveWindow     bool              `json:"active_window"`
+	WindowTitle      bool              `json:"window_title"`
+	UpdatePending    bool              `json:"update_pending"`
+	MediaControl     bool              `json:"media_control"`
+	RemoteLock       bool              `json:"remote_lock"`
+	Webcam           bool              `json:"webcam"`
+	AudioOutput      bool              `json:"audio_output"`
+	ICUERGB          bool              `json:"icue_rgb"`
+	Wifi             bool              `json:"wifi"`
+	DisplayState     bool              `json:"display_state"`
+	Notifications    bool              `json:"notifications"`
+	GPU              bool              `json:"gpu"`
+	NvidiaNVML       bool              `json:"nvidia_nvml"`
+	ScreenThumbnail  bool              `json:"screen_thumbnail"`
 }
 
 type WebhookConfig struct {
@@ -313,4 +325,35 @@ func Get() Config {
 	cfgLock.RLock()
 	defer cfgLock.RUnlock()
 	return current
+}
+
+func (e ExposeConfig) MediaActionAllowed(action string) bool {
+	if !e.MediaCommandsEnabled() {
+		return false
+	}
+	p := e.MediaPermissions
+	switch action {
+	case "media_play_pause", "media_play", "media_pause":
+		return p == nil || p.PlayPause
+	case "media_stop":
+		return p == nil || p.Stop
+	case "media_next":
+		return p == nil || p.Next
+	case "media_prev":
+		return p == nil || p.Previous
+	case "volume_mute":
+		return p == nil || p.Mute
+	case "volume_up":
+		return p == nil || p.VolumeUp
+	case "volume_down":
+		return p == nil || p.VolumeDown
+	}
+	return false
+}
+
+func (e ExposeConfig) MediaCommandsEnabled() bool {
+	if e.MediaCommands != nil {
+		return *e.MediaCommands
+	}
+	return e.MediaControl
 }

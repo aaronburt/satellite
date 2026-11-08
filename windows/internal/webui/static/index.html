@@ -586,8 +586,12 @@ body{
 .heat-track.wide{
   width:100%;
 }
+.sensor-grid:has(.sensor-card[data-id="media_control"],.sensor-card[data-id="media_controls"]){
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr));
+}
 .media-ctrls{
   display:flex;
+  flex-wrap:wrap;
   gap:6px;
 }
 .copy-btn{
@@ -1658,7 +1662,8 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
                 <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
                 <label class="toggle-item" data-cap="icue_rgb"><input type="checkbox" class="exp-chk" id="exp-icue-rgb" data-no-bulk><span>iCUE RGB Colours (Read Only)</span></label>
                 <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
-                <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media Transport</span></label>
+                <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media details (track, artist and playback state)</span></label>
+
                 <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
               </div>
             </div>
@@ -1703,6 +1708,14 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
               Elevated permissions allow remote MQTT subscribers to execute actions and display unprompted interactive alerts on this workstation.
             </div>
             <div class="toggle-grid">
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="exp-media-commands"><span>Allow media commands</span></label>
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-play_pause" data-no-bulk><span>Allow play / pause</span></label>
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-stop" data-no-bulk><span>Allow stop</span></label>
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-next" data-no-bulk><span>Allow next track</span></label>
+              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-previous" data-no-bulk><span>Allow previous track</span></label>
+              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-mute" data-no-bulk><span>Allow mute / unmute</span></label>
+              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_up" data-no-bulk><span>Allow volume up</span></label>
+              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_down" data-no-bulk><span>Allow volume down</span></label>
               <label class="toggle-item" data-cap="remote_lock"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
               <label class="toggle-item" data-cap="notifications"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
             </div>
@@ -2108,7 +2121,12 @@ function startICUESDKCheck() {
   check();
 }
 
+function mediaActionAllowed(action) {
+  const key = {media_play_pause: 'play_pause', media_play: 'play_pause', media_pause: 'play_pause', media_stop: 'stop', media_next: 'next', media_prev: 'previous', volume_mute: 'mute', volume_up: 'volume_up', volume_down: 'volume_down'}[action];
+  return !key || ((currentExpose.media_commands ?? !!currentExpose.media_control) && (currentExpose.media_permissions == null || !!currentExpose.media_permissions[key]));
+}
 async function triggerAction(actionName) {
+  if (!mediaActionAllowed(actionName)) { showToast('This media control is disabled'); return; }
   toggleActionsPopover(true);
   try {
     const res = await authFetch('/api/action', {
@@ -2394,6 +2412,9 @@ const SENSOR_ICONS = {
   screen_thumbnail: '<rect x="3" y="3" width="18" height="14" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="M21 14l-5-5-8 8"/>',
 };
 const MEDIA_CONTROLS = [
+  { action: 'media_stop', label: 'Stop', icon: '<rect x="6" y="6" width="12" height="12"/>' },
+  { action: 'volume_down', label: 'Volume down', icon: '<path d="M11 5L6 9H2v6h4l5 4zM16 12h6"/>' },
+  { action: 'volume_up', label: 'Volume up', icon: '<path d="M11 5L6 9H2v6h4l5 4zM16 12h6M19 9v6"/>' },
   { action: 'media_prev', label: 'Previous', icon: '<polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/>' },
   { action: 'media_play_pause', label: 'Play / Pause', icon: '<polygon points="5 3 19 12 5 21 5 3"/>' },
   { action: 'media_next', label: 'Next', icon: '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>' },
@@ -2413,6 +2434,7 @@ function svgIcon(paths, cls) {
 }
 
 function sensorIconKey(id) {
+  if (id === 'media_controls') return 'media_control';
   if (id.startsWith('screen_thumbnail')) return 'screen_thumbnail';
   if (id.startsWith('gpu')) return 'gpu';
   if (id.startsWith('disk') || id === 'storage') return 'disk';
@@ -2469,9 +2491,9 @@ function buildSensorCard(s) {
   card.appendChild(detail);
   parts.detail = detail;
 
-  if (s.id === 'media_control') {
+  if (s.id === 'media_control' || s.id === 'media_controls') {
     const ctrls = el('div', 'media-ctrls');
-    MEDIA_CONTROLS.forEach(c => {
+    MEDIA_CONTROLS.filter(c => mediaActionAllowed(c.action)).forEach(c => {
       const b = el('button', 'media-ctrl-btn');
       b.type = 'button';
       b.dataset.click = 'triggerAction';
@@ -2864,6 +2886,14 @@ async function loadConfig() {
     $('exp-title').checked = !!currentExpose.window_title;
     $('exp-reboot').checked = !!currentExpose.update_pending;
     $('exp-media').checked = !!currentExpose.media_control;
+    $('exp-media-commands').checked = currentExpose.media_commands ?? !!currentExpose.media_control;
+    $('media-allow-play_pause').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.play_pause;
+    $('media-allow-stop').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.stop;
+    $('media-allow-next').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.next;
+    $('media-allow-previous').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.previous;
+    $('media-allow-mute').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.mute;
+    $('media-allow-volume_up').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.volume_up;
+    $('media-allow-volume_down').checked = currentExpose.media_permissions == null || !!currentExpose.media_permissions.volume_down;
     $('exp-remote-lock').checked = !!currentExpose.remote_lock;
     $('exp-webcam').checked = !!currentExpose.webcam;
     $('exp-screen-thumb').checked = !!currentExpose.screen_thumbnail;
@@ -3082,6 +3112,8 @@ $('cfg-form').onsubmit = async (e) => {
     window_title: $('exp-title').checked,
     update_pending: $('exp-reboot').checked,
     media_control: $('exp-media').checked,
+    media_commands: $('exp-media-commands').checked,
+    media_permissions: {play_pause: $('media-allow-play_pause').checked, stop: $('media-allow-stop').checked, next: $('media-allow-next').checked, previous: $('media-allow-previous').checked, mute: $('media-allow-mute').checked, volume_up: $('media-allow-volume_up').checked, volume_down: $('media-allow-volume_down').checked},
     remote_lock: $('exp-remote-lock').checked,
     webcam: $('exp-webcam').checked,
     screen_thumbnail: $('exp-screen-thumb').checked,

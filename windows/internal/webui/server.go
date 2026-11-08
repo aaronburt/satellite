@@ -21,6 +21,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"satellite/internal/actions"
 	"satellite/internal/capabilities"
 	"satellite/internal/config"
 	"satellite/internal/icue"
@@ -1189,7 +1190,11 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	action := strings.ToLower(strings.TrimSpace(req.Action))
+	action := actions.Canonical(req.Action)
+	if (strings.HasPrefix(action, "media_") || strings.HasPrefix(action, "volume_")) && !config.Get().Expose.MediaActionAllowed(action) {
+		writeError(w, http.StatusForbidden, "media control is disabled")
+		return
+	}
 
 	if action == "test_toast" {
 		go func() {
