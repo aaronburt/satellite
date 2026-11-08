@@ -21,21 +21,22 @@
   --border-focus:#0078d4;
   --text:#ffffff;
   --text-dim:#cccccc;
-  --muted:#8c8c8c;
-  --faint:#5c5c5c;
+  --muted:#aaaaaa;
+  --accent-text:#75baff;
+  --faint:#999999;
   --accent:#0078d4;
   --accent-hover:#106ebe;
   --accent-subtle:rgba(0,120,212,0.15);
   --success:#22c55e;
   --warning:#f59e0b;
-  --danger:#ef4444;
+  --danger:#ff9494;
 }
 body{
   background:var(--bg);
   color:var(--text);
   font-family:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,sans-serif;
-  font-size:13.5px;
-  line-height:1.45;
+  font-size:14px;
+  line-height:1.5;
   margin:0;
   padding:0;
   display:flex;
@@ -251,13 +252,14 @@ body{
   background:rgba(255,255,255,0.04);
   border:1px solid var(--border);
   border-radius:4px;
-  padding:2px 6px;
+  padding:4px 8px;
 }
 .rate-label{
   font-size:11.5px;
   color:var(--muted);
 }
 .rate-select{
+  min-height:28px;
   width:auto;
   background-color:transparent !important;
   border:none;
@@ -272,6 +274,8 @@ body{
   color:#ffffff;
 }
 .cmd-btn{
+  min-height:36px;
+  justify-content:center;
   background:transparent;
   border:1px solid transparent;
   color:var(--text-dim);
@@ -305,6 +309,8 @@ body{
   top:calc(100% + 6px);
   right:0;
   width:220px;
+  max-height:calc(100dvh - 96px);
+  overflow-y:auto;
   background:#202020;
   border:1px solid #333333;
   border-radius:6px;
@@ -318,6 +324,7 @@ body{
   display:flex;
 }
 .popover-item{
+  min-height:36px;
   display:flex;
   align-items:center;
   gap:10px;
@@ -733,37 +740,40 @@ body{
   display:flex;
   flex-direction:column;
   gap:14px;
-  max-width:940px;
+  max-width:1000px;
+  margin-inline:auto;
 }
 .config-card{
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:6px;
-  padding:14px;
+  padding:20px;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:16px;
+  min-width:0;
 }
 .config-card.card-danger{
   border-color:rgba(239,68,68,0.35);
   background:rgba(239,68,68,0.03);
 }
 .card-head{
+  gap:12px;
+  flex-wrap:wrap;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding-bottom:4px;
+  padding-bottom:12px;
   border-bottom:1px solid var(--border-subtle);
 }
 .card-head.head-danger{
   border-bottom-color:rgba(239,68,68,0.2);
 }
 .card-title{
-  font-size:12px;
+  font-size:16px;
   font-weight:600;
-  color:var(--muted);
-  text-transform:uppercase;
-  letter-spacing:0.03em;
+  color:var(--text);
+  text-wrap:balance;
 }
 .card-title.title-danger{
   color:var(--danger);
@@ -781,14 +791,14 @@ body{
   flex-direction:column;
   gap:4px;
 }
-.field-hint{font-size:11px;color:var(--muted);line-height:1.5;margin:6px 0 0}
+.field-hint{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 0 0}
 .field-row{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:8px;
+  gap:16px;
 }
 label{
-  font-size:12px;
+  font-size:13px;
   color:var(--muted);
   font-weight:500;
 }
@@ -809,11 +819,13 @@ input,select,textarea{
   outline:none;
 }
 .input-with-action input{
-  padding-right:32px;
+  padding-right:44px;
 }
 .input-btn{
   position:absolute;
-  right:6px;
+  right:2px;
+  min-width:36px;
+  min-height:32px;
   background:transparent;
   border:none;
   color:var(--muted);
@@ -833,21 +845,18 @@ input:focus,select:focus,textarea:focus{
 }
 .toggle-grid{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));
   gap:8px;
 }
 .sensor-tier{
   display:flex;
   flex-direction:column;
   gap:10px;
-  padding:12px 14px;
-  background:rgba(255,255,255,0.02);
-  border:1px solid var(--border-subtle);
-  border-radius:6px;
+  padding:20px 0 0;
+  border-top:1px solid var(--border);
 }
 .sensor-tier.tier-critical{
-  border-color:rgba(239,68,68,0.25);
-  background:rgba(239,68,68,0.02);
+  border-top-color:rgba(239,68,68,0.25);
 }
 .sensor-tier-head{
   display:flex;
@@ -857,17 +866,18 @@ input:focus,select:focus,textarea:focus{
   flex-wrap:wrap;
 }
 .tier-title-wrap{
+  flex-wrap:wrap;
   display:flex;
   align-items:center;
   gap:8px;
 }
 .tier-title{
-  font-size:12.5px;
+  font-size:14px;
   font-weight:600;
   color:var(--text);
 }
 .tier-desc{
-  font-size:11.5px;
+  font-size:13px;
   color:var(--muted);
 }
 .tier-badge{
@@ -1023,6 +1033,7 @@ input:focus,select:focus,textarea:focus{
   flex:1;
 }
 .toggle-item{
+  min-height:36px;
   display:flex;
   align-items:center;
   gap:8px;
@@ -1032,20 +1043,22 @@ input:focus,select:focus,textarea:focus{
 .toggle-item input[type="checkbox"]{
   width:15px;
   height:15px;
+  flex-shrink:0;
   accent-color:var(--accent);
   margin:0;
   cursor:pointer;
   appearance:auto;
 }
 .toggle-item span{
-  font-size:13px;
+  font-size:14px;
   color:var(--text);
 }
 .link-btn{
+  min-height:36px;
   background:transparent;
   border:none;
-  color:var(--accent);
-  font-size:12px;
+  color:var(--accent-text);
+  font-size:13px;
   cursor:pointer;
   padding:0 3px;
 }
@@ -1053,6 +1066,7 @@ input:focus,select:focus,textarea:focus{
   text-decoration:underline;
 }
 .btn-primary{
+  min-height:36px;
   background:var(--accent);
   color:#fff;
   border:1px solid transparent;
@@ -1064,6 +1078,7 @@ input:focus,select:focus,textarea:focus{
 }
 .btn-primary:hover{background:var(--accent-hover)}
 .btn-secondary{
+  min-height:36px;
   background:transparent;
   color:var(--muted);
   border:1px solid var(--border);
@@ -1074,7 +1089,8 @@ input:focus,select:focus,textarea:focus{
 }
 .btn-secondary:hover{color:var(--text);border-color:#4b4b52}
 .msg-area{
-  font-size:12px;
+  font-size:13px;
+  overflow-wrap:anywhere;
 }
 .msg-ok{color:var(--success)}
 .msg-err{color:var(--danger)}
@@ -1242,6 +1258,61 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
 .sdk-dialog a{color:#75baff}
 .sdk-dialog-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
 .sdk-check-status{padding:12px;background:var(--surface-alt);border-radius:6px}
+
+.settings-intro h2{font-size:22px;font-weight:600;margin-bottom:8px;text-wrap:balance}
+.settings-intro p,.settings-section-intro{color:var(--text-dim);max-width:72ch;line-height:1.6}
+.settings-nav{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:4px;padding:8px;background:var(--content-bg);border-bottom:1px solid var(--border)}
+.settings-nav button{font:inherit;font-weight:500;color:var(--text-dim);background:transparent;border:0;border-radius:4px;min-height:36px;padding:8px 12px;cursor:pointer}
+.settings-nav button:hover{background:var(--surface-alt);color:var(--text)}
+.settings-mobile-jump{display:none}
+#cfg-form{display:flex;flex-direction:column;gap:32px}
+.settings-fields{border:0;padding:0;margin:0;min-width:0;display:flex;flex-direction:column;gap:32px}
+.settings-fields:disabled{opacity:.65}
+.settings-section{display:flex;flex-direction:column;gap:16px;scroll-margin-top:80px;min-width:0}
+.settings-section>header h2{font-size:20px;font-weight:600;margin-bottom:4px;text-wrap:balance}
+.settings-section>header:focus{outline:2px solid var(--border-focus);outline-offset:4px}
+.field-hint{margin-top:0}
+.bulk-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.settings-result{font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.settings-result:empty{display:none}
+.msg-area:empty{display:none}
+.save-bar{gap:12px;margin:0;padding:16px;bottom:0;flex-direction:column;align-items:stretch}
+.save-bar .dirty-note{color:var(--muted)}
+.save-bar.has-changes .dirty-note{color:var(--warning)}
+.save-bar-actions{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.save-bar-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.save-bar .field-hint{font-size:12px}
+button:disabled{opacity:.5;cursor:not-allowed}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+input,textarea{caret-color:var(--accent-text)}
+::selection{background:#264f78;color:#fff}
+a{color:var(--accent-text);text-underline-offset:3px}
+@media(max-width:768px){
+  .settings-nav{padding:8px 0}
+  .settings-nav>button{display:none}
+  .settings-mobile-jump{display:block;width:100%}
+  .settings-mobile-jump label{display:block;margin-bottom:4px}
+  .settings-section{scroll-margin-top:100px}
+  .config-card{padding:16px}
+  .save-bar{padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .save-bar-actions{align-items:stretch;flex-direction:column;gap:8px}
+  .save-bar-buttons{flex:1}
+  .save-bar-buttons button{flex:1}
+  .save-bar .field-hint{display:none}
+  .menu-btn,.cmd-btn,.popover-item,.link-btn,.btn-primary,.btn-secondary,.input-btn,.toggle-item,.nav-item{min-height:44px}
+  .menu-btn,.cmd-btn,.input-btn{min-width:44px}
+  .menu-btn{align-items:center;justify-content:center}
+  .rate-select{min-height:44px;font-size:16px}
+  .rate-ctrl{padding:0 8px}
+  .table-filter-input,input,select,textarea{font-size:16px;min-height:44px}
+  .input-with-action input{padding-right:48px}
+  .toggle-item span{font-size:16px}
+  .tier-desc,.field-hint,.settings-result,label{font-size:14px}
+  .toggle-item input[type="checkbox"]{min-height:18px;width:18px;height:18px}
+  .settings-intro p,.settings-section-intro{font-size:16px}
+  .popover-anchor .actions-popover{left:auto;right:0;max-height:calc(100dvh - 160px);overflow-y:auto}
+  .page-title{white-space:normal}
+}
 </style>
 </head>
 <body>
@@ -1551,355 +1622,397 @@ button:focus-visible,select:focus-visible,a:focus-visible,input[type="checkbox"]
 
     <section id="panel-settings" class="content-panel hidden" tabindex="-1">
       <div class="config-container">
-        <form id="cfg-form" style="display:flex;flex-direction:column;gap:12px;">
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">MQTT Service Endpoint</span>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="node_id">Client Node ID</label>
-                <div class="input-with-action">
-                  <input class="mono" id="node_id" required autocomplete="off">
-                  <button type="button" class="input-btn" data-click="copyFrom" data-arg="node_id" title="Copy Node ID" aria-label="Copy Node ID">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="field">
-                <label for="broker">Broker URI</label>
-                <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883 (blank to disable)" autocomplete="off">
-              </div>
-            </div>
-            <div class="field">
-              <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Allow Insecure TLS (Skip CA verification)</span></label>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="user">Broker Username</label>
-                <input class="mono" id="user" autocomplete="off">
-              </div>
-              <div class="field">
-                <label for="pass">Broker Password</label>
-                <div class="input-with-action">
-                  <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
-                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="pass" title="Show / Hide Password" aria-label="Show / Hide Password">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="prefix">Topic Prefix</label>
-                <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
-              </div>
-              <div class="field">
-                <label for="interval">Publish Rate (Seconds)</label>
-                <input type="number" class="mono" id="interval" min="1" max="300" required>
-              </div>
-            </div>
+        <header class="settings-intro">
+          <h2>Device settings</h2>
+          <p>Connect your reporting destinations, choose what to share, and manage this device. Changes stay local until you apply them.</p>
+          <a href="https://github.com/aaronburt/satellite/blob/main/windows/README.md#quick-start" target="_blank" rel="noopener noreferrer">Setup &amp; integration guide</a>
+        </header>
+        <nav class="settings-nav" aria-label="Settings sections">
+          <button type="button" data-click="jumpSettings" data-arg="reporting">Reporting</button>
+          <button type="button" data-click="jumpSettings" data-arg="sensors">Sensors</button>
+          <button type="button" data-click="jumpSettings" data-arg="controls">Remote controls</button>
+          <button type="button" data-click="jumpSettings" data-arg="access">Local access</button>
+          <button type="button" data-click="jumpSettings" data-arg="maintenance">Maintenance</button>
+          <div class="settings-mobile-jump">
+            <label for="settings-jump">Jump to section</label>
+            <select id="settings-jump"><option value="">Choose a section…</option><option value="reporting">Reporting</option><option value="sensors">Sensors</option><option value="controls">Remote controls</option><option value="access">Local access</option><option value="maintenance">Maintenance</option></select>
           </div>
-
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">Exposed Sensors & Remote Services</span>
-              <div>
-                <button type="button" class="link-btn" data-click="bulkToggleEntities" data-arg="true">Select All</button>
-                <span style="color:var(--faint)">|</span>
-                <button type="button" class="link-btn" data-click="bulkToggleEntities" data-arg="false">None</button>
-              </div>
-            </div>
-
-            <div class="toggle-grid">
-              <label class="toggle-item"><input type="checkbox" id="exp-device-summary"><span>Device summary entity (Home Assistant)</span></label>
-            </div>
-            <p class="field-hint">Adds one device entity with enabled readings as attributes. Individual entities remain available.</p>
-
-            <div class="sensor-tier">
-              <div class="sensor-tier-head">
-                <div class="tier-title-wrap">
-                  <span class="tier-title">Hardware & System Telemetry</span>
-                  <span class="tier-badge tier-low">Low Privacy Risk</span>
+        </nav>
+        <form id="cfg-form">
+          <fieldset id="settings-fields" class="settings-fields" aria-label="Device configuration" disabled>
+            <section class="settings-section" id="settings-reporting" aria-labelledby="settings-reporting-title">
+              <header tabindex="-1"><h2 id="settings-reporting-title">Reporting</h2><p class="settings-section-intro">Choose MQTT, a telemetry webhook, or both. The log webhook is a separate output.</p></header>
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">MQTT &amp; Home Assistant</h3>
                 </div>
-                <span class="tier-desc">Core hardware health counters and non-identifying diagnostics</span>
-              </div>
-              <div class="toggle-grid">
-                <label class="toggle-item" data-cap="cpu"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
-                <label class="toggle-item" data-cap="memory"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
-                <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
-                <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-nvidia-nvml"><span>NVIDIA NVML (Temps & Power)</span><span class="nvml-tag">~25MB</span></label>
-                <label class="toggle-item" data-cap="storage"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
-                <label class="toggle-item" data-cap="network"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
-                <label class="toggle-item" data-cap="uptime"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
-                <label class="toggle-item" data-cap="battery"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
-                <label class="toggle-item" data-cap="system_theme"><input type="checkbox" class="exp-chk" id="exp-theme"><span id="lbl-theme">System Theme</span></label>
-                <label class="toggle-item" data-cap="update_pending"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
-              </div>
-            </div>
-
-            <div class="sensor-tier">
-              <div class="sensor-tier-head">
-                <div class="tier-title-wrap">
-                  <span class="tier-title">Network & Peripheral Context</span>
-                  <span class="tier-badge tier-mod">Moderate Privacy Risk</span>
-                </div>
-                <span class="tier-desc">Local network identity, audio endpoint, and display state</span>
-              </div>
-              <div class="toggle-grid">
-                <label class="toggle-item" data-cap="local_ip"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
-                <label class="toggle-item" data-cap="wifi"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
-                <label class="toggle-item" data-cap="audio_output"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
-                <label class="toggle-item" data-cap="display_state"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
-                <label class="toggle-item" data-cap="fullscreen"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
-              </div>
-            </div>
-
-            <div class="sensor-tier">
-              <div class="sensor-tier-head">
-                <div class="tier-title-wrap">
-                  <span class="tier-title">User Presence & Application Activity</span>
-                  <span class="tier-badge tier-high">High Privacy Risk</span>
-                </div>
-                <span class="tier-desc">Discloses user session activity, idle timing, music, and running app names</span>
-              </div>
-              <div class="toggle-grid">
-                <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
-                <label class="toggle-item" data-cap="icue_rgb"><input type="checkbox" class="exp-chk" id="exp-icue-rgb" data-no-bulk><span>iCUE RGB Colours (Read Only)</span></label>
-                <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
-                <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media details (track, artist and playback state)</span></label>
-
-                <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
-              </div>
-            </div>
-
-            <div class="sensor-tier tier-critical">
-              <div class="sensor-tier-head">
-                <div class="tier-title-wrap">
-                  <span class="tier-title">Sensitive Content & Surveillance</span>
-                  <span class="tier-badge tier-crit">Critical Privacy Risk</span>
-                </div>
-                <span class="tier-desc">Exposes exact window/document titles, microphone capture, webcam usage, and a tiny picture of your screen</span>
-              </div>
-              <div class="toggle-grid">
-                <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
-                <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
-                <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
-                <label class="toggle-item" data-cap="screen_thumbnail" title="Each update includes a small picture of each selected display as a separate Home Assistant image. Thumbnails are never saved to disk. GPU capture is used when NVIDIA sensors (NVML) are on, with standard capture as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnails (every update)</span></label>
-                <div class="field" data-cap="screen_thumbnail" style="grid-column:1/-1;">
-                  <label for="screen-thumb-mode">Displays to capture</label>
-                  <select id="screen-thumb-mode"><option value="primary">Primary display (existing image entity)</option><option value="selected">Choose displays</option></select>
-                  <div id="screen-thumb-displays-panel" hidden>
-                    <div id="screen-thumb-displays" class="toggle-grid" style="margin-top:10px;"></div>
-                    <div class="field-row" style="margin-top:10px;">
-                      <button type="button" class="btn btn-secondary" id="screen-thumb-all">Select all connected</button>
-                      <button type="button" class="btn btn-secondary" id="screen-thumb-refresh">Refresh displays</button>
-                    </div>
-                    <p id="screen-thumb-display-status" class="field-hint" aria-live="polite"></p>
-                    <p class="field-hint">Each selected display gets its own preview and Home Assistant image. Newly connected displays need to be selected before they are captured.</p>
-                  </div>
-                </div>
-                <div class="field" id="screen-thumb-size-field"><label for="screen-thumb-size">Thumbnail size (longest edge, px)</label><input type="number" class="mono" id="screen-thumb-size" min="64" max="400" step="1" value="200" title="Longest edge of the screen thumbnail, 64 to 400 pixels. Larger sizes show more detail, and above about 200 pixels large on-screen text can become readable."></div>
-                <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="6" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea><p class="field-hint">Prefilled with common browsers, messaging apps and email clients. Edit or remove entries to choose what is hidden. Up to 128 program names.</p></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="config-card card-danger">
-            <div class="card-head head-danger">
-              <span class="card-title title-danger">Danger Zone: Privileged Remote Control</span>
-            </div>
-            <div class="danger-warning">
-              Elevated permissions allow remote MQTT subscribers to execute actions and display unprompted interactive alerts on this workstation.
-            </div>
-            <div class="toggle-grid">
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="exp-media-commands"><span>Allow media commands</span></label>
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-play_pause" data-no-bulk><span>Allow play / pause</span></label>
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-stop" data-no-bulk><span>Allow stop</span></label>
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-next" data-no-bulk><span>Allow next track</span></label>
-              <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-previous" data-no-bulk><span>Allow previous track</span></label>
-              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-mute" data-no-bulk><span>Allow mute / unmute</span></label>
-              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_up" data-no-bulk><span>Allow volume up</span></label>
-              <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_down" data-no-bulk><span>Allow volume down</span></label>
-              <label class="toggle-item" data-cap="remote_lock"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
-              <label class="toggle-item" data-cap="notifications"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
-            </div>
-          </div>
-
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">Web UI &amp; Local JSON Interface (/json)</span>
-            </div>
-            <div class="field">
-              <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="bind_address">Listen Address</label>
-                <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off" aria-describedby="bind-warning">
-              </div>
-              <div class="field">
-                <label for="port">Port (0 for auto)</label>
-                <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
-              </div>
-            </div>
-            <div id="bind-warning" class="field-warning" style="display:none;">
-              This address makes the web UI and /json reachable from other devices over plain HTTP. Anyone who can see the link or the API key can control this computer. Use 127.0.0.1 unless you need remote access.
-            </div>
-            <div class="field">
-              <label for="api_key">Authentication Token (or header X-API-Key)</label>
-              <div class="input-with-action">
-                <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
-                <button type="button" class="input-btn" data-click="copyFrom" data-arg="api_key" title="Copy API Key" aria-label="Copy API Key">
-                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">Telemetry Webhook (any HTTP endpoint)</span>
-            </div>
-            <div class="field">
-              <label class="toggle-item"><input type="checkbox" id="tw_enabled"><span>POST each telemetry snapshot as JSON (runs alongside MQTT)</span></label>
-            </div>
-            <div class="field">
-              <label for="tw_url">Webhook URL</label>
-              <input class="mono" id="tw_url" placeholder="https://example.com/satellite" autocomplete="off">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="tw_token">Bearer Token (optional)</label>
-                <div class="input-with-action">
-                  <input type="password" class="mono" id="tw_token" placeholder="Leave blank to keep current" autocomplete="new-password">
-                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="tw_token" title="Show / Hide Token" aria-label="Show / Hide Token">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-              <div class="field">
-                <label for="tw_min_interval">Minimum Seconds Between Posts (0 = on change)</label>
-                <input type="number" class="mono" id="tw_min_interval" min="0" max="86400" placeholder="0" autocomplete="off">
-              </div>
-            </div>
-            <div class="field">
-              <button type="button" id="btn-test-tw" class="btn-secondary">Send Test Snapshot</button>
-            </div>
-          </div>
-
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">Log Webhook (Discord, Slack or any URL)</span>
-            </div>
-            <div class="field">
-              <label class="toggle-item"><input type="checkbox" id="lw_enabled"><span>POST agent log events to a webhook</span></label>
-            </div>
-            <div class="field">
-              <label for="lw_url">Webhook URL</label>
-              <input class="mono" id="lw_url" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="lw_level">Minimum Level</label>
-                <select id="lw_level">
-                  <option value="info">Info and above</option>
-                  <option value="warn">Warnings and errors</option>
-                  <option value="error">Errors only</option>
-                  <option value="debug">Everything, including MQTT</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="lw_secret">Bearer Secret (optional)</label>
-                <div class="input-with-action">
-                  <input type="password" class="mono" id="lw_secret" placeholder="Leave blank to keep current" autocomplete="new-password">
-                  <button type="button" class="input-btn" data-click="togglePassVis" data-arg="lw_secret" title="Show / Hide Secret" aria-label="Show / Hide Secret">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <button type="button" id="btn-test-lw" class="btn-secondary">Send Test Event</button>
-            </div>
-          </div>
-
-          <div class="config-card">
-            <div class="card-head">
-              <span class="card-title">Software Updates</span>
-            </div>
-            <div class="field">
-              <label class="toggle-item"><input type="checkbox" id="check_updates"><span>Automatically check GitHub for updates</span></label>
-            </div>
-          </div>
-
-          <div class="config-card" id="portability-card">
-            <div class="card-head">
-              <span class="card-title">Configuration Portability & Backup</span>
-            </div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
-              Export your configuration to instantly replicate settings across systems. Passphrase protection encrypts credentials using AES-256-GCM.
-            </div>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-              <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;">
-                <span style="font-weight:600;font-size:13px;">Export Configuration</span>
+                <p class="field-hint">For Home Assistant, use the broker configured in its MQTT integration. Satellite publishes discovery information for your enabled sensors and controls. Other MQTT clients can use the same broker.</p>
                 <div class="field-row">
                   <div class="field">
-                    <label for="export_pass">Encryption Passphrase (Optional)</label>
+                    <label for="node_id">Device ID (MQTT node ID)</label>
                     <div class="input-with-action">
-                      <input type="password" class="mono" id="export_pass" placeholder="Leave empty for plaintext export" autocomplete="new-password">
-                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="export_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
+                      <input class="mono" id="node_id" required autocomplete="off">
+                      <button type="button" class="input-btn" data-click="copyFrom" data-arg="node_id" title="Copy Node ID" aria-label="Copy Node ID">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="broker">MQTT broker address</label>
+                    <input class="mono" id="broker" placeholder="tcp://192.168.1.50:1883" autocomplete="off" aria-describedby="broker-hint">
+                    <p class="field-hint" id="broker-hint">Leave empty to disable MQTT and use webhooks only.</p>
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="toggle-item"><input type="checkbox" id="insecure_tls"><span>Skip TLS certificate verification (insecure)</span></label>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="user">Broker Username</label>
+                    <input class="mono" id="user" autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label for="pass">Broker Password</label>
+                    <div class="input-with-action">
+                      <input type="password" class="mono" id="pass" placeholder="••••••••" autocomplete="new-password">
+                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="pass" title="Show / Hide Password" aria-label="Show / Hide Password">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <button type="button" id="btn-export" class="btn-secondary" data-click="exportConfig">Export .satconfig</button>
-                  <span id="export-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="prefix">Topic Prefix</label>
+                    <input class="mono" id="prefix" placeholder="satellite" autocomplete="off">
+                  </div>
+                  <div class="field">
+                    <label for="interval">Collection interval (seconds)</label>
+                    <input type="number" class="mono" id="interval" min="1" max="300" required>
+                    <p class="field-hint">How often Satellite collects readings for all reporting destinations.</p>
+                  </div>
+                </div>
+                <div class="config-test">
+                  <button type="button" id="btn-test" class="btn-secondary">Test broker connection</button>
+                  <p class="field-hint">Tests the address and credentials entered above without saving.</p>
+                  <p id="mqtt-test-result" class="settings-result" role="status" aria-live="polite"></p>
                 </div>
               </div>
 
-              <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;">
-                <span style="font-weight:600;font-size:13px;">Import Configuration</span>
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">Telemetry Webhook (any HTTP endpoint)</h3>
+                </div>
+                <div class="field">
+                  <label class="toggle-item"><input type="checkbox" id="tw_enabled"><span>POST each telemetry snapshot as JSON (runs alongside MQTT)</span></label>
+                </div>
+                <div class="field">
+                  <label for="tw_url">Webhook URL</label>
+                  <input class="mono" id="tw_url" placeholder="https://example.com/satellite" autocomplete="off">
+                </div>
                 <div class="field-row">
                   <div class="field">
-                    <label for="import_file">Configuration File (.satconfig or .json)</label>
-                    <input type="file" id="import_file" accept=".satconfig,.json" style="font-size:12px;">
+                    <label for="tw_token">Bearer Token (optional)</label>
+                    <div class="input-with-action">
+                      <input type="password" class="mono" id="tw_token" placeholder="Leave blank to keep current" autocomplete="new-password">
+                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="tw_token" title="Show / Hide Token" aria-label="Show / Hide Token">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      </button>
+                    </div>
                   </div>
                   <div class="field">
-                    <label for="import_pass">Decryption Passphrase (If encrypted)</label>
+                    <label for="tw_min_interval">Minimum Seconds Between Posts (0 = on change)</label>
+                    <input type="number" class="mono" id="tw_min_interval" min="0" max="86400" placeholder="0" autocomplete="off">
+                  </div>
+                </div>
+                <div class="field">
+                  <button type="button" id="btn-test-tw" class="btn-secondary">Send Test Snapshot</button>
+                  <p class="field-hint">Sends real device readings to the URL entered above without saving. Privacy pause still applies.</p>
+                  <p id="tw-test-result" class="settings-result" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">Log Webhook (Discord, Slack or any URL)</h3>
+                </div>
+                <div class="field">
+                  <label class="toggle-item"><input type="checkbox" id="lw_enabled"><span>POST agent log events to a webhook</span></label>
+                </div>
+                <div class="field">
+                  <label for="lw_url">Webhook URL</label>
+                  <input class="mono" id="lw_url" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="lw_level">Minimum Level</label>
+                    <select id="lw_level">
+                      <option value="info">Info and above</option>
+                      <option value="warn">Warnings and errors</option>
+                      <option value="error">Errors only</option>
+                      <option value="debug">Everything, including MQTT</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="lw_secret">Bearer Secret (optional)</label>
                     <div class="input-with-action">
-                      <input type="password" class="mono" id="import_pass" placeholder="Required if encrypted" autocomplete="current-password">
-                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="import_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
+                      <input type="password" class="mono" id="lw_secret" placeholder="Leave blank to keep current" autocomplete="new-password">
+                      <button type="button" class="input-btn" data-click="togglePassVis" data-arg="lw_secret" title="Show / Hide Secret" aria-label="Show / Hide Secret">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </button>
                     </div>
                   </div>
                 </div>
                 <div class="field">
-                  <label class="toggle-item">
-                    <input type="checkbox" id="import_reset_node_id" checked>
-                    <span>Adapt Node ID and Client ID to this computer's hostname (Recommended)</span>
-                  </label>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <button type="button" id="btn-import" class="btn-secondary" data-click="importConfig">Import & Apply</button>
-                  <span id="import-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
+                  <button type="button" id="btn-test-lw" class="btn-secondary">Send Test Event</button>
+                  <p class="field-hint">Sends a test log event to the URL entered above without saving.</p>
+                  <p id="lw-test-result" class="settings-result" role="status" aria-live="polite"></p>
                 </div>
               </div>
-            </div>
-          </div>
+            </section>
+            <section class="settings-section" id="settings-sensors" aria-labelledby="settings-sensors-title">
+              <header tabindex="-1"><h2 id="settings-sensors-title">Sensors</h2><p class="settings-section-intro">Choose which readings Satellite publishes. Privacy groups explain what each choice can reveal.</p></header>
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">Published sensors</h3>
 
+                </div>
+
+                <div class="toggle-grid">
+                  <label class="toggle-item"><input type="checkbox" id="exp-device-summary"><span>Device summary entity (Home Assistant)</span></label>
+                </div>
+                <p class="field-hint">Adds one device entity with enabled readings as attributes. Individual entities remain available.</p>
+
+                <div class="bulk-actions">
+                  <button type="button" class="btn-secondary" data-click="bulkToggleEntities" data-arg="true">Enable hardware sensors</button>
+                  <button type="button" class="btn-secondary" data-click="bulkToggleEntities" data-arg="false">Disable all sensors</button>
+                </div>
+                <p class="field-hint">Bulk enable affects supported hardware sensors only. Network identity, activity, sensitive content and remote controls require individual choices. Disable all sensors leaves remote controls and the device summary unchanged.</p>
+                <div class="sensor-tier" id="hardware-sensors">
+                  <div class="sensor-tier-head">
+                    <div class="tier-title-wrap">
+                      <h4 class="tier-title">Hardware & System Telemetry</h4>
+                      <span class="tier-badge tier-low">Low Privacy Risk</span>
+                    </div>
+                    <span class="tier-desc">Core hardware health counters and non-identifying diagnostics</span>
+                  </div>
+                  <div class="toggle-grid">
+                    <label class="toggle-item" data-cap="cpu"><input type="checkbox" class="exp-chk" id="exp-cpu"><span>Processor Load</span></label>
+                    <label class="toggle-item" data-cap="memory"><input type="checkbox" class="exp-chk" id="exp-mem"><span>Memory Allocated</span></label>
+                    <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-gpu"><span>Graphics Processor (GPU)</span></label>
+                    <label class="toggle-item" data-cap="gpu"><input type="checkbox" class="exp-chk" id="exp-nvidia-nvml"><span>NVIDIA temperatures &amp; power (NVML)</span><span class="nvml-tag" title="Approximate additional memory use when NVIDIA monitoring is enabled">~25MB memory</span></label>
+                    <label class="toggle-item" data-cap="storage"><input type="checkbox" class="exp-chk" id="exp-storage"><span>Fixed Storage Drives</span></label>
+                    <label class="toggle-item" data-cap="network"><input type="checkbox" class="exp-chk" id="exp-net"><span>Network Counters</span></label>
+                    <label class="toggle-item" data-cap="uptime"><input type="checkbox" class="exp-chk" id="exp-uptime"><span>System Uptime</span></label>
+                    <label class="toggle-item" data-cap="battery"><input type="checkbox" class="exp-chk" id="exp-battery"><span>Power & Battery</span></label>
+                    <label class="toggle-item" data-cap="system_theme"><input type="checkbox" class="exp-chk" id="exp-theme"><span id="lbl-theme">System Theme</span></label>
+                    <label class="toggle-item" data-cap="update_pending"><input type="checkbox" class="exp-chk" id="exp-reboot"><span>Pending Reboot</span></label>
+                  </div>
+                </div>
+
+                <div class="sensor-tier">
+                  <div class="sensor-tier-head">
+                    <div class="tier-title-wrap">
+                      <h4 class="tier-title">Network & Peripheral Context</h4>
+                      <span class="tier-badge tier-mod">Moderate Privacy Risk</span>
+                    </div>
+                    <span class="tier-desc">Local network identity, audio endpoint, and display state</span>
+                  </div>
+                  <div class="toggle-grid">
+                    <label class="toggle-item" data-cap="local_ip"><input type="checkbox" class="exp-chk" id="exp-local-ip"><span>Local IP Address</span></label>
+                    <label class="toggle-item" data-cap="wifi"><input type="checkbox" class="exp-chk" id="exp-wifi"><span>Wi-Fi Telemetry</span></label>
+                    <label class="toggle-item" data-cap="audio_output"><input type="checkbox" class="exp-chk" id="exp-audio-output"><span>Audio Device</span></label>
+                    <label class="toggle-item" data-cap="display_state"><input type="checkbox" class="exp-chk" id="exp-display"><span>Display State</span></label>
+                    <label class="toggle-item" data-cap="fullscreen"><input type="checkbox" class="exp-chk" id="exp-fullscreen"><span>Fullscreen / Games</span></label>
+                  </div>
+                </div>
+
+                <div class="sensor-tier">
+                  <div class="sensor-tier-head">
+                    <div class="tier-title-wrap">
+                      <h4 class="tier-title">User Presence & Application Activity</h4>
+                      <span class="tier-badge tier-high">High Privacy Risk</span>
+                    </div>
+                    <span class="tier-desc">Discloses user session activity, idle timing, music, and running app names</span>
+                  </div>
+                  <div class="toggle-grid">
+                    <label class="toggle-item" data-cap="user_presence"><input type="checkbox" class="exp-chk" id="exp-presence"><span>User Presence</span></label>
+                    <label class="toggle-item" data-cap="icue_rgb"><input type="checkbox" class="exp-chk" id="exp-icue-rgb" data-no-bulk><span>iCUE RGB Colours (Read Only)</span></label>
+                    <label class="toggle-item" data-cap="session_lock"><input type="checkbox" class="exp-chk" id="exp-lock"><span>Workstation Lock</span></label>
+                    <label class="toggle-item" data-cap="media_control"><input type="checkbox" class="exp-chk" id="exp-media"><span>Media details (track, artist and playback state)</span></label>
+
+                    <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-window"><span>Active Process</span></label>
+                  </div>
+                </div>
+
+                <div class="sensor-tier tier-critical">
+                  <div class="sensor-tier-head">
+                    <div class="tier-title-wrap">
+                      <h4 class="tier-title">Sensitive Content & Surveillance</h4>
+                      <span class="tier-badge tier-crit">Critical Privacy Risk</span>
+                    </div>
+                    <span class="tier-desc">Exposes exact window/document titles, microphone usage, webcam usage, and a tiny picture of your screen. Microphone and webcam sensors report usage; they do not record audio or video.</span>
+                  </div>
+                  <div class="toggle-grid">
+                    <label class="toggle-item" data-cap="active_window"><input type="checkbox" class="exp-chk" id="exp-title"><span>Window Title</span></label>
+                    <label class="toggle-item" data-cap="microphone"><input type="checkbox" class="exp-chk" id="exp-mic"><span>Microphone Usage</span></label>
+                    <label class="toggle-item" data-cap="webcam"><input type="checkbox" class="exp-chk" id="exp-webcam"><span>Webcam Usage</span></label>
+                    <label class="toggle-item" data-cap="screen_thumbnail" title="Each update includes a small picture of each selected display as a separate Home Assistant image. Thumbnails are never saved to disk. GPU capture is used when NVIDIA sensors (NVML) are on, with standard capture as a fallback."><input type="checkbox" class="exp-chk" id="exp-screen-thumb" data-no-bulk><span>Screen Thumbnails (every update)</span></label>
+                    <div class="field" data-cap="screen_thumbnail" style="grid-column:1/-1;">
+                      <label for="screen-thumb-mode">Displays to capture</label>
+                      <select id="screen-thumb-mode"><option value="primary">Primary display (existing image entity)</option><option value="selected">Choose displays</option></select>
+                      <div id="screen-thumb-displays-panel" hidden>
+                        <div id="screen-thumb-displays" class="toggle-grid" style="margin-top:10px;"></div>
+                        <div class="field-row" style="margin-top:10px;">
+                          <button type="button" class="btn btn-secondary" id="screen-thumb-all">Select all connected</button>
+                          <button type="button" class="btn btn-secondary" id="screen-thumb-refresh">Refresh displays</button>
+                        </div>
+                        <p id="screen-thumb-display-status" class="field-hint" aria-live="polite"></p>
+                        <p class="field-hint">Each selected display gets its own preview and Home Assistant image. Newly connected displays need to be selected before they are captured.</p>
+                      </div>
+                    </div>
+                    <div class="field" id="screen-thumb-size-field"><label for="screen-thumb-size">Thumbnail size (longest edge, px)</label><input type="number" class="mono" id="screen-thumb-size" min="64" max="400" step="1" value="200" title="Longest edge of the screen thumbnail, 64 to 400 pixels. Larger sizes show more detail, and above about 200 pixels large on-screen text can become readable."></div>
+                    <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="6" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea><p class="field-hint">Prefilled with common browsers, messaging apps and email clients. Edit or remove entries to choose what is hidden. Up to 128 program names.</p></div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="settings-section" id="settings-controls" aria-labelledby="settings-controls-title">
+              <header tabindex="-1"><h2 id="settings-controls-title">Remote controls</h2><p class="settings-section-intro">Allow only the commands and notifications you want this device to receive.</p></header>
+              <div class="config-card card-danger">
+                <div class="card-head head-danger">
+                  <h3 class="card-title title-danger">Danger Zone: Privileged Remote Control</h3>
+                </div>
+                <div class="danger-warning">
+                  Elevated permissions allow remote MQTT subscribers to execute actions and display unprompted interactive alerts on this workstation.
+                </div>
+                <div class="toggle-grid">
+                  <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="exp-media-commands"><span>Allow media commands</span></label>
+                  <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-play_pause" data-no-bulk><span>Allow play / pause</span></label>
+                  <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-stop" data-no-bulk><span>Allow stop</span></label>
+                  <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-next" data-no-bulk><span>Allow next track</span></label>
+                  <label class="toggle-item" data-cap="media_control"><input type="checkbox" id="media-allow-previous" data-no-bulk><span>Allow previous track</span></label>
+                  <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-mute" data-no-bulk><span>Allow mute / unmute</span></label>
+                  <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_up" data-no-bulk><span>Allow volume up</span></label>
+                  <label class="toggle-item" data-cap="audio_output"><input type="checkbox" id="media-allow-volume_down" data-no-bulk><span>Allow volume down</span></label>
+                  <label class="toggle-item" data-cap="remote_lock"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
+                  <label class="toggle-item" data-cap="notifications"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
+                </div>
+              </div>
+            </section>
+            <section class="settings-section" id="settings-access" aria-labelledby="settings-access-title">
+              <header tabindex="-1"><h2 id="settings-access-title">Local access</h2><p class="settings-section-intro">Configure the local web UI and optional JSON snapshot endpoint.</p></header>
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">Web UI &amp; Local JSON Interface (/json)</h3>
+                </div>
+                <div class="field">
+                  <label class="toggle-item"><input type="checkbox" id="json_enabled"><span>Enable Snapshot Endpoint</span></label>
+                </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="bind_address">Listen Address</label>
+                    <input class="mono" id="bind_address" placeholder="127.0.0.1" autocomplete="off" aria-describedby="bind-warning">
+                  </div>
+                  <div class="field">
+                    <label for="port">Port (0 for auto)</label>
+                    <input type="number" class="mono" id="port" min="0" max="65535" placeholder="0" autocomplete="off">
+                  </div>
+                </div>
+                <div id="bind-warning" class="field-warning" style="display:none;">
+                  This address makes the web UI and /json reachable from other devices over plain HTTP. Anyone who can see the link or the API key can control this computer. Use 127.0.0.1 unless you need remote access.
+                </div>
+                <div class="field">
+                  <label for="api_key">Authentication Token (or header X-API-Key)</label>
+                  <div class="input-with-action">
+                    <input class="mono" id="api_key" placeholder="Auto-generated if empty" autocomplete="off">
+                    <button type="button" class="input-btn" data-click="copyFrom" data-arg="api_key" title="Copy API Key" aria-label="Copy API Key">
+                      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="settings-section" id="settings-maintenance" aria-labelledby="settings-maintenance-title">
+              <header tabindex="-1"><h2 id="settings-maintenance-title">Maintenance</h2><p class="settings-section-intro">Manage update checks and configuration backups.</p></header>
+              <div class="config-card">
+                <div class="card-head">
+                  <h3 class="card-title">Software Updates</h3>
+                </div>
+                <div class="field">
+                  <label class="toggle-item"><input type="checkbox" id="check_updates"><span>Automatically check GitHub for updates</span></label>
+                </div>
+              </div>
+
+              <div class="config-card" id="portability-card">
+                <div class="card-head">
+                  <h3 class="card-title">Configuration Portability & Backup</h3>
+                </div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">
+                  Export your configuration to instantly replicate settings across systems. Passphrase protection encrypts credentials using AES-256-GCM.
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                    <span style="font-weight:600;font-size:13px;">Export Configuration</span>
+                    <div class="field-row">
+                      <div class="field">
+                        <label for="export_pass">Encryption Passphrase (Optional)</label>
+                        <div class="input-with-action">
+                          <input type="password" class="mono" id="export_pass" placeholder="Leave empty for plaintext export" autocomplete="new-password">
+                          <button type="button" class="input-btn" data-click="togglePassVis" data-arg="export_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <button type="button" id="btn-export" class="btn-secondary" data-click="exportConfig">Export .satconfig</button>
+                      <span id="export-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
+                    </div>
+                  </div>
+
+                  <div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;">
+                    <span style="font-weight:600;font-size:13px;">Import Configuration</span>
+                    <div class="field-row">
+                      <div class="field">
+                        <label for="import_file">Configuration File (.satconfig or .json)</label>
+                        <input type="file" id="import_file" accept=".satconfig,.json" style="font-size:12px;">
+                      </div>
+                      <div class="field">
+                        <label for="import_pass">Decryption Passphrase (If encrypted)</label>
+                        <div class="input-with-action">
+                          <input type="password" class="mono" id="import_pass" placeholder="Required if encrypted" autocomplete="current-password">
+                          <button type="button" class="input-btn" data-click="togglePassVis" data-arg="import_pass" title="Show / Hide Passphrase" aria-label="Show / Hide Passphrase">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label class="toggle-item">
+                        <input type="checkbox" id="import_reset_node_id" checked>
+                        <span>Adapt Node ID and Client ID to this computer's hostname (Recommended)</span>
+                      </label>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <button type="button" id="btn-import" class="btn-secondary" data-click="importConfig">Import & Apply</button>
+                      <span id="import-msg" class="mono" style="font-size:12px;" role="status" aria-live="polite"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </fieldset>
           <div class="save-bar">
-            <div style="display:flex;align-items:center;gap:10px;">
-              <button type="button" id="btn-test" class="btn-secondary">Test Broker</button>
-              <span class="dirty-note" id="dirty-note" style="display:none;">Unsaved changes</span>
+            <p class="msg-area" id="msg-area" role="status" aria-live="polite"></p>
+            <div class="save-bar-actions">
+              <span class="dirty-note" id="dirty-note" role="status">No pending changes</span>
+              <div class="save-bar-buttons">
+                <button type="button" id="btn-discard" class="btn-secondary" data-click="discardChanges" disabled>Discard changes</button>
+                <button type="submit" id="btn-apply" class="btn-primary" disabled>Apply changes</button>
+              </div>
             </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span class="msg-area mono" id="msg-area" role="status" aria-live="polite"></span>
-              <button type="submit" class="btn-primary">Apply & Restart Service</button>
-            </div>
+            <p class="field-hint">Applies all sections and reconnects reporting. Changing the listen address or port may move this page.</p>
           </div>
         </form>
       </div>
@@ -2014,7 +2127,19 @@ function toggleActionsPopover(forceClose) {
   }
   const btn = $('btn-quick-actions');
   if (btn) btn.setAttribute('aria-expanded', popover.classList.contains('open') ? 'true' : 'false');
+  positionActionsPopover();
 }
+
+function positionActionsPopover() {
+  const popover = $('actions-popover');
+  if (!popover.classList.contains('open')) return;
+  popover.style.transform = '';
+  const bounds = popover.getBoundingClientRect();
+  const shift = bounds.left < 12 ? 12 - bounds.left : bounds.right > innerWidth - 12 ? innerWidth - 12 - bounds.right : 0;
+  popover.style.transform = 'translateX(' + shift + 'px)';
+}
+
+window.addEventListener('resize', positionActionsPopover);
 
 document.addEventListener('click', e => {
   const anchor = document.querySelector('.popover-anchor');
@@ -2068,8 +2193,10 @@ function switchNav(tab) {
 }
 
 function bulkToggleEntities(checked) {
-  document.querySelectorAll('.exp-chk').forEach(el => {
+  const scope = checked ? '#hardware-sensors .exp-chk' : '#settings-sensors .exp-chk';
+  document.querySelectorAll(scope).forEach(el => {
     if (checked && el.dataset.noBulk !== undefined) return;
+    if (el.disabled || el.closest('[data-cap]')?.style.display === 'none') return;
     el.checked = checked;
   });
   setFormDirty(true);
@@ -2837,10 +2964,12 @@ async function poll() {
 }
 
 async function loadConfig() {
+  $('settings-fields').disabled = true;
   try {
     const res = await authFetch('/api/config');
     if (!res.ok) throw new Error('server returned ' + res.status);
     const cfg = await res.json();
+    $('pass').value = '';
     $('node_id').value = cfg.node_id || '';
     $('broker').value = cfg.mqtt ? cfg.mqtt.broker : '';
     $('user').value = cfg.mqtt ? cfg.mqtt.username : '';
@@ -2872,7 +3001,6 @@ async function loadConfig() {
 
     currentExpose = cfg.expose || {};
     $('exp-device-summary').checked = !!currentExpose.device_summary;
-    setFormDirty(false);
     $('exp-cpu').checked = currentExpose.cpu !== false;
     $('exp-mem').checked = currentExpose.memory !== false;
     $('exp-net').checked = currentExpose.network !== false;
@@ -2924,9 +3052,12 @@ async function loadConfig() {
         }
       }
     } catch (e) {}
+    captureSavedSettings();
     if (activeTab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
   } catch (err) {
-    if (!sessionExpired) showToast('Could not load settings: ' + err.message, true);
+    if (!sessionExpired) showMessage('Could not load settings. Reopen the web UI from Satellite and try again. Details: ' + err.message, true);
+  } finally {
+    $('settings-fields').disabled = !savedSettings || sessionExpired;
   }
 }
 
@@ -3019,82 +3150,66 @@ function moveToNewAddress(listen) {
   }, 1200);
 }
 
-function showMessage(text, isError) {
-  const el = $('msg-area');
-  el.innerText = text;
-  el.className = 'msg-area ' + (isError ? 'msg-err mono' : 'msg-ok mono');
-  setTimeout(() => {
-    el.innerText = '';
-  }, 4000);
+function showMessage(text, isError, target = 'msg-area') {
+  const el = $(target);
+  el.textContent = text;
+  el.classList.toggle('msg-err', !!isError);
+  el.classList.toggle('msg-ok', !isError);
 }
 
-$('btn-test').onclick = async () => {
-  showMessage('Testing connection...', false);
-  try {
-    const res = await authFetch('/api/test-connection', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        broker: $('broker').value,
-        username: $('user').value,
-        password: $('pass').value,
-        insecure_tls: $('insecure_tls').checked,
-      })
-    });
-    const result = await res.json();
-    showMessage(result.success ? 'Broker reached' : 'Error: ' + result.error, !result.success);
-    showToast(result.success ? 'Broker connection successful' : 'Broker connection failed: ' + result.error, !result.success);
-  } catch (err) {
-    showMessage('Error: ' + err.message, true);
-    showToast('Broker error: ' + err.message, true);
-  }
-};
+function jumpSettings(section) {
+  const target = $('settings-' + section);
+  if (!target) return;
+  target.scrollIntoView({ block: 'start' });
+  target.querySelector('header').focus({ preventScroll: true });
+}
 
-$('btn-test-tw').onclick = async () => {
-  showMessage('Sending test snapshot...', false);
+async function testSettingsConnection(buttonId, target, endpoint, payload, pending, success, recovery) {
+  const button = $(buttonId);
+  if (button.disabled) return;
+  button.disabled = true;
+  showMessage(pending, false, target);
   try {
-    const res = await authFetch('/api/test-telemetry-webhook', {
+    const res = await authFetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: $('tw_url').value.trim(),
-        bearer_token: $('tw_token').value,
-      })
+      body: JSON.stringify(payload),
     });
     const result = await res.json();
-    showMessage(result.success ? 'Webhook accepted the snapshot' : 'Error: ' + result.error, !result.success);
-    showToast(result.success ? 'Telemetry webhook test sent' : 'Telemetry webhook failed: ' + result.error, !result.success);
+    if (!res.ok || !result.success) throw new Error(result.error || 'Server returned ' + res.status);
+    showMessage(success, false, target);
   } catch (err) {
-    showMessage('Error: ' + err.message, true);
-    showToast('Webhook error: ' + err.message, true);
+    showMessage(recovery + ' Details: ' + err.message, true, target);
+  } finally {
+    button.disabled = false;
   }
-};
+}
 
-$('btn-test-lw').onclick = async () => {
-  showMessage('Sending test event...', false);
-  try {
-    const res = await authFetch('/api/test-webhook', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url: $('lw_url').value.trim(),
-        secret: $('lw_secret').value,
-      })
-    });
-    const result = await res.json();
-    showMessage(result.success ? 'Webhook accepted the test event' : 'Error: ' + result.error, !result.success);
-    showToast(result.success ? 'Log webhook test sent' : 'Log webhook failed: ' + result.error, !result.success);
-  } catch (err) {
-    showMessage('Error: ' + err.message, true);
-    showToast('Webhook error: ' + err.message, true);
-  }
-};
+$('btn-test').onclick = () => testSettingsConnection('btn-test', 'mqtt-test-result', '/api/test-connection', {
+  broker: $('broker').value,
+  username: $('user').value,
+  password: $('pass').value,
+  insecure_tls: $('insecure_tls').checked,
+}, 'Testing broker connection…', 'Broker connection successful. Test only; no settings were saved.', 'Could not connect. Check the broker address, credentials and TLS settings, then test again.');
+
+$('btn-test-tw').onclick = () => testSettingsConnection('btn-test-tw', 'tw-test-result', '/api/test-telemetry-webhook', {
+  url: $('tw_url').value.trim(),
+  bearer_token: $('tw_token').value,
+}, 'Sending test snapshot…', 'Webhook accepted the snapshot. Test only; no settings were saved.', 'Could not send the snapshot. Check the webhook URL and bearer token, then test again.');
+
+$('btn-test-lw').onclick = () => testSettingsConnection('btn-test-lw', 'lw-test-result', '/api/test-webhook', {
+  url: $('lw_url').value.trim(),
+  secret: $('lw_secret').value,
+}, 'Sending test event…', 'Webhook accepted the test event. Test only; no settings were saved.', 'Could not send the event. Check the webhook URL and bearer secret, then test again.');
 
 $('cfg-form').onsubmit = async (e) => {
   e.preventDefault();
+  if (settingsSaving || !savedSettings) return;
   const thumbnailDisplays = $('screen-thumb-mode').value === 'selected' ? selectedThumbnailDisplays() : [];
   if ($('exp-screen-thumb').checked && $('screen-thumb-mode').value === 'selected' && !thumbnailDisplays.length) {
-    showToast('Select at least one display for screen thumbnails.', true);
+    showMessage('Select at least one display for screen thumbnails before applying.', true);
+    jumpSettings('sensors');
+    $('screen-thumb-mode').focus();
     return;
   }
   const intervalSec = parseInt($('interval').value, 10) || 5;
@@ -3164,6 +3279,10 @@ $('cfg-form').onsubmit = async (e) => {
     },
   };
 
+  settingsSaving = true;
+  $('settings-fields').disabled = true;
+  setFormDirty(formDirty);
+  showMessage('Applying changes…', false);
   try {
     const res = await authFetch('/api/config', {
       method: 'POST',
@@ -3171,9 +3290,10 @@ $('cfg-form').onsubmit = async (e) => {
       body: JSON.stringify(payload),
     });
     const result = await res.json();
-    if (result.success) {
+    if (res.ok && result.success) {
       currentExpose = newExpose;
-      setFormDirty(false);
+      ['pass', 'tw_token', 'lw_secret'].forEach(id => { $(id).value = ''; $(id).type = 'password'; });
+      captureSavedSettings();
       if (result.listen && result.listen.moved) {
         moveToNewAddress(result.listen);
         return;
@@ -3182,12 +3302,14 @@ $('cfg-form').onsubmit = async (e) => {
       showToast('Configuration applied and saved', false);
       poll();
     } else {
-      showMessage('Error: ' + result.error, true);
-      showToast('Config error: ' + result.error, true);
+      showMessage('Could not apply changes. Your edits are kept. Check the settings and try again. Details: ' + (result.error || res.status), true);
     }
   } catch (err) {
-    showMessage('Error: ' + err.message, true);
-    showToast('Config error: ' + err.message, true);
+    showMessage('Could not confirm whether changes were saved. Your edits are kept. Check the connection before retrying. Details: ' + err.message, true);
+  } finally {
+    settingsSaving = false;
+    $('settings-fields').disabled = false;
+    setFormDirty(formDirty);
   }
 };
 
@@ -3221,11 +3343,11 @@ async function exportConfig() {
     URL.revokeObjectURL(link.href);
 
     msgEl.innerText = pass ? 'Encrypted export ready' : 'Plaintext export ready';
-    msgEl.style.color = '#22c55e';
+    msgEl.style.color = 'var(--success)';
     showToast('Configuration exported: ' + filename, false);
   } catch (err) {
     msgEl.innerText = 'Error: ' + err.message;
-    msgEl.style.color = '#ef4444';
+    msgEl.style.color = 'var(--danger)';
     showToast('Export failed: ' + err.message, true);
   }
 }
@@ -3235,7 +3357,7 @@ async function importConfig() {
   const fileInput = $('import_file');
   if (!fileInput.files || fileInput.files.length === 0) {
     msgEl.innerText = 'Please select a file to import';
-    msgEl.style.color = '#ef4444';
+    msgEl.style.color = 'var(--danger)';
     showToast('Please select a configuration file', true);
     return;
   }
@@ -3261,7 +3383,7 @@ async function importConfig() {
       successText += ' (Notice: file was exported from newer v' + result.source_app_version + ')';
     }
     msgEl.innerText = successText;
-    msgEl.style.color = '#22c55e';
+    msgEl.style.color = 'var(--success)';
     $('import_pass').value = '';
     if (result.listen && result.listen.moved) {
       moveToNewAddress(result.listen);
@@ -3271,7 +3393,7 @@ async function importConfig() {
     await loadConfig();
   } catch (err) {
     msgEl.innerText = 'Error: ' + err.message;
-    msgEl.style.color = '#ef4444';
+    msgEl.style.color = 'var(--danger)';
     showToast('Import failed: ' + err.message, true);
   }
 }
@@ -3423,6 +3545,8 @@ const clickHandlers = {
   exportConfig: () => exportConfig(),
   importConfig: () => importConfig(),
   bulkToggleEntities: arg => bulkToggleEntities(arg === 'true'),
+  jumpSettings: arg => jumpSettings(arg),
+  discardChanges: () => discardChanges(),
   togglePassVis: arg => togglePassVis(arg),
 };
 
@@ -3454,12 +3578,48 @@ document.addEventListener('keydown', e => {
 
 // Tell the user when the form has edits that are not applied yet.
 let formDirty = false;
+let settingsSaving = false;
+let savedSettings = null;
 function setFormDirty(dirty) {
   formDirty = dirty;
-  $('dirty-note').style.display = dirty ? '' : 'none';
+  $('dirty-note').textContent = dirty ? 'Unsaved changes' : 'No pending changes';
+  $('dirty-note').closest('.save-bar').classList.toggle('has-changes', dirty);
+  $('btn-discard').disabled = !dirty || !savedSettings || settingsSaving;
+  $('btn-apply').disabled = !dirty || !savedSettings || settingsSaving;
 }
+
+function settingsFields() {
+  return [...$('cfg-form').querySelectorAll('input[id], select[id], textarea[id]')].filter(el => !el.closest('#portability-card'));
+}
+
+function captureSavedSettings() {
+  savedSettings = { fields: settingsFields().map(el => ({ id: el.id, value: el.value, checked: el.checked })), displays: selectedThumbnailDisplays() };
+  setFormDirty(false);
+}
+
+function discardChanges() {
+  if (!savedSettings || settingsSaving) return;
+  stopICUESDKCheck();
+  savedSettings.fields.forEach(field => {
+    $(field.id).value = field.value;
+    $(field.id).checked = field.checked;
+  });
+  ['pass', 'tw_token', 'lw_secret'].forEach(id => { $(id).type = 'password'; });
+  renderThumbnailDisplays(connectedThumbnailDisplays, savedSettings.displays);
+  updateThumbnailDisplayMode();
+  updateBindWarning();
+  ['mqtt-test-result', 'tw-test-result', 'lw-test-result'].forEach(id => { $(id).textContent = ''; });
+  setFormDirty(false);
+  showMessage('Changes discarded. Saved settings restored.', false);
+  if (activeTab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
+}
+
+$('settings-jump').addEventListener('change', e => {
+  jumpSettings(e.target.value);
+  e.target.value = '';
+});
 // Export and import passphrases and the file picker are not settings.
-const markDirty = e => { if (!e.target.closest('#portability-card')) setFormDirty(true); };
+const markDirty = e => { if (e.target.closest('#portability-card')) return; setFormDirty(true); };
 $('cfg-form').addEventListener('input', markDirty);
 $('cfg-form').addEventListener('change', markDirty);
 $('exp-icue-rgb').addEventListener('change', startICUESDKCheck);

@@ -82,6 +82,10 @@ these commands from `windows/`:
 
 Enable the WebUI from the Windows tray menu and select **Open WebUI** (or launch `--debug` for browser setup on Linux) to connect your MQTT broker, toggle exposed sensors, configure the `/json` snapshot endpoint, set up the telemetry webhook, or enable webhook log pushing.
 
+Settings has jump-to sections for **Reporting**, **Sensors**, **Remote controls**, **Local access**, and **Maintenance**. MQTT and both webhooks are grouped under Reporting. Connection tests use the values entered in the form without saving them, and keep their results beside the test button.
+
+Use **Apply changes** to save all sections, or **Discard changes** to restore the last saved values. **Enable hardware sensors** only selects supported hardware sensors; sensitive sensors and remote controls require individual choices. **Disable all sensors** leaves remote-control permissions and the device summary unchanged.
+
 The WebUI automatically probes your operating system and hardware on boot and only displays sensor toggles that are actually supported on your current machine.
 
 Config is saved at:
