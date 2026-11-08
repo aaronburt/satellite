@@ -17,7 +17,7 @@ func TestPrivacyCountdownTitle(t *testing.T) {
 		status privacy.Status
 		want   string
 	}{
-		{privacy.Status{}, "Quick Privacy Pause"},
+		{privacy.Status{}, "Privacy Pause"},
 		{privacy.Status{Paused: true, RemainingSeconds: 300}, "Privacy paused: 05:00 remaining"},
 		{privacy.Status{Paused: true, RemainingSeconds: 61}, "Privacy paused: 01:01 remaining"},
 		{privacy.Status{Paused: true, RemainingSeconds: 1}, "Privacy paused: 00:01 remaining"},

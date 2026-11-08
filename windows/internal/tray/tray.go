@@ -48,6 +48,9 @@ type Tray struct {
 	onExit          func()
 	cancel          context.CancelFunc
 	mu              sync.Mutex
+	titles          map[*systray.MenuItem]string
+	updateVisible   bool
+	privacyLabel    string
 }
 
 func NewTray(server *webui.Server, mqttClient *mqtt.Client, updaterInstance *updater.Checker, onExit func()) *Tray {
@@ -69,36 +72,35 @@ func (t *Tray) onReady() {
 	systray.SetTitle("Satellite Agent")
 	systray.SetTooltip("Satellite Agent - Home Assistant")
 
-	t.statusItem = systray.AddMenuItem("Status: Checking...", "MQTT Connection Status")
+	t.statusItem = systray.AddMenuItem("MQTT: Connecting", "MQTT connection status")
 	t.statusItem.Disable()
-
-	t.updateItem = systray.AddMenuItem("Update Available", "Click to view release on GitHub")
-	t.updateItem.Hide()
-
 	systray.AddSeparator()
-
-	t.privacyItem = systray.AddMenuItem("Quick Privacy Pause", "Pause presence, session lock, media details, active app, window titles, microphone/webcam usage and screen thumbnails")
-	for i, minutes := range privacyMinutes {
-		t.pauseItems[i] = t.privacyItem.AddSubMenuItem(fmt.Sprintf("Pause for %d minutes", minutes), "Automatically resume your enabled sensitive sensors after this duration")
-	}
-	t.resumeItem = t.privacyItem.AddSubMenuItem("Resume sensitive sensors now", "End the privacy pause early")
-	t.refreshPrivacy()
-
-	systray.AddSeparator()
-
 	t.openItem = systray.AddMenuItem("Open Satellite", "Open Satellite configuration window")
-	t.browserItem = systray.AddMenuItem("Open in Browser", "Open the same interface in your default browser")
-	t.toggleItem = systray.AddMenuItem("WebUI: Disabled (Click to Enable)", "Enable or disable embedded WebUI HTTP server")
-	t.checkUpdateItem = systray.AddMenuItem("Check for Updates", "Check GitHub for newer versions")
-
+	t.updateItem = systray.AddMenuItem("Update available...", "View the latest release")
+	t.updateItem.Hide()
 	systray.AddSeparator()
-	t.quitItem = systray.AddMenuItem("Exit", "Exit Satellite Agent")
+	t.privacyItem = systray.AddMenuItem("Privacy Pause", "Temporarily pause sensitive sensors")
+	for i, minutes := range privacyMinutes {
+		t.pauseItems[i] = t.privacyItem.AddSubMenuItem(fmt.Sprintf("Pause for %d minutes", minutes), "Automatically resume sensitive sensors")
+	}
+	t.resumeItem = systray.AddMenuItem("Resume sensitive sensors", "End the privacy pause early")
+	t.refreshPrivacy()
+	systray.AddSeparator()
+	more := systray.AddMenuItem("More", "Server and update controls")
+	t.browserItem = more.AddSubMenuItem("Open in Browser", "Open Satellite in your default browser")
+	t.toggleItem = more.AddSubMenuItem("Enable web server", "Toggle the embedded WebUI HTTP server")
+	t.checkUpdateItem = more.AddSubMenuItem("Check for Updates", "Check for newer versions")
+	systray.AddSeparator()
+	t.quitItem = systray.AddMenuItem("Quit Satellite", "Stop Satellite and exit")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.cancel = cancel
 
 	go t.statusUpdater(ctx)
 	go t.eventLoop()
+	if err := installTrayDoubleClick(t.openItem.ClickedCh); err != nil {
+		logger.Warn("tray", err.Error())
+	}
 }
 
 func (t *Tray) onSystrayExit() {
@@ -124,30 +126,36 @@ func (t *Tray) statusUpdater(ctx context.Context) {
 		case <-ticker.C:
 			t.refreshPrivacy()
 			status := t.mqttClient.Status()
-			title := fmt.Sprintf("Status: %s", status)
+			title := fmt.Sprintf("MQTT: %s", status)
 			switch status {
 			case mqtt.StatusConnected:
-				title = "Status: Connected"
+				title = "MQTT: Connected"
 			case mqtt.StatusConnecting:
-				title = "Status: Connecting"
+				title = "MQTT: Connecting"
 			case mqtt.StatusDisconnected:
-				title = "Status: Disconnected"
+				title = "MQTT: Disconnected"
 			}
-			t.statusItem.SetTitle(title)
+			t.setTitle(t.statusItem, title)
 
 			if t.server.IsWebUIEnabled() && t.server.IsRunning() {
-				t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
+				t.setTitle(t.toggleItem, "Disable web server")
 			} else {
-				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
+				t.setTitle(t.toggleItem, "Enable web server")
 			}
 
 			if t.updaterInstance != nil {
 				updateStatus := t.updaterInstance.Status()
 				if updateStatus.Available {
-					t.updateItem.SetTitle(fmt.Sprintf("Update Available: %s (Click to View)", updateStatus.LatestVersion))
-					t.updateItem.Show()
+					t.setTitle(t.updateItem, fmt.Sprintf("Update available: %s...", updateStatus.LatestVersion))
+					if !t.updateVisible {
+						t.updateItem.Show()
+						t.updateVisible = true
+					}
 				} else {
-					t.updateItem.Hide()
+					if t.updateVisible {
+						t.updateItem.Hide()
+						t.updateVisible = false
+					}
 				}
 			}
 		}
@@ -200,14 +208,14 @@ func (t *Tray) eventLoop() {
 				if !t.server.IsJSONEnabled() {
 					t.server.Stop()
 				}
-				t.toggleItem.SetTitle("WebUI: Disabled (Click to Enable)")
+				t.setTitle(t.toggleItem, "Enable web server")
 			} else {
 				t.server.SetWebUIEnabled(true)
 				if !t.server.IsRunning() {
 					_, _ = t.server.Start(config.Get().GetPort())
 				}
 				if t.server.IsRunning() {
-					t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
+					t.setTitle(t.toggleItem, "Disable web server")
 				}
 			}
 		case <-t.quitItem.ClickedCh:
@@ -226,7 +234,7 @@ func (t *Tray) enableWebUI() bool {
 		}
 	}
 	if t.toggleItem != nil {
-		t.toggleItem.SetTitle("WebUI: Enabled (Click to Disable)")
+		t.setTitle(t.toggleItem, "Disable web server")
 	}
 	return true
 }
@@ -242,7 +250,7 @@ func clicked(item *systray.MenuItem) <-chan struct{} {
 
 func privacyTitle(status privacy.Status) string {
 	if !status.Paused {
-		return "Quick Privacy Pause"
+		return "Privacy Pause"
 	}
 	return fmt.Sprintf("Privacy paused: %02d:%02d remaining", status.RemainingSeconds/60, status.RemainingSeconds%60)
 }
@@ -256,16 +264,40 @@ func (t *Tray) refreshPrivacy() {
 	if t.privacyItem == nil || t.resumeItem == nil {
 		return
 	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	status := privacy.Default.Status()
 	title := privacyTitle(status)
+	if title == t.privacyLabel {
+		return
+	}
+	wasPaused := t.privacyLabel != "" && t.privacyLabel != "Privacy Pause"
+	t.privacyLabel = title
 	t.privacyItem.SetTitle(title)
 	if status.Paused {
-		t.resumeItem.Enable()
+		if !wasPaused {
+			t.resumeItem.Enable()
+			t.resumeItem.Show()
+		}
 		systray.SetTooltip("Satellite Agent - " + title)
 	} else {
 		t.resumeItem.Disable()
+		t.resumeItem.Hide()
 		systray.SetTooltip("Satellite Agent - Home Assistant")
 	}
+}
+
+func (t *Tray) setTitle(item *systray.MenuItem, title string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.titles == nil {
+		t.titles = make(map[*systray.MenuItem]string)
+	}
+	if t.titles[item] == title {
+		return
+	}
+	t.titles[item] = title
+	item.SetTitle(title)
 }
 
 func (t *Tray) manualCheckUpdate() {

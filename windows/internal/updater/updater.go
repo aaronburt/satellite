@@ -77,7 +77,7 @@ func NewChecker(repo, currentVersion string, onUpdateFound OnUpdateFoundFunc) *C
 			Timeout: DefaultRequestTimeout,
 		},
 		onUpdateFound: onUpdateFound,
-		enabled:       true,
+		enabled:       currentVersion != "0.99999",
 		status: CheckStatus{
 			CurrentVersion: currentVersion,
 		},
@@ -87,7 +87,7 @@ func NewChecker(repo, currentVersion string, onUpdateFound OnUpdateFoundFunc) *C
 func (c *Checker) SetEnabled(enabled bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.enabled = enabled
+	c.enabled = enabled && c.currentVersion != "0.99999"
 }
 
 func (c *Checker) IsEnabled() bool {

@@ -26,7 +26,7 @@ type ReleaseAsset struct {
 func (c *Checker) SetAutoUpdate(enabled bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.autoUpdate = enabled
+	c.autoUpdate = enabled && c.currentVersion != "0.99999"
 }
 
 func (c *Checker) checkBackground(ctx context.Context) (CheckStatus, error) {
