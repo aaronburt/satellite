@@ -129,6 +129,12 @@ argument. Import adapts node/client identity to the current hostname by default;
 use `--reset-node-id=false` to retain the imported identity. Restart the agent
 after importing. Linux uses `./satellite` with the same flags.
 
+## Media command permissions
+
+Media details controls reporting of track, artist, and playback state. Allow media commands is independent, so controls can be enabled without sharing media details. In Settings, choose separate allowances for play/pause, stop, next track, previous track, mute/unmute, volume up, and volume down. Disabled commands are rejected over MQTT and the local action API, and their Home Assistant buttons are removed.
+
+The command switch is stored in `expose.media_commands`; when omitted, it follows the legacy `media_control` setting. Permissions are stored in `expose.media_permissions` using `play_pause`, `stop`, `next`, `previous`, `mute`, `volume_up`, and `volume_down`. Existing configurations without this object retain all media allowances when media commands are enabled. In an explicit permissions object, omitted allowances are disabled.
+
 ## Quick privacy pause
 
 From the Windows tray, open **Quick Privacy Pause** and choose **5, 15, 30, or

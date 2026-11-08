@@ -470,15 +470,10 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	}
 }
 
-// acceptsCommands reports whether any setting that exposes a remote command
-// (a Home Assistant button or media player) is enabled.
 func acceptsCommands(e config.ExposeConfig) bool {
-	return e.RemoteLock || e.MediaControl || e.DisplayState
+	return e.RemoteLock || e.MediaCommandsEnabled() || e.DisplayState
 }
 
-// commandAllowed reports whether a canonical action may be triggered over
-// MQTT. Each action is gated by the setting that exposes it in Home
-// Assistant, so enabling media controls does not also allow locking the PC.
 func commandAllowed(e config.ExposeConfig, action string) bool {
 	switch action {
 	case "lock":
@@ -487,7 +482,7 @@ func commandAllowed(e config.ExposeConfig, action string) bool {
 		return e.DisplayState
 	case "media_play_pause", "media_play", "media_pause", "media_next", "media_prev",
 		"media_stop", "volume_mute", "volume_up", "volume_down":
-		return e.MediaControl
+		return e.MediaActionAllowed(action)
 	}
 	return false
 }

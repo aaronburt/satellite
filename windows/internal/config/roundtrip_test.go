@@ -16,8 +16,6 @@ import (
 	"satellite/internal/testutil"
 )
 
-// fillAllFields sets every exported field of v (recursively) to a distinct
-// non-zero value, so round-trip tests notice any field that gets dropped.
 func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 	t.Helper()
 	for i := 0; i < v.NumField(); i++ {
@@ -40,6 +38,13 @@ func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 				t.Fatalf("fillAllFields: unsupported slice of %s for %s; extend the helper", f.Type().Elem().Kind(), name)
 			}
 			f.Set(reflect.ValueOf([]string{fmt.Sprintf("value-%s-%d.exe", strings.ToLower(name), *counter)}))
+		case reflect.Pointer:
+			f.Set(reflect.New(f.Type().Elem()))
+			if f.Elem().Kind() == reflect.Bool {
+				f.Elem().SetBool(true)
+			} else {
+				fillAllFields(t, f.Elem(), name+".", counter)
+			}
 		case reflect.Struct:
 			fillAllFields(t, f, name+".", counter)
 		default:

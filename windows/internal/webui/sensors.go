@@ -325,6 +325,12 @@ func BuildSensors(expose config.ExposeConfig, caps capabilities.PlatformCapabili
 		b.add(s)
 	}
 
+	if !expose.MediaControl && b.on(expose.MediaCommandsEnabled(), "media_control") {
+		s := b.base("media_controls", GroupDevices, "Media controls")
+		s.Value = "Remote controls"
+		b.add(s)
+	}
+
 	if b.on(expose.AudioOutput, "audio_output") {
 		s := b.base("audio_output", GroupDevices, "Audio output")
 		b.text(&s, snap.AudioOutputName, "None")

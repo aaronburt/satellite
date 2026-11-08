@@ -34,7 +34,9 @@ func everythingExposed() config.ExposeConfig {
 	var e config.ExposeConfig
 	v := reflect.ValueOf(&e).Elem()
 	for i := 0; i < v.NumField(); i++ {
-		v.Field(i).SetBool(true)
+		if v.Field(i).Kind() == reflect.Bool {
+			v.Field(i).SetBool(true)
+		}
 	}
 	return e
 }
