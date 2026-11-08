@@ -17,33 +17,41 @@ type DeviceInfo struct {
 	Model        string   `json:"model"`
 	Manufacturer string   `json:"manufacturer"`
 	SWVersion    string   `json:"sw_version,omitempty"`
+	ViaDevice    string   `json:"via_device,omitempty"`
+}
+
+type EntityAvailability struct {
+	Topic         string `json:"topic"`
+	ValueTemplate string `json:"value_template,omitempty"`
 }
 
 type EntityDiscoveryPayload struct {
-	Component              string     `json:"-"`
-	Name                   any        `json:"name"`
-	StateTopic             string     `json:"state_topic,omitempty"`
-	ValueTemplate          string     `json:"value_template,omitempty"`
-	UniqueID               string     `json:"unique_id"`
-	Device                 DeviceInfo `json:"device"`
-	AvailabilityTopic      string     `json:"availability_topic"`
-	UnitOfMeasurement      string     `json:"unit_of_measurement,omitempty"`
-	DeviceClass            string     `json:"device_class,omitempty"`
-	StateClass             string     `json:"state_class,omitempty"`
-	PayloadOn              string     `json:"payload_on,omitempty"`
-	PayloadOff             string     `json:"payload_off,omitempty"`
-	CommandTopic           string     `json:"command_topic,omitempty"`
-	PayloadPress           string     `json:"payload_press,omitempty"`
-	PayloadPlay            string     `json:"payload_play,omitempty"`
-	PayloadPause           string     `json:"payload_pause,omitempty"`
-	PayloadStop            string     `json:"payload_stop,omitempty"`
-	PayloadNext            string     `json:"payload_next,omitempty"`
-	PayloadPrevious        string     `json:"payload_previous,omitempty"`
-	JSONAttributesTopic    string     `json:"json_attributes_topic,omitempty"`
-	JSONAttributesTemplate string     `json:"json_attributes_template,omitempty"`
-	Icon                   string     `json:"icon,omitempty"`
-	ImageTopic             string     `json:"image_topic,omitempty"`
-	ContentType            string     `json:"content_type,omitempty"`
+	Component              string               `json:"-"`
+	Name                   any                  `json:"name"`
+	StateTopic             string               `json:"state_topic,omitempty"`
+	ValueTemplate          string               `json:"value_template,omitempty"`
+	UniqueID               string               `json:"unique_id"`
+	Device                 DeviceInfo           `json:"device"`
+	AvailabilityTopic      string               `json:"availability_topic,omitempty"`
+	Availability           []EntityAvailability `json:"availability,omitempty"`
+	AvailabilityMode       string               `json:"availability_mode,omitempty"`
+	UnitOfMeasurement      string               `json:"unit_of_measurement,omitempty"`
+	DeviceClass            string               `json:"device_class,omitempty"`
+	StateClass             string               `json:"state_class,omitempty"`
+	PayloadOn              string               `json:"payload_on,omitempty"`
+	PayloadOff             string               `json:"payload_off,omitempty"`
+	CommandTopic           string               `json:"command_topic,omitempty"`
+	PayloadPress           string               `json:"payload_press,omitempty"`
+	PayloadPlay            string               `json:"payload_play,omitempty"`
+	PayloadPause           string               `json:"payload_pause,omitempty"`
+	PayloadStop            string               `json:"payload_stop,omitempty"`
+	PayloadNext            string               `json:"payload_next,omitempty"`
+	PayloadPrevious        string               `json:"payload_previous,omitempty"`
+	JSONAttributesTopic    string               `json:"json_attributes_topic,omitempty"`
+	JSONAttributesTemplate string               `json:"json_attributes_template,omitempty"`
+	Icon                   string               `json:"icon,omitempty"`
+	ImageTopic             string               `json:"image_topic,omitempty"`
+	ContentType            string               `json:"content_type,omitempty"`
 }
 
 // Seams so tests can control which drives and GPUs discovery sees.
