@@ -38,6 +38,7 @@ type MediaPermissions struct {
 }
 
 type ExposeConfig struct {
+	DeviceSummary    bool              `json:"device_summary"`
 	MediaCommands    *bool             `json:"media_commands,omitempty"`
 	MediaPermissions *MediaPermissions `json:"media_permissions,omitempty"`
 	CPU              bool              `json:"cpu"`

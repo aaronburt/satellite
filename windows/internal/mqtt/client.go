@@ -495,6 +495,7 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		return nil
 	}
 
+	snap.SummaryThumbnailAvailable = summaryThumbnailAvailable(c.cfg.Expose, snap)
 	heartbeatSec := c.cfg.HeartbeatSec
 	if heartbeatSec <= 0 {
 		heartbeatSec = 60
@@ -709,3 +710,13 @@ func (c *Client) handleNotify(payload []byte) {
 		logger.Warn("mqtt", fmt.Sprintf("Dropping toast notification '%s': queue full", n.Title))
 	}
 }
+
+func summaryThumbnailAvailable(expose config.ExposeConfig, snap telemetry.Snapshot) *bool {
+	if !expose.DeviceSummary {
+		return nil
+	}
+	available := expose.ScreenThumbnail && !privacy.Default.Status().Paused && (snap.SessionLocked == nil || !*snap.SessionLocked) && !summarySessionLocked()
+	return &available
+}
+
+var summarySessionLocked = telemetry.IsSessionLocked

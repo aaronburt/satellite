@@ -129,6 +129,24 @@ argument. Import adapts node/client identity to the current hostname by default;
 use `--reset-node-id=false` to retain the imported identity. Restart the agent
 after importing. Linux uses `./satellite` with the same flags.
 
+## Device summary entity
+
+Enable **Device summary entity (Home Assistant)** in Settings to discover one optional sensor named after the Satellite device. It uses the existing `<topic_prefix>/<node_id>/state` topic and exposes that snapshot as attributes; individual sensors and controls remain available. It does not enable any additional sensors. The setting is `expose.device_summary` and defaults to `false`.
+
+The state is **Locked** when the enabled session-lock sensor reports locked, otherwise **Active** or **Idle** when presence reporting is enabled, and **Online** when neither reading is available. MQTT availability makes the summary unavailable when the device disconnects.
+
+When screen thumbnails are enabled, the summary resolves an image entity belonging to the same device in Home Assistant and uses its current picture. With multiple images, the first image entity in alphabetical entity-ID order is used. The picture is cleared on the next telemetry update when thumbnails are disabled, privacy pause is active, or the workstation is locked. Renaming the summary or image entity is supported. The summary does not upload additional images.
+
+Add a tile using the actual summary entity ID from Home Assistant:
+
+```yaml
+type: tile
+entity: sensor.your_satellite_device
+show_entity_picture: true
+```
+
+Attributes include only the readings present in the published snapshot, plus thumbnail availability metadata. Home Assistant may record changing attributes in its database; exclude the summary from Recorder if you do not need its history. A standard tile shows the summary state and picture; individual controls still use their own entities.
+
 ## Media command permissions
 
 Media details controls reporting of track, artist, and playback state. Allow media commands is independent, so controls can be enabled without sharing media details. In Settings, choose separate allowances for play/pause, stop, next track, previous track, mute/unmute, volume up, and volume down. Disabled commands are rejected over MQTT and the local action API, and their Home Assistant buttons are removed.

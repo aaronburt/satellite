@@ -21,7 +21,7 @@ type DeviceInfo struct {
 
 type EntityDiscoveryPayload struct {
 	Component              string     `json:"-"`
-	Name                   string     `json:"name"`
+	Name                   any        `json:"name"`
 	StateTopic             string     `json:"state_topic,omitempty"`
 	ValueTemplate          string     `json:"value_template,omitempty"`
 	UniqueID               string     `json:"unique_id"`
@@ -128,6 +128,22 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 		ShouldRun bool
 		Payload   EntityDiscoveryPayload
 	}{
+		{
+			Key:       "device_summary",
+			ShouldRun: cfg.Expose.DeviceSummary,
+			Payload: EntityDiscoveryPayload{
+				Component:              "sensor",
+				Name:                   nil,
+				StateTopic:             stateTopic,
+				ValueTemplate:          "{{ 'Locked' if value_json.session_locked | default(false) else ('Active' if value_json.user_active else 'Idle') if value_json.user_active is defined else 'Online' }}",
+				JSONAttributesTopic:    stateTopic,
+				JSONAttributesTemplate: summaryAttributesTemplate,
+				UniqueID:               nodeID + "_device_summary",
+				Device:                 device,
+				AvailabilityTopic:      availTopic,
+				Icon:                   "mdi:desktop-tower-monitor",
+			},
+		},
 		{
 			Key:       "icue_rgb",
 			ShouldRun: cfg.Expose.ICUERGB && isCap("icue_rgb"),
@@ -865,3 +881,5 @@ func GetAllDiscoveryItems(cfg config.Config, hasBattery bool, platformCaps ...ca
 
 	return items
 }
+
+const summaryAttributesTemplate = `{% set d = device_id(this.entity_id) if this is defined else none %}{% set images = device_entities(d) | select('match', '^image[.]') | sort | list if d else [] %}{% set picture = state_attr(images[0], 'entity_picture') if value_json.summary_thumbnail_available | default(false) and images | count > 0 else none %}{{ dict(value_json, entity_picture=picture) | to_json }}`

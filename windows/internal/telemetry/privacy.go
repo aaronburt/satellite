@@ -16,6 +16,10 @@ func (s Snapshot) withoutSensitive() Snapshot {
 	s.UserActive = nil
 	s.SessionLocked = nil
 	s.Media = nil
+	if s.SummaryThumbnailAvailable != nil {
+		unavailable := false
+		s.SummaryThumbnailAvailable = &unavailable
+	}
 	s.RGB = nil
 	s.ActiveProcess = ""
 	s.ActiveWindowTitle = ""
