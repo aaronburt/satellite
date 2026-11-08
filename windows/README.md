@@ -157,6 +157,19 @@ Media details controls reporting of track, artist, and playback state. Allow med
 
 The command switch is stored in `expose.media_commands`; when omitted, it follows the legacy `media_control` setting. Permissions are stored in `expose.media_permissions` using `play_pause`, `stop`, `next`, `previous`, `mute`, `volume_up`, and `volume_down`. Existing configurations without this object retain all media allowances when media commands are enabled. In an explicit permissions object, omitted allowances are disabled.
 
+## Lock cooldown
+
+In Settings → Remote controls, **Lock cooldown (seconds)** sets the minimum
+time between lock attempts. The default is **60 seconds**, including for existing
+configurations. Set it to **0** to disable the cooldown. Changes apply immediately
+after saving and are preserved by configuration export/import.
+
+MQTT and HTTP lock commands share the cooldown, including command aliases.
+Extra requests are discarded without extending the cooldown or being queued.
+Failed lock attempts also start the cooldown. HTTP returns status 429 when a
+lock is blocked. The timer resets when Satellite restarts; it does not affect
+locking directly through the operating system.
+
 ## Quick privacy pause
 
 From the Windows tray, open **Quick Privacy Pause** and choose **5, 15, 30, or

@@ -904,6 +904,10 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		prev := config.Get()
 		next := prev
+		if prev.LockCooldownSec != nil {
+			seconds := *prev.LockCooldownSec
+			next.LockCooldownSec = &seconds
+		}
 		next.ScreenThumbnailDisplays = append([]int(nil), prev.ScreenThumbnailDisplays...)
 		raw, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -911,6 +915,10 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := json.Unmarshal(raw, &next); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		if err := next.ValidateLockCooldown(); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -1215,6 +1223,10 @@ func (s *Server) handleAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := reg.Execute(action); err != nil {
+		if errors.Is(err, actions.ErrLockCooldown) {
+			writeError(w, http.StatusTooManyRequests, err.Error())
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}

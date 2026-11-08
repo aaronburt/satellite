@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,10 +87,11 @@ type TelemetryWebhookConfig struct {
 }
 
 type Config struct {
-	NodeID      string       `json:"node_id"`
-	MQTT        MQTTConfig   `json:"mqtt"`
-	Expose      ExposeConfig `json:"expose"`
-	IntervalSec int          `json:"interval_sec"`
+	LockCooldownSec *int         `json:"lock_cooldown_sec,omitempty"`
+	NodeID          string       `json:"node_id"`
+	MQTT            MQTTConfig   `json:"mqtt"`
+	Expose          ExposeConfig `json:"expose"`
+	IntervalSec     int          `json:"interval_sec"`
 	// ScreenThumbnailSize is the longest edge in pixels of the screen thumbnail.
 	ScreenThumbnailSize     int   `json:"screen_thumbnail_size,omitempty"`
 	ScreenThumbnailDisplays []int `json:"screen_thumbnail_displays,omitempty"`
@@ -108,6 +110,20 @@ type Config struct {
 	UpdateRepo                string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
+}
+
+func (c Config) LockCooldownSeconds() int {
+	if c.LockCooldownSec == nil {
+		return 60
+	}
+	return *c.LockCooldownSec
+}
+
+func (c Config) ValidateLockCooldown() error {
+	if seconds := c.LockCooldownSeconds(); seconds < 0 || seconds > 2147483647 {
+		return fmt.Errorf("lock cooldown must be a whole number from 0 to 2147483647 seconds")
+	}
+	return nil
 }
 
 func (c Config) GetPort() int {
@@ -232,6 +248,9 @@ func Load() (Config, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
 	}
+	if err := cfg.ValidateLockCooldown(); err != nil {
+		return Config{}, err
+	}
 	if err := screenthumb.ValidateDisplays(cfg.ScreenThumbnailDisplays); err != nil {
 		return Config{}, err
 	}
@@ -282,6 +301,9 @@ type listener struct {
 }
 
 func Save(cfg Config) error {
+	if err := cfg.ValidateLockCooldown(); err != nil {
+		return err
+	}
 	if err := save(cfg); err != nil {
 		return err
 	}

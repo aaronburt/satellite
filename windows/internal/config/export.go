@@ -40,6 +40,7 @@ type ImportOptions struct {
 }
 
 type ExportData struct {
+	LockCooldownSec           *int          `json:"lock_cooldown_sec,omitempty"`
 	NodeID                    string        `json:"node_id,omitempty"`
 	MQTT                      MQTTConfig    `json:"mqtt"`
 	Expose                    ExposeConfig  `json:"expose"`
@@ -115,6 +116,7 @@ func isVersionNewer(v1, v2 string) bool {
 
 func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 	exportData := ExportData{
+		LockCooldownSec:           cfg.LockCooldownSec,
 		NodeID:                    cfg.NodeID,
 		MQTT:                      cfg.MQTT,
 		Expose:                    cfg.Expose,
@@ -274,6 +276,7 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 	}
 	def := DefaultConfig()
 	cfg := Config{
+		LockCooldownSec:           data.LockCooldownSec,
 		NodeID:                    data.NodeID,
 		MQTT:                      data.MQTT,
 		Expose:                    data.Expose,
@@ -295,6 +298,9 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		TelemetryWebhook: data.TelemetryWebhook,
 	}
 
+	if err := cfg.ValidateLockCooldown(); err != nil {
+		return ImportResult{}, err
+	}
 	if cfg.IntervalSec <= 0 {
 		cfg.IntervalSec = def.IntervalSec
 	}
