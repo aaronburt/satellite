@@ -4,6 +4,7 @@ package screenthumb
 
 import (
 	"image/color"
+	"os"
 	"runtime"
 	"testing"
 	"unsafe"
@@ -233,4 +234,27 @@ func BenchmarkGPUPipelineWARP(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+func TestGPUReadbackRetainedMemory(t *testing.T) {
+	if os.Getenv("SATELLITE_MEMORY_BENCH") != "1" {
+		t.Skip("set SATELLITE_MEMORY_BENCH=1 to measure retained readback memory")
+	}
+	c := warpCapturer(t)
+	tex := uploadTexture(t, c, 1920, 1080, func(x, y int) [4]byte { return [4]byte{byte(x), byte(y), 0, 255} })
+	if err := c.downscale(tex, 1920, 1080, DefaultSide); err != nil {
+		t.Fatal(err)
+	}
+	runtime.GC()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	for i := 0; i < 10; i++ {
+		if _, err := c.readStaging(DefaultSide); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runtime.GC()
+	runtime.ReadMemStats(&after)
+	runtime.KeepAlive(c)
+	t.Logf("1920x1080 source, 200px thumbnail, retained readback heap_delta=%d", int64(after.HeapAlloc)-int64(before.HeapAlloc))
 }

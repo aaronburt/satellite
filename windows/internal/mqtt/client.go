@@ -2,11 +2,9 @@ package mqtt
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -241,30 +239,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	c.mu.RUnlock()
 
 	brokerURL := cfg.MQTT.Broker
-	if !strings.Contains(brokerURL, "://") {
-		brokerURL = "tcp://" + brokerURL
-	}
-	parsed, err := url.Parse(brokerURL)
-	if err != nil {
-		return err
-	}
-
-	hostPort := parsed.Host
-	if !strings.Contains(hostPort, ":") {
-		if parsed.Scheme == "ssl" || parsed.Scheme == "tls" || parsed.Scheme == "mqtts" {
-			hostPort += ":8883"
-		} else {
-			hostPort += ":1883"
-		}
-	}
-
-	dialer := net.Dialer{Timeout: 5 * time.Second}
-	var conn net.Conn
-	if parsed.Scheme == "ssl" || parsed.Scheme == "tls" || parsed.Scheme == "mqtts" {
-		conn, err = tls.DialWithDialer(&dialer, "tcp", hostPort, &tls.Config{InsecureSkipVerify: cfg.MQTT.InsecureTLS})
-	} else {
-		conn, err = dialer.DialContext(ctx, "tcp", hostPort)
-	}
+	conn, err := dialBroker(ctx, cfg.MQTT, 5*time.Second)
 	if err != nil {
 		return err
 	}
@@ -622,31 +597,7 @@ func TestConnection(cfg config.MQTTConfig) error {
 		return fmt.Errorf("broker address cannot be empty")
 	}
 
-	brokerURL := cfg.Broker
-	if !strings.Contains(brokerURL, "://") {
-		brokerURL = "tcp://" + brokerURL
-	}
-	parsed, err := url.Parse(brokerURL)
-	if err != nil {
-		return err
-	}
-
-	hostPort := parsed.Host
-	if !strings.Contains(hostPort, ":") {
-		if parsed.Scheme == "ssl" || parsed.Scheme == "tls" || parsed.Scheme == "mqtts" {
-			hostPort += ":8883"
-		} else {
-			hostPort += ":1883"
-		}
-	}
-
-	dialer := net.Dialer{Timeout: 4 * time.Second}
-	var conn net.Conn
-	if parsed.Scheme == "ssl" || parsed.Scheme == "tls" || parsed.Scheme == "mqtts" {
-		conn, err = tls.DialWithDialer(&dialer, "tcp", hostPort, &tls.Config{InsecureSkipVerify: cfg.InsecureTLS})
-	} else {
-		conn, err = dialer.Dial("tcp", hostPort)
-	}
+	conn, err := dialBroker(context.Background(), cfg, 4*time.Second)
 	if err != nil {
 		return err
 	}

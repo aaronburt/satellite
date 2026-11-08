@@ -59,13 +59,14 @@ func FromBGRA(buf []byte, w, h int) (*image.RGBA, error) {
 		return nil, fmt.Errorf("pixel buffer is %d bytes, want %dx%dx4", len(buf), w, h)
 	}
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	for i := 0; i < len(buf); i += 4 {
-		img.Pix[i+0] = buf[i+2]
-		img.Pix[i+1] = buf[i+1]
-		img.Pix[i+2] = buf[i+0]
-		img.Pix[i+3] = 0xff
-	}
+	convertBGRA(img.Pix, buf)
 	return img, nil
+}
+
+func convertBGRA(dst, src []byte) {
+	for i := 0; i < len(src); i += 4 {
+		dst[i], dst[i+1], dst[i+2], dst[i+3] = src[i+2], src[i+1], src[i], 0xff
+	}
 }
 
 func Encode(img image.Image) ([]byte, error) {

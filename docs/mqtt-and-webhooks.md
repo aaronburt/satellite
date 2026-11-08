@@ -6,6 +6,16 @@ app; the tables below describe the current implementation.
 
 ## Windows and Linux
 
+Broker addresses support TCP (`tcp://host:1883`), TLS (`ssl://host:8883`),
+WebSocket (`ws://host:1884/mqtt`) and secure WebSocket
+(`wss://host:8884/mqtt`). Use the port and WebSocket path configured on your
+broker; these examples are not universal defaults. WebSocket URLs without a
+port use 80 for `ws` and 443 for `wss`. Include any reverse proxy path and query
+parameters in the URL. Both the live client and connection test use the same
+transport settings. TLS and secure WebSocket verify certificates by default;
+private certificate authorities must be trusted by the operating system.
+Username and password settings apply to MQTT authentication for all transports.
+
 `<base>` is `<topic_prefix>/<node_id>`. The default prefix is `satellite`; the
 default node ID comes from the lowercased hostname with spaces replaced by `-`.
 
@@ -205,6 +215,12 @@ mosquitto_pub -h <broker> -r -n -t satellite/<old_id>/availability
 ```
 
 ## Telemetry webhooks
+
+Desktop log-event webhooks use a separate single delivery worker with space for
+64 waiting events. When that queue is full, new webhook deliveries are dropped
+without blocking telemetry collection. Local log listeners still receive every
+event. Accepted events retain their original destination and credentials and
+are attempted in queue order, without retries.
 
 Both apps send JSON with `Content-Type: application/json` and optionally
 `Authorization: Bearer <token>`. HTTP 2xx responses count as success. A webhook
