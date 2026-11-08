@@ -6,6 +6,16 @@ app; the tables below describe the current implementation.
 
 ## Windows and Linux
 
+Broker addresses support TCP (`tcp://host:1883`), TLS (`ssl://host:8883`),
+WebSocket (`ws://host:1884/mqtt`) and secure WebSocket
+(`wss://host:8884/mqtt`). Use the port and WebSocket path configured on your
+broker; these examples are not universal defaults. WebSocket URLs without a
+port use 80 for `ws` and 443 for `wss`. Include any reverse proxy path and query
+parameters in the URL. Both the live client and connection test use the same
+transport settings. TLS and secure WebSocket verify certificates by default;
+private certificate authorities must be trusted by the operating system.
+Username and password settings apply to MQTT authentication for all transports.
+
 `<base>` is `<topic_prefix>/<node_id>`. The default prefix is `satellite`; the
 default node ID comes from the lowercased hostname with spaces replaced by `-`.
 
