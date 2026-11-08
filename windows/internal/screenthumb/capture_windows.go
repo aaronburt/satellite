@@ -124,13 +124,14 @@ func CaptureDisplay(display Display, maxSide int) (image.Image, error) {
 		Compression: biRGB,
 	}}
 	bi.Header.Size = uint32(unsafe.Sizeof(bi.Header))
-	buf := make([]byte, w*h*4)
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
 	lines, _, _ := procGetDIBits.Call(memDC, bmp, 0, uintptr(h),
-		uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&bi)), dibRGBColors)
+		uintptr(unsafe.Pointer(&img.Pix[0])), uintptr(unsafe.Pointer(&bi)), dibRGBColors)
 	if int(lines) != h {
 		return nil, fmt.Errorf("GetDIBits copied %d of %d rows", lines, h)
 	}
-	return FromBGRA(buf, w, h)
+	convertBGRA(img.Pix, img.Pix)
+	return img, nil
 }
 
 type monitorInfo struct {

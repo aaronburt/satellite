@@ -26,16 +26,17 @@ type Event struct {
 type Listener func(Event)
 
 var (
-	mu          sync.RWMutex
-	enabled     bool
-	url         string
-	minLevel    string
-	secret      string
-	nodeID      string
-	httpClient  = &http.Client{Timeout: 5 * time.Second}
-	listenersMu sync.RWMutex
-	listeners   = make(map[uint64]Listener)
-	listenerSeq uint64
+	mu              sync.RWMutex
+	enabled         bool
+	url             string
+	minLevel        string
+	secret          string
+	nodeID          string
+	httpClient      = &http.Client{Timeout: 5 * time.Second}
+	listenersMu     sync.RWMutex
+	listeners       = make(map[uint64]Listener)
+	listenerSeq     uint64
+	webhookDelivery = newEventDispatcher(postEvent)
 )
 
 func AddListener(fn Listener) func() {
@@ -137,9 +138,7 @@ func Log(level, category, message string) {
 	}
 
 	if webhookEnabled {
-		go func() {
-			_ = postEvent(targetURL, targetSecret, event)
-		}()
+		webhookDelivery.submit(eventDelivery{url: targetURL, secret: targetSecret, event: event})
 	}
 }
 

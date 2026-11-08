@@ -216,6 +216,12 @@ mosquitto_pub -h <broker> -r -n -t satellite/<old_id>/availability
 
 ## Telemetry webhooks
 
+Desktop log-event webhooks use a separate single delivery worker with space for
+64 waiting events. When that queue is full, new webhook deliveries are dropped
+without blocking telemetry collection. Local log listeners still receive every
+event. Accepted events retain their original destination and credentials and
+are attempted in queue order, without retries.
+
 Both apps send JSON with `Content-Type: application/json` and optionally
 `Authorization: Bearer <token>`. HTTP 2xx responses count as success. A webhook
 delivers telemetry only; MQTT discovery and remote commands need MQTT.

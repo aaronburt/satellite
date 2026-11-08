@@ -141,7 +141,6 @@ type comCapturer struct {
 	mipDesc      texDesc
 	mapped       mappedSubresource
 	featureLevel uint32
-	buf          []byte
 }
 
 func platformNewGPU() (gpuCapturer, error) {
@@ -255,7 +254,6 @@ func (c *comCapturer) Close() {
 	release(&c.ctx)
 	release(&c.device)
 	c.haveFrame = false
-	c.buf = nil
 }
 
 func (c *comCapturer) Capture(maxSide int) (image.Image, error) {
@@ -354,20 +352,13 @@ func (c *comCapturer) readStaging(maxSide int) (image.Image, error) {
 		vcall(c.ctx, vtContextUnmap, uintptr(c.staging), 0)
 		return nil, fmt.Errorf("unexpected row pitch %d for width %d", pitch, mw)
 	}
-	if cap(c.buf) < row*mh {
-		c.buf = make([]byte, row*mh)
-	}
-	c.buf = c.buf[:row*mh]
+	img := image.NewRGBA(image.Rect(0, 0, mw, mh))
 	mapped := unsafe.Slice((*byte)(c.mapped.Data), (mh-1)*pitch+row)
 	for y := 0; y < mh; y++ {
-		copy(c.buf[y*row:(y+1)*row], mapped[y*pitch:y*pitch+row])
+		convertBGRA(img.Pix[y*img.Stride:y*img.Stride+row], mapped[y*pitch:y*pitch+row])
 	}
 	vcall(c.ctx, vtContextUnmap, uintptr(c.staging), 0)
 
-	img, err := FromBGRA(c.buf, mw, mh)
-	if err != nil {
-		return nil, err
-	}
 	tw, th, err := ThumbSize(c.srcW, c.srcH, maxSide)
 	if err != nil {
 		return nil, err
