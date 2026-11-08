@@ -12,9 +12,9 @@ Lightweight Windows & Linux telemetry agent and remote controller for Home Assis
 
 The local web UI lets you choose which sensors are published. Its **Sensors** tab shows a live card for every sensor you have turned on (including the screen preview, if enabled), grouped by System, Network, Session, Media & devices and Screen, and it works on a phone-sized window too:
 
-| Sensors | Performance | Settings |
-| --- | --- | --- |
-| ![Sensors view](docs/screenshots/sensors.jpg) | ![Performance view](docs/screenshots/performance.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
+| Sensors | Settings |
+| --- | --- |
+| ![Sensors view](docs/screenshots/sensors.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
 
 ## Features
 
@@ -169,6 +169,16 @@ Extra requests are discarded without extending the cooldown or being queued.
 Failed lock attempts also start the cooldown. HTTP returns status 429 when a
 lock is blocked. The timer resets when Satellite restarts; it does not affect
 locking directly through the operating system.
+
+## Web UI monitoring and privacy
+
+The **Sensors** tab includes recent-history graphs for processor, memory, network traffic and each GPU alongside the other sensor cards. The former Performance tab is combined into this view. Graph history is kept in the open page and resets on reload.
+
+The **Privacy** tab lists saved permissions, temporary privacy-pause restrictions, allowed media commands and reporting destinations. Expand **Inspect current JSON** to see the current dataset used by `/json`, even when the JSON endpoint is disabled. This sample is not a delivery log: MQTT may adjust RGB and summary-thumbnail fields, telemetry webhooks add device metadata, and screen images and log events travel separately. Opening Privacy does not request a screen capture. Destination hostnames are shown without credentials, paths or query strings.
+
+Under **Settings → Sensors → Sensor thresholds**, enable warning and critical percentages for processor usage, memory usage, GPU usage, disk space used or battery level. Usage and disk warnings trigger at or above a limit; battery warnings trigger at or below it. GPU and disk limits apply to each device individually. Warning and critical messages appear on cards and in the sensor summary, and clear on the next reading below the applicable limit (above it for battery). Missing readings do not trigger thresholds.
+
+Thresholds are disabled by default, are saved with the device configuration and survive export/import. They only affect web UI highlights: they do not enable sensors, send notifications or alter MQTT, webhook or `/json` telemetry.
 
 ## Quick privacy pause
 

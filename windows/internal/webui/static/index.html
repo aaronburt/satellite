@@ -664,50 +664,6 @@ body{
   font-size:12px;
   color:var(--warning);
 }
-.perf-container{
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  gap:16px;
-}
-.gauges-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-  gap:14px;
-}
-.perf-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:6px;
-  padding:14px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  cursor:default;
-}
-.perf-card-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:baseline;
-}
-.perf-title{
-  font-size:12px;
-  font-weight:600;
-  color:var(--muted);
-  text-transform:uppercase;
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-.perf-val{
-  font-size:17px;
-  font-weight:700;
-  color:var(--text);
-}
-.perf-sub{
-  font-size:12px;
-  color:var(--muted);
-}
 .sparkline-svg{
   width:100%;
   height:56px;
@@ -726,14 +682,6 @@ body{
   stroke:var(--accent);
   stroke-width:1.5;
   stroke-linejoin:round;
-}
-.perf-disk-bar{
-  width:100%;
-  height:8px;
-  background:rgba(255,255,255,0.08);
-  border-radius:4px;
-  overflow:hidden;
-  margin-top:8px;
 }
 .config-container{
   padding:20px;
@@ -1195,7 +1143,7 @@ input:focus,select:focus,textarea:focus{
   .sum-updated{
     margin-left:0;
   }
-  .config-container,.perf-container{
+  .config-container{
     padding:12px;
   }
   .field-row{
@@ -1313,6 +1261,27 @@ a{color:var(--accent-text);text-underline-offset:3px}
   .popover-anchor .actions-popover{left:auto;right:0;max-height:calc(100dvh - 160px);overflow-y:auto}
   .page-title{white-space:normal}
 }
+.privacy-container{max-width:1100px;margin:0 auto;padding:24px;display:flex;flex-direction:column;gap:28px}
+.privacy-container h2{font-size:18px;margin-bottom:10px}
+.privacy-note{color:var(--text-dim);line-height:1.6;max-width:75ch}
+.privacy-list{margin:12px 0 0}
+.privacy-row{display:grid;grid-template-columns:minmax(150px,1fr) minmax(0,2fr);gap:16px;padding:12px 0;border-bottom:1px solid var(--border)}
+.privacy-row dt{font-weight:600;overflow-wrap:anywhere}
+.privacy-row dd{margin:0;color:var(--text-dim);line-height:1.6;overflow-wrap:anywhere}
+.privacy-state{display:block;font-weight:600;color:var(--text)}
+.privacy-payload{margin-top:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:6px;max-height:520px;overflow:auto;font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.privacy-container summary{cursor:pointer;font-weight:600;padding:10px 0}
+@media(max-width:600px){.privacy-container{padding:16px}.privacy-row{grid-template-columns:1fr;gap:4px}}
+.sensor-threshold{font-size:12px;font-weight:600;color:var(--warning);line-height:1.5}
+.sensor-card[data-threshold="warning"] .sparkline-line{stroke:var(--warning)}
+.sensor-card[data-threshold="critical"]{border-color:var(--danger)}
+.sensor-card[data-threshold="critical"] .state-dot{background:var(--danger);box-shadow:none}
+.sensor-card[data-threshold="critical"] .sparkline-line{stroke:var(--danger)}
+.sensor-card[data-threshold="critical"] .sensor-threshold{color:var(--danger)}
+.threshold-fields{display:grid;grid-template-columns:minmax(150px,1fr) repeat(2,minmax(100px,1fr));gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.threshold-fields label{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.threshold-fields input[type="number"]{width:85px;max-width:100%}
+@media(max-width:600px){.threshold-fields{grid-template-columns:1fr 1fr}.threshold-fields>label:first-child{grid-column:1/-1}}
 </style>
 </head>
 <body>
@@ -1342,11 +1311,9 @@ a{color:var(--accent-text);text-underline-offset:3px}
           </svg>
           <span>Sensors</span>
         </button>
-        <button type="button" class="nav-item" id="nav-perf" data-click="switchNav" data-arg="performance">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          <span>Performance</span>
+        <button type="button" class="nav-item" id="nav-privacy" data-click="switchNav" data-arg="privacy">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 3 7v5c0 5 9 9 9 9s9-4 9-9V7l-9-4Z"/><path d="m8 12 3 3 5-6"/></svg>
+          <span>Privacy</span>
         </button>
         <button type="button" class="nav-item" id="nav-diagnostics" data-click="switchNav" data-arg="diagnostics">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16M4 16h16M8 4v16M16 4v16"/><circle cx="12" cy="12" r="9"/></svg>
@@ -1497,78 +1464,6 @@ a{color:var(--accent-text);text-underline-offset:3px}
       </div>
     </section>
 
-    <section id="panel-performance" class="content-panel hidden" tabindex="-1">
-      <div class="perf-container">
-        <div class="gauges-grid" id="perf-gauges">
-          <div class="perf-card" id="perf-cpu-card">
-            <div class="perf-card-header">
-              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>CPU</span>
-              <span class="perf-val mono" id="top-cpu">0.0%</span>
-            </div>
-            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
-              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
-              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
-              <polygon class="sparkline-area" id="poly-cpu" points="0,40 100,40"/>
-              <polyline class="sparkline-line" id="line-cpu" points="0,40 100,40"/>
-            </svg>
-            <span class="perf-sub mono" id="top-cpu-sub">Processor 60s history</span>
-          </div>
-
-          <div class="perf-card" id="perf-mem-card">
-            <div class="perf-card-header">
-              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/></svg>Memory</span>
-              <span class="perf-val mono" id="top-mem">0.0%</span>
-            </div>
-            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
-              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
-              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
-              <polygon class="sparkline-area" id="poly-mem" points="0,40 100,40"/>
-              <polyline class="sparkline-line" id="line-mem" points="0,40 100,40"/>
-            </svg>
-            <span class="perf-sub mono" id="top-mem-sub">0 / 0 GB committed</span>
-          </div>
-
-          <div class="perf-card" id="perf-net-card">
-            <div class="perf-card-header">
-              <span class="perf-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/></svg>Network</span>
-              <span class="perf-val mono" id="top-net">0 KB/s</span>
-            </div>
-            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
-              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
-              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
-              <polygon class="sparkline-area" id="poly-net" points="0,40 100,40"/>
-              <polyline class="sparkline-line" id="line-net" points="0,40 100,40"/>
-            </svg>
-            <span class="perf-sub mono" id="top-net-sub">Throughput</span>
-          </div>
-
-          <div class="perf-card" id="perf-gpu-card">
-            <div class="perf-card-header">
-              <span class="perf-title" id="perf-gpu-title"><svg class="cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/></svg>GPU</span>
-              <span class="perf-val mono" id="top-gpu">0.0%</span>
-            </div>
-            <svg class="sparkline-svg" viewBox="0 0 100 40" preserveAspectRatio="none">
-              <line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/>
-              <line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/>
-              <line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/>
-              <polygon class="sparkline-area" id="poly-gpu" points="0,40 100,40"/>
-              <polyline class="sparkline-line" id="line-gpu" points="0,40 100,40"/>
-            </svg>
-            <span class="perf-sub mono" id="top-gpu-sub">Dedicated graphics</span>
-          </div>
-        </div>
-
-        <div class="gauges-grid" id="perf-drives-grid"></div>
-        <div id="perf-empty" class="empty-state" style="display:none;">
-          <p class="empty-title">Nothing to chart yet</p>
-          <p class="empty-text">Turn on Processor, Memory, Network, Graphics or Storage in Settings to see history here.</p>
-          <button type="button" class="btn-primary" data-click="switchNav" data-arg="settings">Open Settings</button>
-        </div>
-      </div>
-    </section>
 
     <section id="panel-logs" class="content-panel hidden" tabindex="-1">
       <div class="logs-container">
@@ -1603,6 +1498,39 @@ a{color:var(--accent-text);text-underline-offset:3px}
           <div id="logs-empty" class="logs-empty">Waiting for live log stream... (Logs held in browser memory only)</div>
           <div id="logs-stream" class="logs-stream" role="log" aria-label="Live log events"></div>
         </div>
+      </div>
+    </section>
+
+    <section id="panel-privacy" class="content-panel hidden" tabindex="-1">
+      <div class="privacy-container">
+        <div>
+          <p class="privacy-note">Review your saved permissions, reporting destinations and current telemetry. Change permissions in Settings.</p>
+          <p id="privacy-updated" class="privacy-note" role="status">Waiting for privacy data...</p>
+          <button type="button" class="cmd-btn" data-click="jumpSettings" data-arg="sensors">Manage permissions</button>
+        </div>
+        <section aria-labelledby="privacy-pause-title">
+          <h2 id="privacy-pause-title">Privacy pause</h2>
+          <p id="privacy-pause-status" class="privacy-note">Waiting for status...</p>
+          <p class="privacy-note">Privacy pause temporarily suppresses presence, session lock, media details, active app and window title, microphone and webcam activity, screen thumbnails and iCUE RGB. Other enabled telemetry and remote commands remain available. Use the tray menu to pause or resume.</p>
+        </section>
+        <section aria-labelledby="privacy-outputs-title">
+          <h2 id="privacy-outputs-title">Where data goes</h2>
+          <p class="privacy-note">Destinations below reflect saved configuration. Connection Diagnostics shows delivery health. Only destination hostnames are displayed.</p>
+          <dl id="privacy-outputs" class="privacy-list"></dl>
+          <button type="button" class="cmd-btn" data-click="switchNav" data-arg="diagnostics">Open Connection Diagnostics</button>
+        </section>
+        <section aria-labelledby="privacy-permissions-title">
+          <h2 id="privacy-permissions-title">Permissions and data</h2>
+          <p class="privacy-note">Enabled means allowed in saved settings; a reading may still be waiting for hardware or a new sample. Remote controls receive commands rather than adding telemetry fields.</p>
+          <dl id="privacy-permissions" class="privacy-list"></dl>
+          <p id="privacy-media-commands" class="privacy-note"></p>
+        </section>
+        <section aria-labelledby="privacy-snapshot-title">
+          <h2 id="privacy-snapshot-title">Current telemetry snapshot</h2>
+          <p class="privacy-note">This is the same current dataset served by /json, including privacy-pause filtering. It is available here even when the JSON API is disabled. MQTT can adjust summary-thumbnail availability and RGB fields; the telemetry webhook wraps state with device metadata. This is a current sample, not a record of successful deliveries.</p>
+          <p class="privacy-note">Screen images travel separately and are not embedded in this JSON. Opening Privacy does not request a screen capture. The snapshot may contain identifying values such as app names, window titles or Wi-Fi names when you enable them.</p>
+          <details><summary>Inspect current JSON</summary><pre id="privacy-payload" class="privacy-payload mono">Waiting for a reading...</pre></details>
+        </section>
       </div>
     </section>
 
@@ -1875,6 +1803,35 @@ a{color:var(--accent-text);text-underline-offset:3px}
                     <div class="field" id="screen-thumb-hide-field"><label for="screen-thumb-hide">Hide these programs (one per line)</label><textarea class="mono" id="screen-thumb-hide" rows="6" spellcheck="false" placeholder="chrome.exe&#10;msedge.exe" title="Windows of these programs are painted black on every selected display, including windows spanning displays. Use the program file name, such as chrome.exe. Programs that run inside another host process (some Store apps) cannot be matched by name."></textarea><p class="field-hint">Prefilled with common browsers, messaging apps and email clients. Edit or remove entries to choose what is hidden. Up to 128 program names.</p></div>
                   </div>
                 </div>
+              </div>
+              <div class="config-card" id="sensor-thresholds">
+                <div class="card-head"><h3 class="card-title">Sensor thresholds</h3></div>
+                <p class="settings-section-intro">Highlight readings in the web UI when they reach a warning or critical limit. Applies to every GPU and disk. Battery alerts use falling levels. These settings do not enable sensors, send notifications or change reported telemetry.</p>
+                  <div class="threshold-fields">
+                    <label><input type="checkbox" id="threshold-cpu-enabled"><span>Processor usage (at or above)</span></label>
+                    <label for="threshold-cpu-warning">Warning %<input type="number" id="threshold-cpu-warning" aria-label="Processor warning percentage" min="0" max="100" step="any"></label>
+                    <label for="threshold-cpu-critical">Critical %<input type="number" id="threshold-cpu-critical" aria-label="Processor critical percentage" min="0" max="100" step="any"></label>
+                  </div>
+                  <div class="threshold-fields">
+                    <label><input type="checkbox" id="threshold-memory-enabled"><span>Memory usage (at or above)</span></label>
+                    <label for="threshold-memory-warning">Warning %<input type="number" id="threshold-memory-warning" aria-label="Memory warning percentage" min="0" max="100" step="any"></label>
+                    <label for="threshold-memory-critical">Critical %<input type="number" id="threshold-memory-critical" aria-label="Memory critical percentage" min="0" max="100" step="any"></label>
+                  </div>
+                  <div class="threshold-fields">
+                    <label><input type="checkbox" id="threshold-gpu-enabled"><span>GPU usage (at or above)</span></label>
+                    <label for="threshold-gpu-warning">Warning %<input type="number" id="threshold-gpu-warning" aria-label="GPU warning percentage" min="0" max="100" step="any"></label>
+                    <label for="threshold-gpu-critical">Critical %<input type="number" id="threshold-gpu-critical" aria-label="GPU critical percentage" min="0" max="100" step="any"></label>
+                  </div>
+                  <div class="threshold-fields">
+                    <label><input type="checkbox" id="threshold-storage-enabled"><span>Disk space used (at or above)</span></label>
+                    <label for="threshold-storage-warning">Warning %<input type="number" id="threshold-storage-warning" aria-label="Disk space used warning percentage" min="0" max="100" step="any"></label>
+                    <label for="threshold-storage-critical">Critical %<input type="number" id="threshold-storage-critical" aria-label="Disk space used critical percentage" min="0" max="100" step="any"></label>
+                  </div>
+                  <div class="threshold-fields">
+                    <label><input type="checkbox" id="threshold-battery-enabled"><span>Battery level (at or below)</span></label>
+                    <label for="threshold-battery-warning">Warning %<input type="number" id="threshold-battery-warning" aria-label="Battery warning percentage" min="0" max="100" step="any"></label>
+                    <label for="threshold-battery-critical">Critical %<input type="number" id="threshold-battery-critical" aria-label="Battery critical percentage" min="0" max="100" step="any"></label>
+                  </div>
               </div>
             </section>
             <section class="settings-section" id="settings-controls" aria-labelledby="settings-controls-title">
@@ -2157,7 +2114,7 @@ document.addEventListener('click', e => {
 
 const NAV_TABS = {
   sensors: { panel: 'panel-sensors', nav: 'nav-sensors', title: 'Sensors' },
-  performance: { panel: 'panel-performance', nav: 'nav-perf', title: 'Performance' },
+  privacy: { panel: 'panel-privacy', nav: 'nav-privacy', title: 'Privacy' },
   diagnostics: { panel: 'panel-diagnostics', nav: 'nav-diagnostics', title: 'Connection Diagnostics' },
   logs: { panel: 'panel-logs', nav: 'nav-logs', title: 'Event Logs' },
   settings: { panel: 'panel-settings', nav: 'nav-settings', title: 'Settings' },
@@ -2167,6 +2124,7 @@ let activeTab = 'sensors';
 let pollStarted = false;
 
 function switchNav(tab) {
+  if (tab === 'performance') tab = 'sensors';
   if (!NAV_TABS[tab]) return;
   const previous = activeTab;
   activeTab = tab;
@@ -2194,7 +2152,7 @@ function switchNav(tab) {
   // Remember the tab across reloads. replaceState keeps the token in the query.
   try { history.replaceState(null, '', '#' + tab); } catch (e) {}
   // Ask for fresh data (and the screen preview) right away.
-  if (pollStarted && (tab === 'sensors' || tab === 'diagnostics') && previous !== tab) poll();
+  if (pollStarted && (tab === 'sensors' || tab === 'diagnostics' || tab === 'privacy') && previous !== tab) poll();
   if (tab === 'settings' && $('exp-icue-rgb').checked) startICUESDKCheck();
   else stopICUESDKCheck();
 }
@@ -2311,40 +2269,34 @@ function onRateChange(val) {
 }
 
 const MAX_HISTORY = 20;
-const historyCPU = [];
-const historyMem = [];
-const historyNet = [];
-const historyGPU = [];
-
-function pushHistory(arr, val) {
-  arr.push(val);
-  if (arr.length > MAX_HISTORY) {
-    arr.shift();
+function updateSensorGraph(parts, s, telemetry) {
+  if (!parts.graph) return;
+  let value = s.percent;
+  if (s.id === 'network') {
+    const rx = telemetry && telemetry.network_rx_kbs;
+    const tx = telemetry && telemetry.network_tx_kbs;
+    value = Number.isFinite(rx) && Number.isFinite(tx) ? rx + tx : undefined;
   }
-}
-
-function renderSparkline(polyId, lineId, data, maxVal) {
-  if (data.length < 2) return;
-  const max = maxVal > 0 ? maxVal : 1;
+  const valid = Number.isFinite(value) && s.state !== 'waiting';
+  parts.graph.hidden = !valid;
+  if (!valid) return;
+  parts.graph.setAttribute('aria-label', s.label + ' recent history');
+  const timestamp = telemetry && telemetry.timestamp;
+  if (!timestamp || timestamp !== parts.timestamp) {
+    parts.history.push(value);
+    if (parts.history.length > MAX_HISTORY) parts.history.shift();
+    parts.timestamp = timestamp;
+  }
+  const max = s.id === 'network' ? Math.max(...parts.history, 100) : 100;
   const step = 100 / (MAX_HISTORY - 1);
-  const offset = (MAX_HISTORY - data.length) * step;
-
-  const points = data.map((v, i) => {
+  const offset = (MAX_HISTORY - parts.history.length) * step;
+  const points = parts.history.map((v, i) => {
     const x = (offset + i * step).toFixed(1);
-    const clamped = Math.min(max, Math.max(0, v));
-    const y = (40 - (clamped / max) * 36).toFixed(1);
+    const y = (40 - Math.min(max, Math.max(0, v)) / max * 36).toFixed(1);
     return `${x},${y}`;
   });
-
-  const lineStr = points.join(' ');
-  const polyStr = `${points[0].split(',')[0]},40 ` + lineStr + ` ${points[points.length - 1].split(',')[0]},40`;
-
-  const polyEl = $(polyId);
-  const lineEl = $(lineId);
-  if (polyEl && lineEl) {
-    polyEl.setAttribute('points', polyStr);
-    lineEl.setAttribute('points', lineStr);
-  }
+  parts.line.setAttribute('points', points.join(' '));
+  parts.area.setAttribute('points', `${points[0].split(',')[0]},40 ${points.join(' ')} ${points[points.length - 1].split(',')[0]},40`);
 }
 
 function setStatusBadge(status) {
@@ -2368,6 +2320,7 @@ function setStaleUI() {
   const txt = $('status-text');
   dot.className = 'status-dot offline';
   txt.innerText = 'unreachable';
+  $('privacy-updated').textContent = 'Privacy data is stale: this page cannot reach Satellite. Displayed settings and readings may have changed.';
   $('diagnostics-updated').textContent = 'Connection data is stale: this page cannot reach Satellite. Reopen the web UI if the agent restarted.';
 }
 
@@ -2445,6 +2398,68 @@ function buildDiagnosticCard(kind) {
   card.appendChild(details);
   $('diagnostics-cards').appendChild(card);
   return { status, fields, problem, button, result, errors };
+}
+
+const PRIVACY_FEATURES = {
+  cpu: ['Processor', 'Processor usage.'],
+  memory: ['Memory', 'Used and total memory, and usage percentage.'],
+  storage: ['Storage', 'Drive mount names, used and total space.'],
+  network: ['Network traffic', 'Receive and transmit rates.'],
+  uptime: ['Uptime', 'Time since the device started.'],
+  user_presence: ['Presence', 'Idle duration and whether someone is active.'],
+  session_lock: ['Session lock', 'Whether the session is locked.'],
+  microphone: ['Microphone', 'Whether a microphone is in use; no audio recording.'],
+  fullscreen: ['Fullscreen', 'Whether a fullscreen application is active.'],
+  system_theme: ['System theme', 'Current light or dark theme.'],
+  local_ip: ['Local IP', 'Local network address.'],
+  battery: ['Battery', 'Battery level and plugged-in state.'],
+  active_window: ['Active application', 'Foreground process name.'],
+  window_title: ['Window title', 'Foreground window title, which may contain document names or page titles.'],
+  update_pending: ['Pending restart', 'Whether system updates require a restart.'],
+  media_control: ['Media details', 'Playback status, title, artist, album and application.'],
+  media_commands: ['Media commands', 'Allows the individual playback and volume commands listed below.'],
+  remote_lock: ['Remote lock', 'Allows an incoming command to lock the device.'],
+  webcam: ['Webcam', 'Camera activity and application name; no camera image.'],
+  audio_output: ['Audio output', 'Current output device name; no audio recording.'],
+  icue_rgb: ['iCUE RGB', 'Device names and LED colours.'],
+  wifi: ['Wi-Fi', 'Network name and signal strength.'],
+  display_state: ['Display power', 'Whether the display is powered on.'],
+  notifications: ['Notifications', 'Allows incoming notifications to be displayed on this device.'],
+  gpu: ['Graphics', 'GPU identity, load, memory, temperature, power and fan readings when available.'],
+  nvidia_nvml: ['NVIDIA NVML', 'Optional source of GPU readings; requires Graphics reporting.'],
+  screen_thumbnail: ['Screen thumbnails', 'Screen images with configured app redaction, sent separately from JSON.'],
+  device_summary: ['Home Assistant device summary', 'Combines enabled readings into an additional Home Assistant entity.'],
+};
+
+function privacyRow(label, state, description) {
+  const row = el('div', 'privacy-row');
+  const detail = el('dd');
+  detail.append(el('span', 'privacy-state', state), document.createTextNode(description));
+  row.append(el('dt', '', label), detail);
+  return row;
+}
+
+function renderPrivacy(data) {
+  if (!data.privacy) return;
+  const report = data.privacy;
+  const pause = data.privacy_pause || {};
+  $('privacy-updated').textContent = 'Checked ' + new Date().toLocaleTimeString()
+    + (data.telemetry && data.telemetry.timestamp ? ' · Last reading ' + new Date(data.telemetry.timestamp * 1000).toLocaleTimeString() : ' · Waiting for first reading');
+  $('privacy-pause-status').textContent = pause.paused
+    ? 'Sensitive reporting paused until ' + new Date(pause.until).toLocaleTimeString() + '. Saved permissions are unchanged.'
+    : 'Privacy pause is off. Saved permissions apply.';
+  $('privacy-outputs').replaceChildren(...report.outputs.map(output => privacyRow(output.name,
+    (output.enabled ? 'Enabled' : 'Off') + ' · ' + output.host, output.data)));
+  $('privacy-permissions').replaceChildren(...report.permissions.map(permission => {
+    const feature = PRIVACY_FEATURES[permission.key] || [permission.key.replaceAll('_', ' '), ''];
+    const state = !permission.enabled ? 'Off' : !permission.supported ? 'Enabled · Unsupported on this platform'
+      : permission.paused ? 'Enabled · Temporarily paused' : 'Enabled';
+    return privacyRow(feature[0], state, feature[1]);
+  }));
+  const commands = Object.entries(report.media_commands).filter(([, allowed]) => allowed).map(([action]) => action.replaceAll('_', ' '));
+  $('privacy-media-commands').textContent = 'Allowed media commands: ' + (commands.join(', ') || 'None') + '.';
+  const payload = JSON.stringify(data.telemetry || {}, null, 2);
+  setText($('privacy-payload'), payload);
 }
 
 function renderDiagnostics(connections) {
@@ -2605,7 +2620,7 @@ function buildSensorCard(s) {
   const value = el('div', 'sensor-value mono');
   card.appendChild(value);
 
-  const parts = { card, label, value, bar: null, fill: null, detail: null, img: null, imgNote: null };
+  const parts = { card, label, value, bar: null, fill: null, detail: null, img: null, imgNote: null, graph: null, history: [], timestamp: null };
 
   if (s.image) {
     const frame = el('div', 'thumb-frame');
@@ -2616,8 +2631,17 @@ function buildSensorCard(s) {
     frame.appendChild(img);
     card.appendChild(frame);
     parts.img = img;
+  } else if (s.id === 'cpu' || s.id === 'memory' || s.id === 'network' || s.id.startsWith('gpu')) {
+    const graph = svgIcon('<line x1="0" y1="10" x2="100" y2="10" class="sparkline-grid"/><line x1="0" y1="20" x2="100" y2="20" class="sparkline-grid"/><line x1="0" y1="30" x2="100" y2="30" class="sparkline-grid"/><polygon class="sparkline-area"/><polyline class="sparkline-line"/>', 'sparkline-svg');
+    graph.setAttribute('viewBox', '0 0 100 40');
+    graph.setAttribute('preserveAspectRatio', 'none');
+    graph.setAttribute('role', 'img');
+    graph.hidden = true;
+    parts.graph = graph;
+    parts.area = graph.querySelector('.sparkline-area');
+    parts.line = graph.querySelector('.sparkline-line');
+    card.appendChild(graph);
   } else {
-    // Built for every card: a gauge sensor has no percent until its first reading.
     const track = el('div', 'heat-track wide');
     const fill = el('div', 'heat-fill');
     track.appendChild(fill);
@@ -2625,6 +2649,11 @@ function buildSensorCard(s) {
     parts.bar = track;
     parts.fill = fill;
   }
+
+  const threshold = el('div', 'sensor-threshold');
+  threshold.hidden = true;
+  card.appendChild(threshold);
+  parts.threshold = threshold;
 
   const detail = el('div', 'sensor-detail');
   card.appendChild(detail);
@@ -2668,6 +2697,9 @@ function updateSensorCard(parts, s) {
   setText(parts.value, s.value);
   parts.value.classList.toggle('long', s.value.length > 22);
   parts.card.dataset.state = s.state;
+  parts.card.dataset.threshold = s.threshold || '';
+  parts.threshold.hidden = !s.threshold_message;
+  setText(parts.threshold, s.threshold_message || '');
   parts.detail.hidden = !s.detail;
   setText(parts.detail, s.detail || '');
   if (parts.bar) {
@@ -2699,7 +2731,7 @@ function sensorGroupEl(name) {
   return g;
 }
 
-function renderSensors(list) {
+function renderSensors(list, telemetry) {
   lastSensors = list;
   const root = $('sensors-groups');
   const seen = new Set();
@@ -2712,6 +2744,7 @@ function renderSensors(list) {
       sensorCardEls.set(s.id, parts);
     }
     updateSensorCard(parts, s);
+    updateSensorGraph(parts, s, telemetry);
     const g = sensorGroupEl(s.group);
     if (parts.card.parentNode !== g.grid) g.grid.appendChild(parts.card);
   });
@@ -2760,7 +2793,7 @@ function renderSensorSummary(list) {
   const warnEl = $('sum-warn');
   if (warns.length > 0) {
     warnEl.style.display = '';
-    setText(warnEl, warns.map(s => s.label + ': ' + s.value).join(' · '));
+    setText(warnEl, warns.map(s => s.label + ': ' + s.value + (s.threshold_message ? ' (' + s.threshold_message + ')' : '')).join(' · '));
   } else {
     warnEl.style.display = 'none';
   }
@@ -2782,7 +2815,7 @@ function filterSensors(query) {
   lastSensors.forEach(s => {
     const parts = sensorCardEls.get(s.id);
     if (!parts) return;
-    const hay = (s.group + ' ' + s.label + ' ' + s.value + ' ' + (s.detail || '')).toLowerCase();
+    const hay = (s.group + ' ' + s.label + ' ' + s.value + ' ' + (s.detail || '') + ' ' + (s.threshold_message || '')).toLowerCase();
     const show = !q || hay.includes(q);
     parts.card.hidden = !show;
     if (show) visible++;
@@ -2796,49 +2829,6 @@ function filterSensors(query) {
 function copySensorValue(id) {
   const s = lastSensors.find(x => x.id === id);
   if (s) copyText(s.value);
-}
-
-// The Performance tab shows a card only for sensors that are switched on.
-function updatePerfVisibility(list) {
-  const has = prefix => list.some(s => s.id === prefix || s.id.startsWith(prefix));
-  const show = (id, on) => { const n = $(id); if (n) n.hidden = !on; };
-  show('perf-cpu-card', has('cpu'));
-  show('perf-mem-card', has('memory'));
-  show('perf-net-card', has('network'));
-  show('perf-gpu-card', has('gpu'));
-  const any = ['cpu', 'memory', 'network', 'gpu', 'disk', 'storage'].some(has);
-  const empty = $('perf-empty');
-  if (empty) empty.style.display = any ? 'none' : 'flex';
-}
-
-function renderDrives(drives, show) {
-  const perfGrid = $('perf-drives-grid');
-  if (!perfGrid) return;
-  if (!show || !drives || drives.length === 0) {
-    perfGrid.replaceChildren();
-    return;
-  }
-  const cards = drives.map(d => {
-    const pct = d.used_percent ? Math.round(d.used_percent) : 0;
-    const used = d.used_gb ? d.used_gb.toFixed(1) : '0';
-    const total = d.total_gb ? d.total_gb.toFixed(1) : '0';
-    const card = el('div', 'perf-card');
-    const head = el('div', 'perf-card-header');
-    const title = el('span', 'perf-title');
-    title.appendChild(svgIcon(SENSOR_ICONS.disk, 'cell-icon'));
-    title.appendChild(document.createTextNode('Disk (' + (d.mount || 'Disk') + ')'));
-    head.appendChild(title);
-    head.appendChild(el('span', 'perf-val mono', pct + '%'));
-    card.appendChild(head);
-    const bar = el('div', 'perf-disk-bar');
-    const fill = el('div', 'heat-fill' + (pct >= 90 ? ' high' : (pct >= 70 ? ' mid' : '')));
-    fill.style.width = pct + '%';
-    bar.appendChild(fill);
-    card.appendChild(bar);
-    card.appendChild(el('span', 'perf-sub mono', used + ' / ' + total + ' GB capacity'));
-    return card;
-  });
-  perfGrid.replaceChildren(...cards);
 }
 
 let updateDismissed = false;
@@ -2911,63 +2901,51 @@ async function poll() {
     if (seq !== pollSeq) return;
     setStatusBadge(data.mqtt_status);
     renderDiagnostics(data.connections);
+    renderPrivacy(data);
     if (data.update_status) {
       handleUpdateStatus(data.update_status);
     }
 
     const sensors = data.sensors || [];
-    renderSensors(sensors);
-    updatePerfVisibility(sensors);
-
-    const t = data.telemetry;
-    if (t) {
-      setSensorsUpdated(t.timestamp);
-      renderDrives(t.drives, sensors.some(s => s.id.startsWith('disk')));
-
-      if (t.cpu_percent !== undefined) {
-        $('top-cpu').innerText = t.cpu_percent.toFixed(1) + '%';
-        pushHistory(historyCPU, t.cpu_percent);
-        renderSparkline('poly-cpu', 'line-cpu', historyCPU, 100);
-      }
-
-      if (t.memory_used_gb !== undefined) {
-        $('top-mem').innerText = t.memory_percent.toFixed(1) + '%';
-        $('top-mem-sub').innerText = `${t.memory_used_gb.toFixed(1)} / ${t.memory_total_gb.toFixed(1)} GB`;
-        pushHistory(historyMem, t.memory_percent);
-        renderSparkline('poly-mem', 'line-mem', historyMem, 100);
-      }
-
-      if (t.gpus && t.gpus.length > 0) {
-        const g = t.gpus[0];
-        const gpuName = g.name || 'Dedicated GPU';
-        $('perf-gpu-title').innerText = gpuName.length > 20 ? gpuName.substring(0, 18) + '...' : gpuName;
-        const loadVal = typeof g.core_usage_percent === 'number' ? g.core_usage_percent : 0;
-        $('top-gpu').innerText = `${loadVal.toFixed(1)}%`;
-        const subParts = [];
-        if (typeof g.memory_used_mb === 'number' && typeof g.memory_total_mb === 'number') {
-          subParts.push(`VRAM ${(g.memory_used_mb / 1024).toFixed(1)} / ${(g.memory_total_mb / 1024).toFixed(1)} GB`);
-        }
-        if (typeof g.temperature_c === 'number') subParts.push(`${Math.round(g.temperature_c)}°C`);
-        if (typeof g.power_watts === 'number') subParts.push(`${g.power_watts.toFixed(0)} W`);
-        if (typeof g.fan_speed_percent === 'number') subParts.push(`Fan ${Math.round(g.fan_speed_percent)}%`);
-        $('top-gpu-sub').innerText = subParts.join(' | ') || 'Graphics Load';
-        pushHistory(historyGPU, loadVal);
-        renderSparkline('poly-gpu', 'line-gpu', historyGPU, 100);
-      }
-
-      if (t.network_rx_kbs !== undefined) {
-        const totalNet = Math.round(t.network_rx_kbs + t.network_tx_kbs);
-        $('top-net').innerText = totalNet > 1024 ? (totalNet / 1024).toFixed(1) + ' MB/s' : totalNet + ' KB/s';
-        $('top-net-sub').innerText = `RX ${t.network_rx_kbs.toFixed(1)} / TX ${t.network_tx_kbs.toFixed(1)} kB/s`;
-        pushHistory(historyNet, totalNet);
-        renderSparkline('poly-net', 'line-net', historyNet, Math.max(...historyNet, 100));
-      }
-    }
+    renderSensors(sensors, data.telemetry);
+    setSensorsUpdated(data.telemetry && data.telemetry.timestamp);
   } catch (err) {
     if (seq !== pollSeq) return;
     setStaleUI();
   }
   scheduleNextPoll();
+}
+
+const THRESHOLD_DEFAULTS = {
+  cpu: [80, 95], memory: [80, 95], gpu: [85, 95], storage: [80, 95], battery: [20, 10],
+};
+
+function loadThresholds(thresholds) {
+  Object.entries(THRESHOLD_DEFAULTS).forEach(([key, defaults]) => {
+    const threshold = thresholds && thresholds[key];
+    const useDefaults = !threshold || (!threshold.enabled && threshold.warning === 0 && threshold.critical === 0);
+    $('threshold-' + key + '-enabled').checked = !!(threshold && threshold.enabled);
+    $('threshold-' + key + '-warning').value = useDefaults ? defaults[0] : threshold.warning;
+    $('threshold-' + key + '-critical').value = useDefaults ? defaults[1] : threshold.critical;
+  });
+}
+
+function readThresholds() {
+  const thresholds = {};
+  for (const key of Object.keys(THRESHOLD_DEFAULTS)) {
+    const enabled = $('threshold-' + key + '-enabled').checked;
+    const warningInput = $('threshold-' + key + '-warning');
+    const criticalInput = $('threshold-' + key + '-critical');
+    const warning = Number(warningInput.value);
+    const critical = Number(criticalInput.value);
+    if (enabled && (warningInput.value === '' || criticalInput.value === '' || !Number.isFinite(warning) || !Number.isFinite(critical) || warning < 0 || warning > 100 || critical < 0 || critical > 100 || (key === 'battery' ? critical >= warning : critical <= warning))) {
+      showMessage(key + ': enter limits from 0 to 100, with the critical level ' + (key === 'battery' ? 'below' : 'above') + ' the warning level.', true);
+      warningInput.focus();
+      return null;
+    }
+    thresholds[key] = { enabled, warning: Number.isFinite(warning) ? warning : 0, critical: Number.isFinite(critical) ? critical : 0 };
+  }
+  return thresholds;
 }
 
 async function loadConfig() {
@@ -3008,6 +2986,7 @@ async function loadConfig() {
     $('lw_level').value = normalizeLogLevel(lw.min_level);
     $('lw_secret').value = '';
 
+    loadThresholds(cfg.sensor_thresholds);
     currentExpose = cfg.expose || {};
     $('exp-device-summary').checked = !!currentExpose.device_summary;
     $('exp-cpu').checked = currentExpose.cpu !== false;
@@ -3222,6 +3201,9 @@ $('cfg-form').onsubmit = async (e) => {
     return;
   }
   const intervalSec = parseInt($('interval').value, 10) || 5;
+  const thresholds = readThresholds();
+  if (!thresholds) return;
+
   const newExpose = {
     cpu: $('exp-cpu').checked,
     memory: $('exp-mem').checked,
@@ -3264,6 +3246,7 @@ $('cfg-form').onsubmit = async (e) => {
       insecure_tls: $('insecure_tls').checked,
     },
     expose: newExpose,
+    sensor_thresholds: thresholds,
     interval_sec: intervalSec,
     lock_cooldown_sec: Number($('lock-cooldown').value),
     screen_thumbnail_hidden_apps: $('screen-thumb-hide').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean),
@@ -3664,7 +3647,7 @@ document.addEventListener('visibilitychange', () => {
 loadConfig().then(() => {
   if (sessionExpired) return;
   pollStarted = true;
-  const fromHash = location.hash.slice(1);
+  const fromHash = location.hash.slice(1) === 'performance' ? 'sensors' : location.hash.slice(1);
   if (NAV_TABS[fromHash] && fromHash !== activeTab) switchNav(fromHash);
   poll();
   initLogStream();

@@ -29,6 +29,8 @@ func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 			f.SetBool(true)
 		case reflect.Int, reflect.Int64, reflect.Int32:
 			f.SetInt(int64(1000 + *counter))
+		case reflect.Float64:
+			f.SetFloat(float64(*counter) / 10)
 		case reflect.Slice:
 			if f.Type().Elem().Kind() == reflect.Int {
 				f.Set(reflect.ValueOf([]int{1, 3}))
@@ -61,6 +63,8 @@ func fullyPopulatedConfig(t *testing.T) Config {
 	fillAllFields(t, reflect.ValueOf(&cfg).Elem(), "", &n)
 	// Normalised on load and import, so the distinct value must be in range.
 	cfg.ScreenThumbnailSize = 333
+	cfg.SensorThresholds.Battery.Warning = 20
+	cfg.SensorThresholds.Battery.Critical = 10
 	return cfg
 }
 
