@@ -6,8 +6,8 @@ require (
 	github.com/eclipse/paho.golang v0.23.0
 	github.com/gen2brain/beeep v0.11.2
 	github.com/getlantern/systray v1.2.2
-	github.com/gorilla/websocket v1.5.3
 	github.com/godbus/dbus/v5 v5.1.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/mochi-mqtt/server/v2 v2.7.9
 	golang.org/x/sys v0.30.0
 )
