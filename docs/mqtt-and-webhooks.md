@@ -97,12 +97,35 @@ sorted by ID. A successful connection with no readable RGB devices has an empty
 `devices` array. Connection or read failures also have empty arrays; status can
 be `connecting`, `sdk_missing`, `icue_unavailable`, `access_denied`,
 `disconnected`, `connection_failed`, or `read_failed`. `partial` means only the
-successfully read devices are included. Unsupported platforms report
-`unsupported` if the setting was enabled manually.
+successfully read devices are included. Unsupported platforms can report
+`unsupported` in local or webhook snapshots if the setting was enabled manually;
+MQTT omits RGB when the platform does not support it.
 
 The data uses the existing non-retained state topic and collection interval.
 Home Assistant discovers a device-count sensor with `status` and `devices`
-attributes. RGB is omitted while disabled or privacy-paused. It is also included
+attributes for compatibility. Each readable physical RGB device also gets its
+own Corsair device with `via_device` pointing to `satellite_<node_id>` and one
+read-only **Average colour** sensor. Its state is the average RGB as `#RRGGBB`;
+attributes contain the selected device's `id`, `model`, `type`, `average_rgb`,
+`leds`, and `led_count`. Individual LEDs are attributes, not separate entities.
+
+Per-device discovery is published at QoS 1 with retain on
+`homeassistant/sensor/<sanitized_node_id>_icue_rgb/<sanitized_node_id>_icue_rgb_<device_id>/config`.
+The unique ID is `<node_id>_icue_rgb_<device_id>`, and the device identifier is
+`satellite_<node_id>_icue_rgb_<device_id>`. The hashed SDK ID, rather than array
+position or model name, determines identity. These entries are sent on the first
+readable sample and after reconnecting; colour changes only update state.
+
+Each colour sensor requires both agent availability and a readable matching
+device in the latest `connected` or `partial` RGB snapshot. Missing devices,
+SDK failures, and privacy pause make the sensor unavailable; missing-device
+updates clear its colour and LED attributes. Temporary failures keep retained
+discovery so reconnecting hardware reuses the entity. When RGB is disabled or
+unsupported, Satellite subscribes to its own per-device discovery namespace
+and clears retained entries, including those from previous agent runs. Broker
+ACLs must allow that subscription and discovery publishing.
+
+RGB is omitted while disabled or privacy-paused. It is also included
 in enabled desktop telemetry webhooks and local JSON snapshots. See
 [SDK setup](../windows/README.md#icue-rgb).
 

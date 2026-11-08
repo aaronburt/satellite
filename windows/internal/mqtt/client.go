@@ -53,6 +53,7 @@ type Client struct {
 	lastSnapshot     telemetry.Snapshot
 	lastSentTime     time.Time
 	forcePublishNext bool
+	rgbDiscovery     *rgbDiscovery
 	hasBattery       bool
 	caps             capabilities.PlatformCapabilities
 	registry         *actions.Registry
@@ -236,6 +237,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	c.mu.RLock()
 	cfg := c.cfg
 	hasBattery := c.hasBattery
+	caps := c.caps
 	c.mu.RUnlock()
 
 	brokerURL := cfg.MQTT.Broker
@@ -337,6 +339,10 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 			reportConnectionError(err)
 		},
 	})
+	rgb := newRGBDiscovery(cfg, caps, pClient)
+	if !rgb.enabled {
+		router.RegisterHandler(rgbDiscoveryPrefix(cfg.NodeID)+"+/config", rgb.queueCleanup)
+	}
 
 	clientID := cfg.MQTT.ClientID
 	if clientID == "" {
@@ -381,6 +387,7 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	}
 	c.netConn = conn
 	c.pahoClient = pClient
+	c.rgbDiscovery = rgb
 	c.status = StatusConnected
 	c.forcePublishNext = true
 	c.lastSentTime = time.Time{}
@@ -399,6 +406,9 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 	pubCancel()
 
 	var subscriptions []paho.SubscribeOptions
+	if !rgb.enabled {
+		subscriptions = append(subscriptions, paho.SubscribeOptions{Topic: rgbDiscoveryPrefix(cfg.NodeID) + "+/config", QoS: 1})
+	}
 	if acceptsCommands(cfg.Expose) {
 		subscriptions = append(subscriptions, paho.SubscribeOptions{
 			Topic: commandTopic,
@@ -420,15 +430,19 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 
 	if len(subscriptions) > 0 {
 		subCtx, subCancel := context.WithTimeout(ctx, 5*time.Second)
-		_, _ = pClient.Subscribe(subCtx, &paho.Subscribe{
+		subAck, subErr := pClient.Subscribe(subCtx, &paho.Subscribe{
 			Subscriptions: subscriptions,
 		})
 		subCancel()
+		if !rgb.enabled {
+			if subErr != nil {
+				logger.Warn("mqtt", fmt.Sprintf("Could not subscribe for disabled RGB discovery cleanup: %v", subErr))
+			} else if subAck == nil || len(subAck.Reasons) == 0 || subAck.Reasons[0] >= 0x80 {
+				logger.Warn("mqtt", "Broker rejected disabled RGB discovery cleanup subscription; allow reads of "+rgbDiscoveryPrefix(cfg.NodeID)+"+/config")
+			}
+		}
 	}
 
-	c.mu.RLock()
-	caps := c.caps
-	c.mu.RUnlock()
 	discoveryItems := GetAllDiscoveryItems(cfg, hasBattery, caps)
 	for _, item := range discoveryItems {
 		dCtx, dCancel := context.WithTimeout(ctx, 3*time.Second)
@@ -445,27 +459,33 @@ func (c *Client) connectAndServe(ctx context.Context) error {
 		dCancel()
 	}
 
-	select {
-	case <-ctx.Done():
-		return nil
-	case <-connCtx.Done():
-		c.mu.Lock()
-		if c.pahoClient == pClient {
-			c.pahoClient = nil
-			if c.netConn != nil {
-				_ = c.netConn.Close()
-				c.netConn = nil
-			}
-			connAssigned = false
-		}
-		c.status = StatusDisconnected
-		c.diagnostics.Disconnected()
-		c.mu.Unlock()
+	for {
 		select {
-		case err := <-connectionErrors:
-			return err
-		default:
-			return fmt.Errorf("mqtt connection closed")
+		case <-rgb.cleanupReady:
+			if err := rgb.clearRetained(ctx); err != nil {
+				logger.Warn("mqtt", fmt.Sprintf("Could not clear disabled RGB discovery; reconnect to retry: %v", err))
+			}
+		case <-ctx.Done():
+			return nil
+		case <-connCtx.Done():
+			c.mu.Lock()
+			if c.pahoClient == pClient {
+				c.pahoClient = nil
+				if c.netConn != nil {
+					_ = c.netConn.Close()
+					c.netConn = nil
+				}
+				connAssigned = false
+			}
+			c.status = StatusDisconnected
+			c.diagnostics.Disconnected()
+			c.mu.Unlock()
+			select {
+			case err := <-connectionErrors:
+				return err
+			default:
+				return fmt.Errorf("mqtt connection closed")
+			}
 		}
 	}
 }
@@ -494,6 +514,9 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		c.mu.Unlock()
 		return nil
 	}
+	if !c.cfg.Expose.ICUERGB || !c.caps.ICUERGB {
+		snap.RGB = nil
+	}
 
 	snap.SummaryThumbnailAvailable = summaryThumbnailAvailable(c.cfg.Expose, snap)
 	heartbeatSec := c.cfg.HeartbeatSec
@@ -515,8 +538,16 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 	}
 	stateTopic := fmt.Sprintf("%s/%s/state", prefix, c.cfg.NodeID)
 	pClient := c.pahoClient
+	rgb := c.rgbDiscovery
 	stats := c.diagnostics
 	c.mu.Unlock()
+	var rgbErr error
+	if rgb != nil {
+		rgbErr = rgb.sync(context.Background(), snap.RGB)
+		if rgbErr != nil {
+			logger.Warn("mqtt", fmt.Sprintf("Could not publish iCUE RGB discovery; retrying next collection: %v", rgbErr))
+		}
+	}
 
 	bytes, err := json.Marshal(snap)
 	if err != nil {
@@ -538,7 +569,7 @@ func (c *Client) PublishTelemetry(snap telemetry.Snapshot) error {
 		if c.pahoClient == pClient {
 			c.lastSnapshot = snap
 			c.lastSentTime = now
-			c.forcePublishNext = false
+			c.forcePublishNext = rgbErr != nil
 		}
 		c.mu.Unlock()
 		stats.Published()

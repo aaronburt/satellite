@@ -219,7 +219,21 @@ device type, `leds` with numeric IDs and RGBA values from 0–255, and
 `average_rgb`: the rounded arithmetic mean of all returned LED RGB channels,
 including black LEDs, without alpha weighting. Raw serial numbers are omitted.
 Home Assistant discovers an **iCUE RGB Devices** sensor; its attributes contain
-the RGB status and full device list. No light controls are created.
+the RGB status and full device list for compatibility. It also discovers each
+readable physical RGB device as a separate Corsair device, linked to the
+Satellite computer. Each has an **Average colour** sensor whose state is a hex
+colour such as `#FF4000`. Its attributes contain that device's `average_rgb`,
+`led_count`, and individual `leds` with their IDs and RGBA values, plus its model
+and SDK device type. There is one sensor per device, rather than one per LED.
+No light controls are created.
+
+Subdevices are discovered when their first readable sample arrives. Their
+identities stay stable across reconnects and changes to colour or model name;
+matching models remain separate devices. Discovery is retained for Home
+Assistant restarts. An unplugged or unreadable device keeps its entity but
+becomes unavailable on the next state update, with its colour attributes
+cleared. Privacy pause also makes RGB subdevices unavailable. Disabling RGB
+clears their retained discovery entries, including after restarting Satellite.
 
 Colours are sampled at the normal collection interval (5 seconds by default).
 Changes trigger normal telemetry publishing; this is not an animation stream.
