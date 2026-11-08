@@ -250,10 +250,10 @@ func (t *Tray) manualCheckUpdate() {
 	if t.updaterInstance == nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	status, err := t.updaterInstance.Check(ctx)
+	status, err := t.updaterInstance.CheckAndInstall(ctx)
 	if err != nil {
 		_ = showToast(toast.Notification{
 			Title:   "Satellite Update",
@@ -265,7 +265,7 @@ func (t *Tray) manualCheckUpdate() {
 	if status.Available {
 		_ = showToast(toast.Notification{
 			Title:   "Satellite Update Available",
-			Message: fmt.Sprintf("Version %s is available. Click to download.", status.LatestVersion),
+			Message: fmt.Sprintf("Version %s installer opened. Follow the installer to finish updating.", status.LatestVersion),
 			URL:     status.ReleaseURL,
 		})
 	} else {

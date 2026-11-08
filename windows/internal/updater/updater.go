@@ -24,12 +24,13 @@ const (
 )
 
 type GitHubRelease struct {
-	TagName     string `json:"tag_name"`
-	Name        string `json:"name"`
-	HTMLURL     string `json:"html_url"`
-	Draft       bool   `json:"draft"`
-	Prerelease  bool   `json:"prerelease"`
-	PublishedAt string `json:"published_at"`
+	TagName     string         `json:"tag_name"`
+	Name        string         `json:"name"`
+	HTMLURL     string         `json:"html_url"`
+	Draft       bool           `json:"draft"`
+	Prerelease  bool           `json:"prerelease"`
+	PublishedAt string         `json:"published_at"`
+	Assets      []ReleaseAsset `json:"assets"`
 }
 
 type CheckStatus struct {
@@ -53,6 +54,10 @@ type Checker struct {
 	lastNotifiedVersion string
 	onUpdateFound       OnUpdateFoundFunc
 	enabled             bool
+	autoUpdate          bool
+	assets              []ReleaseAsset
+	installMu           sync.Mutex
+	installedVersion    string
 }
 
 func NewChecker(repo, currentVersion string, onUpdateFound OnUpdateFoundFunc) *Checker {
@@ -160,6 +165,7 @@ func (c *Checker) applyRelease(release GitHubRelease) (CheckStatus, error) {
 		isAvailable = IsNewer(c.currentVersion, release.TagName)
 	}
 
+	c.assets = release.Assets
 	c.status = CheckStatus{
 		CheckedAt:      time.Now(),
 		Available:      isAvailable,
@@ -197,7 +203,7 @@ func (c *Checker) StartBackground(ctx context.Context, interval time.Duration) {
 
 	go func() {
 		if c.IsEnabled() {
-			if _, err := c.Check(ctx); err != nil {
+			if _, err := c.checkBackground(ctx); err != nil {
 				logger.Warn("updater", fmt.Sprintf("Initial update check error: %v", err))
 			}
 		}
@@ -213,7 +219,7 @@ func (c *Checker) StartBackground(ctx context.Context, interval time.Duration) {
 				if !c.IsEnabled() {
 					continue
 				}
-				if _, err := c.Check(ctx); err != nil {
+				if _, err := c.checkBackground(ctx); err != nil {
 					logger.Warn("updater", fmt.Sprintf("Background update check error: %v", err))
 				}
 			}

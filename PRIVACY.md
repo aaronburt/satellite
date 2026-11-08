@@ -106,7 +106,10 @@ triggered by manual or enabled automatic update checks.
 Satellite does not poll GitHub for updates by default.
 
 - **Windows and Linux:** automatic checks are off unless you enable them. A
-  manual check still contacts GitHub while automatic checks are off.
+  manual check still contacts GitHub while automatic checks are off. On Windows,
+  a manual check also downloads and opens an available installer. Background
+  downloads and installer launches require the separate auto-update setting,
+  which defaults to off. The installer requires user interaction to finish.
 - **Android:** checking starts from the Check for updates button in Settings.
   If a newer version is found, that action also downloads its APK. Installation
   requires a separate confirmation. There is no scheduled background check.

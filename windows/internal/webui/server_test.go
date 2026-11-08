@@ -217,8 +217,8 @@ func TestActionsAndUpdatesEndpoints(t *testing.T) {
 	reqUpdateCheck, _ := http.NewRequest("POST", "/api/update/check?token="+token, nil)
 	rrUpdateCheck := httptest.NewRecorder()
 	server.server.Handler.ServeHTTP(rrUpdateCheck, reqUpdateCheck)
-	if rrUpdateCheck.Code != http.StatusOK {
-		t.Fatalf("expected 200 for update check, got %d", rrUpdateCheck.Code)
+	if rrUpdateCheck.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 for release without an installer, got %d", rrUpdateCheck.Code)
 	}
 
 	reqUpdateMethod, _ := http.NewRequest("PUT", "/api/update?token="+token, nil)

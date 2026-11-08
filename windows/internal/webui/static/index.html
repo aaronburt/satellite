@@ -1941,6 +1941,8 @@ a{color:var(--accent-text);text-underline-offset:3px}
                 </div>
                 <div class="field">
                   <label class="toggle-item"><input type="checkbox" id="check_updates"><span>Automatically check GitHub for updates</span></label>
+                  <label class="toggle-item"><input type="checkbox" id="auto_update"><span>Automatically download and open the Windows installer when an update is found</span></label>
+                  <p class="hint">Requires automatic GitHub checks. Check for Updates also downloads and opens an available installer. Follow the installer to finish updating.</p>
                 </div>
               </div>
 
@@ -2871,12 +2873,12 @@ async function checkUpdatesManual() {
   try {
     const res = await authFetch('/api/update/check', { method: 'POST' });
     const data = await res.json();
-    if (data.available) {
+    if (data.error) {
+      showToast(`Update failed: ${data.error}`, true);
+    } else if (data.available) {
       updateDismissed = false;
       handleUpdateStatus(data);
-      showToast(`Update available: ${data.latest_version}`, false);
-    } else if (data.error) {
-      showToast(`Update check failed: ${data.error}`, true);
+      showToast(`Installer opened for ${data.latest_version}. Follow the installer to finish updating.`, false);
     } else {
       showToast(`Satellite is up to date (${data.current_version || '{{VERSION}}'})`, false);
     }
@@ -2988,6 +2990,7 @@ async function loadConfig() {
     $('json_enabled').checked = !!cfg.json_enabled;
     $('api_key').value = cfg.api_key || '';
     $('check_updates').checked = !!cfg.check_updates;
+    $('auto_update').checked = !!cfg.auto_update;
     const tw = cfg.telemetry_webhook || {};
     $('tw_enabled').checked = !!tw.enabled;
     $('tw_url').value = tw.url || '';
@@ -3265,6 +3268,7 @@ $('cfg-form').onsubmit = async (e) => {
     json_enabled: $('json_enabled').checked,
     api_key: $('api_key').value.trim(),
     check_updates: $('check_updates').checked,
+    auto_update: $('auto_update').checked,
     telemetry_webhook: {
       enabled: $('tw_enabled').checked,
       url: $('tw_url').value.trim(),

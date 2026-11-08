@@ -358,7 +358,11 @@ Invoke-RestMethod -Method Post -Uri "$base/api/update/check" -Headers $headers
 
 The normal status fields are `checked_at` (RFC 3339 timestamp), `available`,
 `current_version`, `latest_version`, `release_url`, and optional `error`.
-Checking does not download or install a desktop update. A failed check returns
+On Windows, a manual check downloads an available release installer, verifies its
+size and GitHub SHA-256 digest, and opens it for the user to finish updating.
+Missing installer assets or digests fail without launching anything. Background
+checks only do this when `auto_update` and `check_updates` are enabled.
+Linux users install updates manually. A failed check or installation attempt returns
 HTTP 500 with the status object and its `error` field. Without a configured
 checker, GET returns `available: false` and `current_version`; POST returns
 HTTP 503. See [`updater.go`](../windows/internal/updater/updater.go).
