@@ -8,13 +8,19 @@ Lightweight Windows & Linux telemetry agent and remote controller for Home Assis
 
 ---
 
-## Screenshots
+## Local web UI
 
-The local web UI lets you choose which sensors are published. Its **Sensors** tab shows a live card for every sensor you have turned on (including the screen preview, if enabled), grouped by System, Network, Session, Media & devices and Screen, and it works on a phone-sized window too:
+The local web UI works on desktop and phone-sized windows. Its five tabs are:
 
-| Sensors | Settings |
+| Tab | Purpose |
 | --- | --- |
-| ![Sensors view](docs/screenshots/sensors.jpg) | ![Settings view](docs/screenshots/settings.jpg) |
+| Sensors | Cards for every enabled, supported sensor, grouped by System, Network, Session, Media & devices and Screen. Processor, memory, network and each GPU include recent-history graphs. Enabled thresholds highlight warning and critical readings; optional screen previews appear here. |
+| Privacy | Saved permissions, temporary privacy-pause restrictions, allowed media commands, reporting destinations and an expandable current JSON snapshot. |
+| Diagnostics | MQTT and telemetry webhook health, connection tests, delivery counters and recent failures. |
+| Logs | Live log events with search and severity filtering. |
+| Settings | Configure reporting, sensors, thresholds, remote controls, local access and maintenance. |
+
+Performance graphs are included in Sensors. See [Web UI monitoring and privacy](#web-ui-monitoring-and-privacy) for graph history, snapshot details and threshold behavior.
 
 ## Features
 
@@ -27,6 +33,8 @@ The local web UI lets you choose which sensors are published. Its **Sensors** ta
 - **Desktop Notifications:** Native Windows 10/11 toast alerts and Linux FreeDesktop D-Bus notifications with titles, messages, clickable URLs, and silent chime option.
 - **Home Assistant:** Instant MQTT Auto-Discovery for sensors, media player, and buttons. Only sensors supported by the host OS/hardware are discovered.
 - **Generic Webhook:** Optionally POST telemetry snapshots as JSON on changes or heartbeats, alongside (or instead of) MQTT.
+- **Privacy overview:** Review saved permissions, privacy-pause restrictions, reporting destinations and the current telemetry dataset without enabling `/json`.
+- **Sensor thresholds:** Opt-in warning and critical limits for CPU, memory, GPU usage, disk space used and battery. Highlight cards and the sensor summary without notifications or changes to published telemetry.
 - **Connection Diagnostics:** The web UI's Diagnostics tab shows MQTT and telemetry webhook health, attempts, reconnects, successful telemetry writes, recent failures with suggested fixes, and scheduled retries. Test saved connections or copy a report without server addresses, credentials or sensor readings.
 - **Tray, Web UI & Headless:** Windows system tray, local Web UI for setup, and headless operation (`--headless`) including Linux systemd user services. Linux has no tray implementation.
 - **Quick Privacy Pause (Windows tray):** pause sensitive sensors for 5, 15, 30, or 60 minutes, with a live countdown, early resume, and automatic resume.
