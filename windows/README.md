@@ -71,6 +71,25 @@ these commands from `windows/`:
   & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer.iss
   ```
 
+Windows builds embed the Satellite icon and file metadata from the checked-in
+`resource_windows_*.syso` files (amd64, arm64 and 386). The publisher is
+`aaronburt`, with copyright matching the repository license.
+
+After changing `internal/tray/icon.ico` or `winres/winres.json`, regenerate
+the resources from `windows/` using PowerShell:
+
+```powershell
+./scripts/generate-resources.ps1
+```
+
+The script uses the version in `internal/config/config.go` by default and
+downloads the pinned go-winres v0.3.3 tool. To build a specific version, pass
+`-Version 0.29` and use the same version with
+`-X satellite/internal/config.Version=0.29` in the build's linker flags.
+Release builds do this automatically before compiling the executable.
+Windows numeric versions are padded to four components, so `0.29` becomes
+`0.29.0.0`; the displayed version retains `0.29`.
+
 ### 2. Run
 
 - **Tray Mode (Windows):** Run `satellite.exe`, then choose **Open Satellite** from its tray menu. Use **Open in Browser** for browser access.

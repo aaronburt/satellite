@@ -2,7 +2,7 @@
 #ifndef MyAppVersion
 #define MyAppVersion "0.28"
 #endif
-#define MyAppPublisher "Antigravity"
+#define MyAppPublisher "aaronburt"
 #define MyAppURL "https://github.com/aaronburt/satellite"
 #define MyAppExeName "satellite.exe"
 
