@@ -89,11 +89,11 @@ func main() {
 	updaterInstance := updater.NewChecker(cfg.UpdateRepo, config.Version, func(status updater.CheckStatus) {
 		_ = toast.Show(toast.Notification{
 			Title:   "Satellite Update Available",
-			Message: fmt.Sprintf("Version %s is available. Click to download.", status.LatestVersion),
-			URL:     status.ReleaseURL,
+			Message: fmt.Sprintf("Version %s is available. Use Check for Updates to download and open the installer, or enable automatic updates in Settings.", status.LatestVersion),
 		})
 	})
 	updaterInstance.SetEnabled(cfg.CheckUpdates)
+	updaterInstance.SetAutoUpdate(cfg.AutoUpdate)
 
 	if *cliMode {
 		runCLI(collector, cfg, updaterInstance)

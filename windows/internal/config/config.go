@@ -104,6 +104,7 @@ type Config struct {
 	APIKey                    string        `json:"api_key"`
 	Webhook                   WebhookConfig `json:"webhook"`
 	CheckUpdates              bool          `json:"check_updates"`
+	AutoUpdate                bool          `json:"auto_update"`
 	UpdateRepo                string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`

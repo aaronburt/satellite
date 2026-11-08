@@ -706,7 +706,7 @@ func (s *Server) handleUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status, err := u.Check(r.Context())
+	status, err := u.CheckAndInstall(r.Context())
 	code := http.StatusOK
 	if err != nil {
 		code = http.StatusInternalServerError
@@ -879,6 +879,7 @@ func (s *Server) applyConfig(next config.Config) {
 	}
 	if u != nil {
 		u.SetEnabled(next.CheckUpdates)
+		u.SetAutoUpdate(next.AutoUpdate)
 	}
 
 	s.SetJSONEnabled(next.JSONEnabled)

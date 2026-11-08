@@ -55,6 +55,7 @@ type ExportData struct {
 	APIKey                    string        `json:"api_key,omitempty"`
 	Webhook                   WebhookConfig `json:"webhook"`
 	CheckUpdates              bool          `json:"check_updates"`
+	AutoUpdate                bool          `json:"auto_update"`
 	UpdateRepo                string        `json:"update_repo,omitempty"`
 
 	TelemetryWebhook TelemetryWebhookConfig `json:"telemetry_webhook"`
@@ -129,6 +130,7 @@ func ExportConfig(cfg Config, passphrase string) ([]byte, error) {
 		APIKey:                    cfg.APIKey,
 		Webhook:                   cfg.Webhook,
 		CheckUpdates:              cfg.CheckUpdates,
+		AutoUpdate:                cfg.AutoUpdate,
 		UpdateRepo:                cfg.UpdateRepo,
 
 		TelemetryWebhook: cfg.TelemetryWebhook,
@@ -287,6 +289,7 @@ func ImportConfig(raw []byte, opts ImportOptions) (ImportResult, error) {
 		APIKey:                    data.APIKey,
 		Webhook:                   data.Webhook,
 		CheckUpdates:              data.CheckUpdates,
+		AutoUpdate:                data.AutoUpdate,
 		UpdateRepo:                data.UpdateRepo,
 
 		TelemetryWebhook: data.TelemetryWebhook,
