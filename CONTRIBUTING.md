@@ -11,14 +11,16 @@ Install the Go toolchain declared in [`windows/go.mod`](windows/go.mod). From
 `windows/`, build a console binary for development:
 
 ```powershell
-go build -o satellite.exe .
+go build -ldflags="-X satellite/internal/config.Version=0.99999" -o satellite.exe .
 .\satellite.exe --debug
 ```
+
+Development builds report `0.99999` and disable automatic update checks and installation. Run without `--debug` to test the Windows tray.
 
 On Linux:
 
 ```sh
-go build -o satellite .
+go build -ldflags="-X satellite/internal/config.Version=0.99999" -o satellite .
 ./satellite --debug
 ```
 
