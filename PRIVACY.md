@@ -64,8 +64,14 @@ sensor choices are preserved. The deadline includes time asleep; restarting
 Satellite ends the pause. Sensitive readings are filtered from MQTT, telemetry
 webhooks and their retries/tests, and local snapshot/preview endpoints. Cached
 previews are cleared. Other telemetry and enabled remote commands continue.
-Requests already sent and copies held by destinations or browsers cannot be
+Requests already sent and copies held by destinations, browsers or the dedicated UI client cannot be
 retracted.
+
+The dedicated Windows UI uses Microsoft Edge WebView2 with a separate local
+browser profile under the user's local cache directory (`Satellite/WebView2`).
+That profile can retain browser storage and cached UI content between window
+sessions. The window loads the same authenticated local HTTP interface as a
+browser; closing it leaves the background agent running.
 
 The optional Windows iCUE RGB sensor reads supported devices' LED colours,
 device models, and hashed device identifiers. It does not publish raw serial

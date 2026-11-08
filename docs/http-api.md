@@ -7,8 +7,9 @@ does not expose these HTTP endpoints. Routes and handlers are implemented in
 
 ## Connect and authenticate
 
-1. On Windows, enable **WebUI** in the Satellite tray menu, then select
-   **Open WebUI**. Alternatively, start `satellite.exe --debug`. On Linux, start
+1. On Windows, select **Open in Browser** in the Satellite tray menu to open
+   the authenticated URL. **Open Satellite** uses the same API in a dedicated
+   window. Alternatively, start `satellite.exe --debug`. On Linux, start
    `./satellite --debug`; `--headless` alone does not enable the management API.
 2. Use the address printed in debug output or opened by the tray menu, for
    example `http://127.0.0.1:12345/?token=YOUR_WEB_UI_TOKEN`. The default bind
