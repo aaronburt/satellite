@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
+	"satellite/internal/config"
 	"satellite/internal/logger"
 	"satellite/internal/telemetry"
 )
 
 var ErrActionNotFound = errors.New("action not recognized")
+
+var ErrLockCooldown = errors.New("lock cooldown active")
 
 type Handler func() error
 
@@ -68,6 +72,10 @@ func (systemExecutor) SleepDisplays() error {
 }
 
 type Registry struct {
+	lockMu         sync.Mutex
+	lastLock       time.Time
+	lockCooldown   func() time.Duration
+	now            func() time.Time
 	mu             sync.RWMutex
 	handlers       map[string]Handler
 	statusProvider StatusProvider
@@ -88,8 +96,10 @@ func NewRegistryWithExecutor(exec Executor) *Registry {
 		exec = systemExecutor{}
 	}
 	return &Registry{
-		handlers: make(map[string]Handler),
-		executor: exec,
+		lockCooldown: func() time.Duration { return time.Duration(config.Get().LockCooldownSeconds()) * time.Second },
+		now:          time.Now,
+		handlers:     make(map[string]Handler),
+		executor:     exec,
 	}
 }
 
@@ -153,6 +163,18 @@ func (r *Registry) Register(name string, handler Handler) {
 
 func (r *Registry) Execute(actionName string) error {
 	key := normalizeAction(actionName)
+	if key == "lock" {
+		r.lockMu.Lock()
+		now := r.now()
+		cooldown := r.lockCooldown()
+		if !r.lastLock.IsZero() && now.Sub(r.lastLock) < cooldown {
+			remaining := cooldown - now.Sub(r.lastLock)
+			r.lockMu.Unlock()
+			return fmt.Errorf("%w: try again in %s", ErrLockCooldown, ((remaining+time.Second-1)/time.Second)*time.Second)
+		}
+		r.lastLock = now
+		r.lockMu.Unlock()
+	}
 
 	r.mu.RLock()
 	customHandler, hasCustom := r.handlers[key]

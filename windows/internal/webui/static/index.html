@@ -1898,6 +1898,11 @@ a{color:var(--accent-text);text-underline-offset:3px}
                   <label class="toggle-item" data-cap="remote_lock"><input type="checkbox" class="exp-chk" id="exp-remote-lock"><span>Allow Remote Lock Command</span></label>
                   <label class="toggle-item" data-cap="notifications"><input type="checkbox" class="exp-chk" id="exp-notifications"><span>Allow Toast Notifications</span></label>
                 </div>
+                <div class="field" data-cap="remote_lock">
+                  <label for="lock-cooldown">Lock cooldown (seconds)</label>
+                  <input type="number" id="lock-cooldown" min="0" max="2147483647" step="1" required aria-describedby="lock-cooldown-help">
+                  <p class="field-hint" id="lock-cooldown-help">Minimum time between lock commands. Default: 60 seconds. Set to 0 for no cooldown.</p>
+                </div>
               </div>
             </section>
             <section class="settings-section" id="settings-access" aria-labelledby="settings-access-title">
@@ -2978,6 +2983,7 @@ async function loadConfig() {
     $('prefix').value = cfg.mqtt ? cfg.mqtt.topic_prefix : '';
     $('insecure_tls').checked = cfg.mqtt ? !!cfg.mqtt.insecure_tls : false;
     $('interval').value = cfg.interval_sec || 5;
+    $('lock-cooldown').value = cfg.lock_cooldown_sec ?? 60;
     $('screen-thumb-size').value = cfg.screen_thumbnail_size || 200;
     $('screen-thumb-hide').value = (cfg.screen_thumbnail_hidden_apps || []).join('\n');
     $('screen-thumb-mode').value = (cfg.screen_thumbnail_displays || []).length ? 'selected' : 'primary';
@@ -3259,6 +3265,7 @@ $('cfg-form').onsubmit = async (e) => {
     },
     expose: newExpose,
     interval_sec: intervalSec,
+    lock_cooldown_sec: Number($('lock-cooldown').value),
     screen_thumbnail_hidden_apps: $('screen-thumb-hide').value.split(/[\n,]/).map(s => s.trim()).filter(Boolean),
     screen_thumbnail_size: Math.min(400, Math.max(64, parseInt($('screen-thumb-size').value, 10) || 200)),
     screen_thumbnail_displays: thumbnailDisplays,

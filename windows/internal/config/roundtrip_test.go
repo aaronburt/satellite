@@ -42,6 +42,8 @@ func fillAllFields(t *testing.T, v reflect.Value, prefix string, counter *int) {
 			f.Set(reflect.New(f.Type().Elem()))
 			if f.Elem().Kind() == reflect.Bool {
 				f.Elem().SetBool(true)
+			} else if f.Elem().Kind() == reflect.Int {
+				f.Elem().SetInt(int64(1000 + *counter))
 			} else {
 				fillAllFields(t, f.Elem(), name+".", counter)
 			}
