@@ -206,7 +206,7 @@ func TestActionsAndUpdatesEndpoints(t *testing.T) {
 
 	ghServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"tag_name": "v99.0.0", "html_url": "https://example.com"}`))
+		w.Write([]byte(`[{"tag_name": "v99.0.0", "html_url": "https://example.com", "assets":[{"name":"satellite.exe"}]}]`))
 	}))
 	defer ghServer.Close()
 

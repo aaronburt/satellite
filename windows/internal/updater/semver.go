@@ -13,6 +13,7 @@ type Version struct {
 
 func ParseVersion(v string) Version {
 	clean := strings.TrimSpace(v)
+	clean = strings.TrimPrefix(clean, "desktop-")
 	clean = strings.TrimPrefix(clean, "v")
 	clean = strings.TrimPrefix(clean, "V")
 

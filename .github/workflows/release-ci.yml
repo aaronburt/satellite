@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/scripts/**'
       - '.github/workflows/release.yml'
+      - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/android-release.yml'
       - '.github/workflows/release-ci.yml'
   workflow_dispatch:
 
@@ -21,3 +23,5 @@ jobs:
 
       - name: Test next-version.sh
         run: .github/scripts/next-version-test.sh
+      - name: Test independent release versions
+        run: bash .github/scripts/platform-version-test.sh

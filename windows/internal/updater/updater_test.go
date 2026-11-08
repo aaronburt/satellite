@@ -19,11 +19,12 @@ func TestChecker_CheckUpdateAvailable(t *testing.T) {
 			t.Errorf("unexpected Accept header: %s", r.Header.Get("Accept"))
 		}
 		rel := GitHubRelease{
+			Assets:  []ReleaseAsset{{Name: "satellite.exe"}},
 			TagName: "v0.15.0",
 			Name:    "Release v0.15.0",
 			HTMLURL: "https://github.com/aaronburt/satellite/releases/tag/v0.15.0",
 		}
-		_ = json.NewEncoder(w).Encode(rel)
+		_ = json.NewEncoder(w).Encode([]GitHubRelease{rel})
 	}))
 	defer server.Close()
 
@@ -72,11 +73,12 @@ func TestChecker_CheckUpdateAvailable(t *testing.T) {
 func TestChecker_CheckUpToDate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := GitHubRelease{
+			Assets:  []ReleaseAsset{{Name: "satellite.exe"}},
 			TagName: "v0.14.0",
 			Name:    "Release v0.14.0",
 			HTMLURL: "https://github.com/aaronburt/satellite/releases/tag/v0.14.0",
 		}
-		_ = json.NewEncoder(w).Encode(rel)
+		_ = json.NewEncoder(w).Encode([]GitHubRelease{rel})
 	}))
 	defer server.Close()
 
@@ -96,12 +98,13 @@ func TestChecker_CheckUpToDate(t *testing.T) {
 func TestChecker_DraftAndPrerelease(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := GitHubRelease{
+			Assets:     []ReleaseAsset{{Name: "satellite.exe"}},
 			TagName:    "v0.16.0",
 			Name:       "Prerelease v0.16.0",
 			HTMLURL:    "https://github.com/aaronburt/satellite/releases/tag/v0.16.0",
 			Prerelease: true,
 		}
-		_ = json.NewEncoder(w).Encode(rel)
+		_ = json.NewEncoder(w).Encode([]GitHubRelease{rel})
 	}))
 	defer server.Close()
 
@@ -162,11 +165,12 @@ func TestChecker_InvalidJSON(t *testing.T) {
 func TestChecker_StartBackground(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rel := GitHubRelease{
+			Assets:  []ReleaseAsset{{Name: "satellite.exe"}},
 			TagName: "v0.14.0",
 			Name:    "v0.14.0",
 			HTMLURL: "https://github.com/aaronburt/satellite/releases/tag/v0.14.0",
 		}
-		_ = json.NewEncoder(w).Encode(rel)
+		_ = json.NewEncoder(w).Encode([]GitHubRelease{rel})
 	}))
 	defer server.Close()
 

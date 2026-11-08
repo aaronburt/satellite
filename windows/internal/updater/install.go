@@ -56,7 +56,7 @@ func (c *Checker) CheckAndInstall(ctx context.Context) (CheckStatus, error) {
 	assets := append([]ReleaseAsset(nil), c.assets...)
 	repo := c.repo
 	c.mu.RUnlock()
-	expected := "Satellite-Setup-" + status.LatestVersion + ".exe"
+	expected := "Satellite-Setup-" + strings.TrimPrefix(status.LatestVersion, "desktop-") + ".exe"
 	for _, asset := range assets {
 		if asset.Name != expected {
 			continue

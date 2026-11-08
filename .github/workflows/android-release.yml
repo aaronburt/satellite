@@ -1,0 +1,139 @@
+name: Android release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - '!android/**/*.md'
+      - '!android/docs/**'
+      - '.github/workflows/android-release.yml'
+      - '.github/scripts/platform-version.sh'
+      - '.github/scripts/next-version.sh'
+  workflow_run:
+    workflows: ['Release bridge']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+
+jobs:
+  version:
+    name: Resolve android version
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      code: ${{ steps.version.outputs.code }}
+      exists: ${{ steps.version.outputs.exists }}
+      sha: ${{ steps.version.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve version and changes
+        id: version
+        run: bash .github/scripts/platform-version.sh android >> "$GITHUB_OUTPUT"
+
+  android:
+    name: Build signed Android APK
+    needs: version
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install SDK packages
+        run: |
+          SDKMANAGER=$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | sort | tail -n1)
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-37.2" "build-tools;37.0.0" "platform-tools"
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Repository secret RELEASE_${name} is not set. Refusing to publish an unsigned or debug-signed APK."
+              exit 1
+            fi
+          done
+          mkdir -p keystore
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > keystore/satellite-release.jks
+          printf 'storeFile=keystore/satellite-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$STORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > keystore.properties
+
+      - name: Unit tests
+        run: ./gradlew test --stacktrace
+
+      - name: Assemble release APK
+        run: |
+          ./gradlew :app:assembleRelease \
+            -PversionName="${{ needs.version.outputs.version }}" \
+            -PversionCode="${{ needs.version.outputs.code }}" \
+            --stacktrace
+
+      - name: Rename APK for the release
+        run: |
+          mkdir -p dist
+          SRC=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          cp "$SRC" "dist/satellite-${{ needs.version.outputs.tag }}.apk"
+
+      - name: Upload Android asset
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-release
+          path: android/dist/*.apk
+          if-no-files-found: error
+
+  publish:
+    name: Publish android release
+    needs: [version, android]
+    if: needs.version.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-release
+          path: dist
+      - name: Verify assets
+        run: |
+          test -f "dist/satellite-${{ needs.version.outputs.tag }}.apk"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.version.outputs.tag }}
+          TARGET_SHA: ${{ needs.version.outputs.sha }}
+        run: |
+          gh release create "$TAG" dist/* --target "$TARGET_SHA" --title "Android ${{ needs.version.outputs.version }}" --generate-notes --latest=false
