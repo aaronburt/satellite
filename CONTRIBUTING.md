@@ -98,42 +98,41 @@ testing. Its development credentials and exposed ports are documented there.
 
 ## Releases
 
-Versions are `MAJOR.MINOR` (from `0.28`; earlier releases were `X.Y.Z`), and
-every pull request merged to `main` is released. You do not bump anything by
-hand.
+Versions are `MAJOR.MINOR`, with independent `desktop-vMAJOR.MINOR` and
+`android-vMAJOR.MINOR` tags. Nothing is committed back to `main`.
 
-When a PR merges, the root [release workflow](.github/workflows/release.yml):
+- Changes under `windows/` run [Desktop release](.github/workflows/desktop-release.yml),
+  which tests Go and builds the Windows executable, installer, and Linux binary.
+- Changes under `android/` run [Android release](.github/workflows/android-release.yml),
+  which tests Android and builds the signed APK.
+- Changes to both folders run both streams. Markdown and platform `docs/` changes
+  do not release. A release workflow change affects its own stream; changes to
+  `platform-version.sh` or `next-version.sh` affect both.
 
-1. Works out the next version with
-   [`next-version.sh`](.github/scripts/next-version.sh): the latest `v*` tag
-   with its minor number bumped by one (`v0.28` -> `v0.29` -> `v0.30`).
-2. Runs the Go and Android unit tests and builds the desktop and Android
-   artifacts with that version baked in.
-3. Publishes them as a single `vMAJOR.MINOR` release with generated notes.
+Each stream compares its current source with its last release tag, so reruns with
+no relevant changes skip builds. Runs serialize per platform and resolve current
+`main` when they start, allowing queued changes to ship together. Failed builds
+publish nothing and remain eligible on the next relevant push or manual run.
+Windows and Linux remain together because they share the Go module in `windows/`.
+The Linux release binary is cross-compiled on Windows; Go CI also tests on Linux.
 
-Nothing is committed back to `main`, so the version in the source does not
-change with each release. `var Version` in `windows/internal/config/config.go`
-is a floor and the version local builds report. To bump the major version (or
-jump ahead), raise it in a PR, for example to `1.0`: that PR is released as
-`v1.0`, and the next one as `v1.1`.
+The first independent version starts above the legacy `v*` releases. Subsequent
+versions advance only from that platform's tags. To raise a platform's version
+floor, update `var Version` in `windows/internal/config/config.go` or the default
+`versionName` in `android/app/build.gradle.kts`.
 
-Runs queue one at a time. If several PRs merge while a release is building,
-the next run releases them together under one version. A failed run publishes
-nothing; the next merge (or a manual re-run) releases everything since the last
-release. Re-running the workflow on a commit that already has a release tag
-does nothing. Separate CI jobs provide additional checks; Linux tests run in Go
-CI, while the release workflow cross-compiles the Linux binary on Windows.
+The one-time [Release bridge](.github/workflows/release.yml) publishes a combined
+`vMAJOR.MINOR` release containing updaters that recognize the independent streams.
+It remains GitHub's latest release for older installations. After publishing, it
+creates the `release-streams-ready` marker tag; independent workflows wait for
+that marker and check for unreleased changes when the bridge completes. Later
+bridge runs skip builds. Keep the marker tag and bridge release so older clients
+can migrate. Platform releases use `--latest=false` to preserve that route.
 
-The Windows build sets the version with
-`-ldflags "-X satellite/internal/config.Version=MAJOR.MINOR"`, and the release
-fails if a binary was built without it. Android release `versionName` is the
-same version, and `versionCode` is `major * 1000000 + minor * 100`, so minor can
-go up to 9999. Old three-part releases used `major * 10000 + minor * 100 +
-patch` (`0.27.3` was `2703`); the two encodings agree for every `0.x` version,
-so `0.28` (`2800`) is newer than all of them. Android apps on `0.27.3` or
-older only understand three-part tags, so install the `v0.28` APK by hand once;
-in-app updates work from then on. Local Android builds use the defaults in
-`app/build.gradle.kts` unless overridden with `-PversionName` and `-PversionCode`.
+Desktop builds embed the numeric version through Go linker flags. Android uses
+that stream's numeric `versionName` and `versionCode = major * 1000000 + minor * 100`.
+Local builds retain their source defaults. Clients installed before the bridge
+must update to it before they can discover platform-specific releases.
 
 Publishing a signed APK requires repository secrets `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`. The

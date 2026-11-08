@@ -43,15 +43,24 @@ Start with the [documentation index](docs/README.md) for setup and integration g
 
 ## Releases
 
-Both apps ship in one release, versioned `MAJOR.MINOR`. Every pull request merged to `main` bumps the minor version (`v0.28`, `v0.29`, ...), and [`release.yml`](.github/workflows/release.yml) builds everything and publishes a single release containing:
+Builds and releases follow the folders changed on `main`:
 
-- `satellite.exe` and `Satellite-Setup-vX.Y.exe` (Windows)
-- `satellite-linux-amd64` (Linux)
-- `satellite-vX.Y.apk` (Android, signed)
+| Changed files | Workflow | Release assets |
+| --- | --- | --- |
+| `windows/**` | [Desktop release](.github/workflows/desktop-release.yml) | `satellite.exe`, `Satellite-Setup-vX.Y.exe`, `satellite-linux-amd64` |
+| `android/**` | [Android release](.github/workflows/android-release.yml) | Signed `satellite-android-vX.Y.apk` |
 
-See [CONTRIBUTING.md](CONTRIBUTING.md#releases) for how versions are worked out and how to bump the major version.
+Changes to both folders release both platforms independently. Markdown and platform
+`docs/` changes do not publish releases. Each release workflow also watches its own
+file and the shared version scripts.
 
-The desktop agent checks the release tag and links to the release for download. The Android app can download, verify, and install the `.apk` attached to the latest release.
+Versions advance independently using `desktop-vMAJOR.MINOR` and
+`android-vMAJOR.MINOR` tags. Each app checks its own releases for updates.
+A one-time [bridge release](.github/workflows/release.yml) publishes the updated
+updaters together before the independent streams begin. Install that release to
+receive subsequent platform-specific updates.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md#releases) for versioning, migration, and signing.
 
 ## Disclaimer
 

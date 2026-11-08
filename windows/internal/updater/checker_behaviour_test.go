@@ -24,7 +24,7 @@ type fakeGitHub struct {
 
 func (f *fakeGitHub) set(tag string) {
 	f.mu.Lock()
-	f.release = GitHubRelease{TagName: tag, HTMLURL: "https://github.com/o/r/releases/tag/" + tag}
+	f.release = GitHubRelease{Assets: []ReleaseAsset{{Name: "satellite.exe"}}, TagName: tag, HTMLURL: "https://github.com/o/r/releases/tag/" + tag}
 	f.mu.Unlock()
 }
 
@@ -38,7 +38,7 @@ func (f *fakeGitHub) start(t *testing.T) *httptest.Server {
 			w.WriteHeader(f.status)
 			return
 		}
-		_ = json.NewEncoder(w).Encode(f.release)
+		_ = json.NewEncoder(w).Encode([]GitHubRelease{f.release})
 	}))
 	t.Cleanup(srv.Close)
 	return srv
@@ -79,7 +79,7 @@ func TestCheckRequestsLatestReleaseOfConfiguredRepo(t *testing.T) {
 	if _, err := c.Check(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	if gh.lastPath != "/repos/owner/repo/releases/latest" {
+	if gh.lastPath != "/repos/owner/repo/releases" {
 		t.Errorf("path = %q (repo should be trimmed, base URL slash removed)", gh.lastPath)
 	}
 	if gh.lastUA != "Satellite-Agent/0.9.0" {
@@ -223,7 +223,7 @@ func TestNewCheckerDefaultsRepo(t *testing.T) {
 	c := NewChecker("  ", "1.0.0", nil)
 	c.SetAPIBaseURL(srv.URL)
 	_, _ = c.Check(context.Background())
-	if gh.lastPath != "/repos/"+DefaultRepo+"/releases/latest" {
+	if gh.lastPath != "/repos/"+DefaultRepo+"/releases" {
 		t.Fatalf("path = %q", gh.lastPath)
 	}
 }

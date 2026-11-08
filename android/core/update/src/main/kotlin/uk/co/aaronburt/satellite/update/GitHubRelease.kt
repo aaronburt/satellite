@@ -1,5 +1,6 @@
 package uk.co.aaronburt.satellite.update
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class ReleaseAsset(
@@ -25,6 +26,22 @@ data class GitHubRelease(
  * without touching the network.
  */
 object GitHubReleaseParser {
+
+    private val ANDROID_TAG = Regex("""(?:android-)?v\d+\.\d+(?:\.\d+)?""")
+
+    fun latestAndroid(body: String): GitHubRelease? {
+        val releases = JSONArray(body)
+        return (0 until releases.length()).mapNotNull { index ->
+            val json = releases.getJSONObject(index)
+            if (json.optBoolean("draft") || json.optBoolean("prerelease") ||
+                !ANDROID_TAG.matches(json.optString("tag_name"))
+            ) {
+                null
+            } else {
+                parse(json.toString()).takeIf { it.apk != null && it.versionCode != null }
+            }
+        }.maxByOrNull { it.versionCode ?: 0 }
+    }
 
     fun parse(body: String): GitHubRelease {
         val json = JSONObject(body)
@@ -52,7 +69,7 @@ object GitHubReleaseParser {
         return GitHubRelease(
             tag = tag,
             versionCode = VersionCodes.fromTag(tag),
-            versionName = tag.removePrefix("v"),
+            versionName = tag.removePrefix("android-").removePrefix("v"),
             title = json.optString("name").ifBlank { tag },
             notes = json.optString("body").takeIf { it.isNotBlank() },
             htmlUrl = json.optString("html_url"),
@@ -82,7 +99,7 @@ object VersionCodes {
     private val TAG = Regex("""v?(\d{1,4})\.(\d{1,4})(?:\.(\d{1,2})(?:\.\d+)*)?""")
 
     fun fromTag(tag: String): Int? {
-        val match = TAG.matchEntire(tag.trim()) ?: return null
+        val match = TAG.matchEntire(tag.trim().removePrefix("android-")) ?: return null
         val (majorText, minorText, patchText) = match.destructured
         val major = majorText.toInt()
         if (major > MAX_MAJOR) return null

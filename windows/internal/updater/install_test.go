@@ -16,7 +16,7 @@ func (f updateTransport) RoundTrip(r *http.Request) (*http.Response, error) { re
 func TestBackgroundDownloadRequiresOptIn(t *testing.T) {
 	c := NewChecker("owner/repo", "1.0.0", nil)
 	c.client.Transport = updateTransport(func(r *http.Request) (*http.Response, error) {
-		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"tag_name":"v2.0.0"}`)), Header: make(http.Header)}, nil
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`[{"tag_name":"v2.0.0","assets":[{"name":"satellite.exe"}]}]`)), Header: make(http.Header)}, nil
 	})
 	if _, err := c.checkBackground(context.Background()); err != nil {
 		t.Fatal(err)

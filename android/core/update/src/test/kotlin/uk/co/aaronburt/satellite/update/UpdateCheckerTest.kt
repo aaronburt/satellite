@@ -19,7 +19,7 @@ class UpdateCheckerTest {
     @After
     fun tearDown() = server.close()
 
-    private fun checker() = UpdateChecker(server.url("/repos/aaronburt/satellite/releases/latest").toString())
+    private fun checker() = UpdateChecker(server.url("/repos/aaronburt/satellite/releases").toString())
 
     private fun respond(code: Int, body: String = "") =
         server.enqueue(MockResponse.Builder().code(code).body(body).build())
@@ -36,8 +36,8 @@ class UpdateCheckerTest {
     fun `reads the latest release`() = runBlocking {
         respond(
             200,
-            """{"tag_name":"v1.2.3","name":"Satellite 1.2.3","html_url":"https://example/r","body":"Notes",
-               "assets":[{"name":"satellite.apk","browser_download_url":"https://example/a.apk","size":10}]}""",
+            """[{"tag_name":"v1.2.3","name":"Satellite 1.2.3","html_url":"https://example/r","body":"Notes",
+               "assets":[{"name":"satellite.apk","browser_download_url":"https://example/a.apk","size":10}]}]""",
         )
 
         val release = checker().latestRelease()
@@ -49,13 +49,13 @@ class UpdateCheckerTest {
 
     @Test
     fun `asks GitHub for its JSON API with an identifying user agent`() = runBlocking {
-        respond(200, """{"tag_name":"v1.0.0"}""")
+        respond(200, """[{"tag_name":"v1.0.0","assets":[{"name":"satellite.apk"}]}]""")
 
         checker().latestRelease()
 
         val request = server.takeRequest()
         assertEquals("GET", request.method)
-        assertEquals("/repos/aaronburt/satellite/releases/latest", request.url.encodedPath)
+        assertEquals("/repos/aaronburt/satellite/releases", request.url.encodedPath)
         assertEquals("application/vnd.github+json", request.headers["Accept"])
         assertEquals("SatelliteAndroid", request.headers["User-Agent"])
     }
@@ -78,5 +78,20 @@ class UpdateCheckerTest {
     @Test
     fun `the app only ever checks its own repository`() {
         assertEquals("aaronburt/satellite", UpdateChecker.REPO)
+    }
+
+    @Test
+    fun `paginates past desktop releases using the original endpoint`() = runBlocking {
+        server.enqueue(
+            MockResponse.Builder().code(200)
+                .addHeader("Link", "<https://untrusted.invalid/page>; rel=\"next\"")
+                .body("""[{"tag_name":"desktop-v0.99","assets":[]}]""").build(),
+        )
+        respond(200, """[{"tag_name":"android-v0.48","assets":[{"name":"satellite.apk"}]}]""")
+        assertEquals("android-v0.48", checker().latestRelease().tag)
+        assertEquals("1", server.takeRequest().url.queryParameter("page"))
+        val second = server.takeRequest()
+        assertEquals("/repos/aaronburt/satellite/releases", second.url.encodedPath)
+        assertEquals("2", second.url.queryParameter("page"))
     }
 }

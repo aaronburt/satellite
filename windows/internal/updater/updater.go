@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -20,8 +21,10 @@ const (
 
 	// maxReleaseBody caps how much of the GitHub response is read. A release
 	// is a few KB; anything far larger is not a valid answer.
-	maxReleaseBody = 1 << 20
+	maxReleaseBody = 8 << 20
 )
+
+var desktopReleaseTag = regexp.MustCompile(`^(desktop-)?v[0-9]+\.[0-9]+(\.[0-9]+)?$`)
 
 type GitHubRelease struct {
 	TagName     string         `json:"tag_name"`
@@ -112,48 +115,67 @@ func (c *Checker) Check(ctx context.Context) (CheckStatus, error) {
 	currentVer := c.currentVersion
 	c.mu.RUnlock()
 
-	endpoint := fmt.Sprintf("%s/repos/%s/releases/latest", baseURL, repo)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return c.recordError(err)
-	}
-
-	req.Header.Set("User-Agent", "Satellite-Agent/"+currentVer)
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return c.recordError(err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var statusErr error
-		switch resp.StatusCode {
-		case http.StatusForbidden, http.StatusTooManyRequests:
-			statusErr = fmt.Errorf("github api rate limit exceeded")
-		case http.StatusNotFound:
-			statusErr = fmt.Errorf("github repository or releases not found")
-		default:
-			statusErr = fmt.Errorf("github api request failed with status %d", resp.StatusCode)
+	for page := 1; page <= 10; page++ {
+		endpoint := fmt.Sprintf("%s/repos/%s/releases?per_page=100&page=%d", baseURL, repo, page)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+		if err != nil {
+			return c.recordError(err)
 		}
-		return c.recordError(statusErr)
+		req.Header.Set("User-Agent", "Satellite-Agent/"+currentVer)
+		req.Header.Set("Accept", "application/vnd.github.v3+json")
+		resp, err := c.client.Do(req)
+		if err != nil {
+			return c.recordError(err)
+		}
+		body, readErr := io.ReadAll(io.LimitReader(resp.Body, maxReleaseBody+1))
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			switch resp.StatusCode {
+			case http.StatusForbidden, http.StatusTooManyRequests:
+				return c.recordError(fmt.Errorf("github api rate limit exceeded"))
+			case http.StatusNotFound:
+				return c.recordError(fmt.Errorf("github repository or releases not found"))
+			default:
+				return c.recordError(fmt.Errorf("github api request failed with status %d", resp.StatusCode))
+			}
+		}
+		if readErr != nil {
+			return c.recordError(readErr)
+		}
+		if len(body) > maxReleaseBody {
+			return c.recordError(fmt.Errorf("github api response too large"))
+		}
+		var releases []GitHubRelease
+		if err := json.Unmarshal(body, &releases); err != nil {
+			return c.recordError(err)
+		}
+		var selected *GitHubRelease
+		for i := range releases {
+			release := &releases[i]
+			if release.Draft || release.Prerelease || !desktopReleaseTag.MatchString(release.TagName) {
+				continue
+			}
+			hasAsset := false
+			for _, asset := range release.Assets {
+				if asset.Name == "satellite.exe" || asset.Name == "satellite-linux-amd64" || strings.HasPrefix(asset.Name, "Satellite-Setup-") && strings.HasSuffix(asset.Name, ".exe") {
+					hasAsset = true
+				}
+			}
+			if !hasAsset {
+				continue
+			}
+			if selected == nil || IsNewer(selected.TagName, release.TagName) {
+				selected = release
+			}
+		}
+		if selected != nil {
+			return c.applyRelease(*selected)
+		}
+		if !strings.Contains(resp.Header.Get("Link"), `rel="next"`) {
+			return c.applyRelease(GitHubRelease{})
+		}
 	}
-
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxReleaseBody+1))
-	if err != nil {
-		return c.recordError(err)
-	}
-	if len(body) > maxReleaseBody {
-		return c.recordError(fmt.Errorf("github api response too large"))
-	}
-
-	var release GitHubRelease
-	if err := json.Unmarshal(body, &release); err != nil {
-		return c.recordError(err)
-	}
-
-	return c.applyRelease(release)
+	return c.recordError(fmt.Errorf("no desktop release found in the first 1000 releases"))
 }
 
 func (c *Checker) applyRelease(release GitHubRelease) (CheckStatus, error) {
